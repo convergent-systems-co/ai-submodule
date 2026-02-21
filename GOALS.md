@@ -48,6 +48,7 @@ This document tracks the maturity phases, completed work, and open enhancements 
 
 | Issue | PR | Title | Impact |
 |-------|----|-------|--------|
+| #51 | #60 | Panel pass/fail criteria | Standardized scoring, schema, and local override system for all 15 panels |
 | #5 | #13 | Agile Coach persona | Sprint planning, velocity, retrospective guidance |
 | #6 | #15 | FinOps group | FinOps Engineer and FinOps Analyst personas |
 | #7 | #16 | MITRE Specialist | Threat modeling panel and MITRE ATT&CK mapping |
