@@ -35,7 +35,7 @@ gh api repos/{owner}/{repo}/branches --jq '.[].name'
 
 An issue is **actionable** if:
 - It has no associated branch matching `itsfwcp/*/*` or `feature/*` patterns
-- It is not labeled `blocked`, `wontfix`, or `duplicate`
+- It is not labeled `blocked`, `wontfix`, `duplicate`, or `refine`
 - It is not assigned to a human (or is assigned to an agentic persona)
 - It has not been updated in the last 24 hours by a human (avoid conflicts)
 
@@ -51,7 +51,10 @@ Sort actionable issues by:
 For the highest-priority actionable issue:
 1. Read the issue body
 2. Validate it has clear acceptance criteria or a reproducible description
-3. If the intent is unclear, comment on the issue asking for clarification and move to the next issue
+3. If the intent is unclear, has too many decision points, or lacks sufficient detail for action:
+   - Label the issue `refine`
+   - Comment on the issue explaining what needs clarification or which decisions must be made by the user
+   - Move to the next issue (the `refine` label excludes it from actionable issues until a human updates it)
 4. If the intent is clear, proceed to Step 5
 
 ### Step 5: Create Plan
@@ -101,19 +104,26 @@ If checks fail:
 
 #### 7b: Fetch Copilot Recommendations
 
-After checks complete, fetch Copilot code review comments:
+After checks complete, fetch Copilot findings from **all three comment sources** (each source is disjoint):
 
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --jq '[.[] | select(.user.login | test("copilot|github-advanced-security"; "i"))]'
-```
+1. **Inline code comments** (Copilot posts line-level suggestions and review thread comments here):
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/{pr_number}/comments --jq '[.[] | select(.user.login | test("copilot|github-advanced-security|copilot-pull-request-reviewer"; "i"))]'
+   ```
 
-Also fetch PR review comments (Copilot may post as a review):
+2. **PR reviews** (Copilot may post a top-level review summary):
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --jq '[.[] | select(.user.login | test("copilot|github-advanced-security|copilot-pull-request-reviewer"; "i"))]'
+   ```
 
-```bash
-gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews --jq '[.[] | select(.user.login | test("copilot|github-advanced-security"; "i"))]'
-```
+3. **Issue-level comments** (some bots post here instead of as reviews):
+   ```bash
+   gh api repos/{owner}/{repo}/issues/{pr_number}/comments --jq '[.[] | select(.user.login | test("copilot|github-advanced-security|copilot-pull-request-reviewer"; "i"))]'
+   ```
 
-If no Copilot comments exist yet and it has been less than 10 minutes since PR creation, wait and re-check. After 10 minutes, proceed without Copilot input (per `missing_panel_behavior: redistribute` in policy).
+**Waiting protocol:** Treat the wait window as the first 10 minutes after PR creation (using `created_at`). First, check all sources immediately. If no Copilot comments exist from any source, you may poll again **only while** (a) it is still less than 10 minutes since PR creation, (b) the remaining time until `created_at + 10 minutes` is at least 2 minutes, and (c) you have performed fewer than 5 total polling attempts. Between polls, sleep for up to 2 minutes but **never longer than the remaining time** before the 10-minute deadline (i.e., `sleep = min(2 minutes, remaining)`). Once either the 10-minute window has elapsed or you have reached 5 polling attempts, proceed without Copilot input (per `missing_panel_behavior: redistribute` in policy).
+
+**Do NOT merge until all sources have been checked.** The absence of Copilot findings must be confirmed, not assumed.
 
 #### 7c: Review Recommendations
 
