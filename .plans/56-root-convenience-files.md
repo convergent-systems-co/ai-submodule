@@ -2,7 +2,7 @@
 
 **Author:** Code Manager (agentic)
 **Date:** 2026-02-21
-**Status:** approved
+**Status:** completed
 **Issue:** https://github.com/SET-Apps/ai-submodule/issues/56
 **Branch:** itsfwcp/feat/56/root-convenience-files
 
