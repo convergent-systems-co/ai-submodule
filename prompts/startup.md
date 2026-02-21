@@ -212,6 +212,15 @@ Once governance approves (all checks pass, aggregate confidence meets threshold,
    gh issue close <issue-number> --comment "Merged via PR #<pr-number>. All governance checks passed."
    ```
 
+#### 7h: Retrospective
+
+After merge and before marking the plan as completed, run a lightweight retrospective per `prompts/retrospective.md`:
+
+1. Evaluate planning accuracy, review cycle count, and token cost observations
+2. Post findings as a comment on the closed issue
+3. If findings warrant governance changes, create a new issue labeled `enhancement`
+4. Skip if the issue was trivial or context capacity is above 70%
+
 6. Update the plan status to `completed` in `.plans/{issue-number}-*.md`.
 
 ### Step 8: Continue

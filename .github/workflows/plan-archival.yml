@@ -1,0 +1,184 @@
+name: Plan Archival
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+permissions:
+  contents: write
+  pull-requests: read
+  issues: write
+
+jobs:
+  archive:
+    name: archive-plans
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Detect plan files in merged PR
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -e
+          # Get files changed in the merged PR
+          PLANS=$(gh pr diff "$PR_NUMBER" --name-only | grep '^\.plans/' || true)
+          if [ -z "$PLANS" ]; then
+            echo "has_plans=false" >> "$GITHUB_OUTPUT"
+            echo "No plan files found in PR"
+          else
+            echo "has_plans=true" >> "$GITHUB_OUTPUT"
+            echo "$PLANS" > /tmp/plan-files.txt
+            echo "Plan files found:"
+            echo "$PLANS"
+          fi
+
+      - name: Extract issue number from PR
+        if: steps.detect.outputs.has_plans == 'true'
+        id: issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -e
+          # Use GitHub's linked closing issues API instead of regex parsing
+          ISSUE=$(gh pr view "$PR_NUMBER" --json closingIssuesReferences --jq '.closingIssuesReferences[0].number // empty' || true)
+          echo "number=${ISSUE}" >> "$GITHUB_OUTPUT"
+          echo "Issue: ${ISSUE:-none}"
+
+      - name: Generate "How we got here" summary
+        if: steps.detect.outputs.has_plans == 'true'
+        id: summary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+          MERGE_SHA: ${{ github.event.pull_request.merge_commit_sha }}
+        run: |
+          set -e
+          # Get commit history for the PR
+          COMMITS=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[] | "- \(.messageHeadline) (\(.oid[:7]))"')
+
+          # Extract plan objectives for the summary
+          OBJECTIVES=""
+          while IFS= read -r plan_file; do
+            if [ -f "$plan_file" ]; then
+              OBJ=$(sed -n '/^## 1\. Objective/,/^## 2\./p' "$plan_file" | head -n -1 | tail -n +2 | sed '/^$/d')
+              if [ -n "$OBJ" ]; then
+                OBJECTIVES="${OBJECTIVES}- **$(basename "$plan_file")**: ${OBJ}\n"
+              fi
+            else
+              echo "::warning::Plan file $plan_file not found, skipping objective extraction"
+            fi
+          done < /tmp/plan-files.txt
+
+          # Build the summary (write to file to avoid shell injection)
+          {
+            echo "## How We Got Here"
+            echo ""
+            echo "**PR:** #${PR_NUMBER} — ${PR_TITLE}"
+            echo "**Issue:** ${ISSUE_NUMBER:+#${ISSUE_NUMBER}}${ISSUE_NUMBER:-N/A}"
+            echo "**Merged at:** $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "**Merge commit:** ${MERGE_SHA:0:7}"
+            echo ""
+            if [ -n "$OBJECTIVES" ]; then
+              echo "### Objectives"
+              echo -e "$OBJECTIVES"
+            fi
+            echo "### Commits"
+            echo "$COMMITS"
+            echo ""
+            echo "### Plan Archive"
+            echo "The plan file(s) for this work have been archived as release assets on the [\`plans-archive\` release](../../releases/tag/plans-archive). Plan files have been removed from the repository tree to keep it clean."
+          } > /tmp/summary.md
+
+          echo "Generated summary"
+          cat /tmp/summary.md
+
+      - name: Create or get plans-archive release
+        if: steps.detect.outputs.has_plans == 'true'
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          # Create the release if it doesn't exist
+          if ! gh release view plans-archive &>/dev/null; then
+            gh release create plans-archive \
+              --title "Plan Archive" \
+              --notes "Archived plan documents from completed issues. These files were removed from the repo tree after merge to keep it clean. Each asset can be individually deleted when no longer needed." \
+              --latest=false
+            echo "Created plans-archive release"
+          else
+            echo "plans-archive release already exists"
+          fi
+
+      - name: Upload plan files to release
+        if: steps.detect.outputs.has_plans == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -e
+          while IFS= read -r plan_file; do
+            if [ -f "$plan_file" ]; then
+              BASENAME=$(basename "$plan_file")
+              # Copy to temp with desired name to avoid gh upload naming issues
+              ASSET_NAME="pr${PR_NUMBER}-${BASENAME}"
+              TEMP_FILE="/tmp/${ASSET_NAME}"
+              cp "$plan_file" "$TEMP_FILE"
+              echo "Uploading ${plan_file} as ${ASSET_NAME}"
+              gh release upload plans-archive "$TEMP_FILE" --clobber
+              rm -f "$TEMP_FILE"
+            else
+              echo "::warning::Plan file $plan_file not found, skipping upload"
+            fi
+          done < /tmp/plan-files.txt
+
+      - name: Post summary on issue
+        if: steps.detect.outputs.has_plans == 'true' && steps.issue.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ steps.issue.outputs.number }}
+        run: |
+          set -e
+          gh issue comment "$ISSUE_NUMBER" --body-file /tmp/summary.md
+
+      - name: Remove archived plans from repo
+        if: steps.detect.outputs.has_plans == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -e
+          # Switch to main for the cleanup commit
+          git checkout main
+          git pull origin main
+
+          REMOVED=false
+          while IFS= read -r plan_file; do
+            if [ -f "$plan_file" ]; then
+              git rm "$plan_file"
+              REMOVED=true
+            else
+              echo "::warning::Plan file $plan_file already removed from main"
+            fi
+          done < /tmp/plan-files.txt
+
+          if [ "$REMOVED" = "true" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "chore: archive plan files from PR #${PR_NUMBER}
+
+            Plan files moved to plans-archive release assets."
+            git pull --rebase origin main
+            git push origin main
+          fi
