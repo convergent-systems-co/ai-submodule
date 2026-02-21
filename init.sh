@@ -35,6 +35,35 @@ else
 fi
 
 
+# Issue templates — copy to consuming repo's .github/ISSUE_TEMPLATE/
+# Gate: only copy when .ai is a submodule (consuming repo context).
+# When running inside ai-submodule itself, templates are already committed
+# at .github/ISSUE_TEMPLATE/ and don't need copying.
+IS_SUBMODULE=false
+if [ -f "$PROJECT_ROOT/.gitmodules" ] && grep -q '\.ai' "$PROJECT_ROOT/.gitmodules" 2>/dev/null; then
+  IS_SUBMODULE=true
+fi
+
+if [ "$IS_SUBMODULE" = "true" ]; then
+  TEMPLATE_SRC="$SCRIPT_DIR/.github/ISSUE_TEMPLATE"
+  TEMPLATE_DST="$PROJECT_ROOT/.github/ISSUE_TEMPLATE"
+  if [ -d "$TEMPLATE_SRC" ]; then
+    mkdir -p "$TEMPLATE_DST"
+    for tmpl in "$TEMPLATE_SRC"/*.yml; do
+      [ -f "$tmpl" ] || continue
+      TMPL_NAME=$(basename "$tmpl")
+      if [ ! -f "$TEMPLATE_DST/$TMPL_NAME" ]; then
+        cp "$tmpl" "$TEMPLATE_DST/$TMPL_NAME"
+        echo "  Copied issue template $TMPL_NAME"
+      else
+        echo "  Issue template $TMPL_NAME already exists, skipping"
+      fi
+    done
+  fi
+else
+  echo "  Skipping issue template copy (not a submodule context)"
+fi
+
 echo "Done. Symlinks created."
 echo ""
 echo "Next steps:"
