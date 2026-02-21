@@ -20,5 +20,5 @@ venv/
 .cursor/
 .vscode/
 
-# Checkpoints (runtime, not committed)
-.checkpoints/
+# Checkpoints (runtime state, not committed — but keep the directory)
+.checkpoints/*.json

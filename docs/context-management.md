@@ -183,15 +183,52 @@ When a context window fills, the AI runtime may truncate or summarize early cont
 - Active persona definitions (Tier 1)
 - Governance constraints
 
+Uncontrolled compaction is the worst outcome. If the context compacts while the working tree has uncommitted changes, merge conflicts, or in-progress operations, the agent loses both the instructions that explain what it was doing and the ability to recover cleanly. This must never happen.
+
+### Capacity Shutdown Protocol
+
+**This is the primary defense against context loss. It is mandatory and overrides all other work.**
+
+The agent must check context capacity before starting any new issue, and after completing each major step (plan, implement, review, merge). When context reaches 80% capacity:
+
+1. **Stop immediately** — do not start the next task, issue, or step
+2. **Clean all git state**:
+   - Run `git status` on every branch touched in the session
+   - Commit any pending changes with a `wip:` prefix if needed
+   - Abort any in-progress merges (`git merge --abort`) or rebases (`git rebase --abort`)
+   - Verify `git status` shows `nothing to commit, working tree clean`
+3. **Write a checkpoint** to `.checkpoints/{timestamp}-{branch}.json`:
+   ```json
+   {
+     "timestamp": "2026-02-21T14:30:00Z",
+     "branch": "itsfwcp/current-branch",
+     "issues_completed": ["#5", "#6"],
+     "issues_remaining": ["#7", "#8"],
+     "current_issue": null,
+     "current_step": "Completed Step 7 for issue #6",
+     "git_state": "clean",
+     "pending_work": "Issues #7 and #8 need implementation. PRs #13-#15 need governance approval.",
+     "prs_created": ["#13", "#14", "#15"],
+     "manifests_written": ["20260221-143000-abc1234"],
+     "branches_touched": ["itsfwcp/5-agile-coach", "itsfwcp/6-finops-group"]
+   }
+   ```
+4. **Report to user** — summarize what was completed, what remains, and the checkpoint file path
+5. **Request context reset** — tell the user to run `/clear` and provide the checkpoint path for the next session to read
+
+### Checkpoint Recovery
+
+When resuming from a checkpoint:
+1. Read the checkpoint file referenced by the user
+2. Verify git state matches the checkpoint (`git branch`, `git status`)
+3. Load only the Tier 1 + Tier 2 context needed for the next pending task
+4. Continue from where the checkpoint left off
+
 ### Protection Mechanisms
 
 1. **Tier 0 pinning**: Base instructions are re-injected at every agent turn as system-level context. They are never part of the conversation history that gets truncated.
 
-2. **Checkpoint artifacts**: At each workflow gate, the agent writes a checkpoint file:
-   ```
-   .checkpoints/{task-id}-phase-{n}.json
-   ```
-   Contains: current state, decisions made, findings so far. If context resets, the agent reads the checkpoint to resume.
+2. **Checkpoint artifacts**: At each workflow gate, the agent writes a checkpoint file to `.checkpoints/`. Contains: current state, decisions made, findings so far. If context resets, the agent reads the checkpoint to resume.
 
 3. **Context budget monitoring**: Track approximate token usage per tier. When Tier 2 exceeds budget, the agent must:
    - Write current findings to a checkpoint

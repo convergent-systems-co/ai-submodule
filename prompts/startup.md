@@ -76,12 +76,40 @@ Return to Step 1. Pick the next actionable issue. Repeat until no actionable iss
 - Always comment on the issue before starting work (announce intent)
 - If any step fails, log the failure and move to the next issue
 - Respect rate limits: maximum 5 issues per session
-- If the context window is getting full, checkpoint progress and stop cleanly
+- **Context capacity is a hard constraint** — check before starting each new issue and after every major step (plan, implement, review, merge)
+
+## Context Capacity Shutdown Protocol
+
+**This protocol is mandatory. Violating it causes irrecoverable loss of instructions and working context.**
+
+Check context capacity before every new issue and after every major step. When at or above 80%:
+
+1. **Stop immediately** — do not start the next issue or step
+2. **Clean git state** — commit pending changes, abort any in-progress merges or rebases, ensure `git status` shows a clean working tree on every branch you touched
+3. **Write checkpoint** — save to `.checkpoints/{timestamp}-{branch}.json`:
+   ```json
+   {
+     "timestamp": "ISO-8601",
+     "branch": "current branch name",
+     "issues_completed": ["#N", "#M"],
+     "issues_remaining": ["#X", "#Y"],
+     "current_issue": "#Z or null",
+     "current_step": "Step N description",
+     "git_state": "clean",
+     "pending_work": "description of what remains",
+     "prs_created": ["#A", "#B"],
+     "manifests_written": ["manifest-id-1"]
+   }
+   ```
+4. **Report to user** — summarize completed work, remaining work, and the checkpoint location
+5. **Request context reset** — tell the user to run `/clear` and reference the checkpoint file path to resume
+
+**Never allow context to reach compaction.** A compaction with uncommitted changes, merge conflicts, or in-progress operations destroys instructions that cannot be recovered.
 
 ## Exit Conditions
 
 Stop the loop when:
 - No actionable issues remain
 - 5 issues have been processed in this session
-- Context window is at 80% capacity
+- **Context window is at or above 80% capacity** — execute the shutdown protocol above before doing anything else
 - A human sends a message (human input takes priority)

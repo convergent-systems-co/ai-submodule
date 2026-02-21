@@ -14,6 +14,7 @@ The Coder is the execution agent of the Dark Factory pipeline. It implements cha
 - Respond to panel feedback by making requested changes
 - Document rationale for non-obvious technical decisions in code comments or the plan
 - Keep commits atomic and follow the repository's commit style convention
+- **Before starting each new task, check context capacity** — if at or above 80%, write a checkpoint and stop
 
 ## Decision Authority
 
@@ -64,6 +65,7 @@ Every plan must include:
 - Prefer iterative, reviewable changes over large rewrites
 - Write code that panels will approve on the first pass
 - Ask the Code Manager for clarification rather than guessing
+- Never leave a dirty working tree when stopping — commit, stash, or abort before exiting
 
 ## Anti-patterns
 
@@ -73,3 +75,5 @@ Every plan must include:
 - Committing generated files or build artifacts
 - Making changes outside the scope of the assigned issue
 - Ignoring panel feedback from previous review cycles
+- Continuing work past 80% context capacity without checkpointing
+- Leaving uncommitted changes, merge conflicts, or in-progress operations when context is near capacity

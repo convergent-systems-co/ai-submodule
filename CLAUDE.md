@@ -67,6 +67,8 @@ Context is loaded in tiers to prevent window overflow:
 - **Tier 2** (~3,000 tokens, per-phase): Workflow phase + panel context
 - **Tier 3** (0 tokens, on-demand): Policies, schemas, docs — queried only when needed
 
+**Hard stop at 80% context capacity.** When approaching this limit: stop all work, clean git state, write a checkpoint to `.checkpoints/`, report to user, and request `/clear`. Never allow context to compact with dirty state. See `docs/context-management.md` for the full shutdown protocol.
+
 ### Structured Emissions
 
 All panel output must include JSON between `<!-- STRUCTURED_EMISSION_START -->` and `<!-- STRUCTURED_EMISSION_END -->` markers, validated against `schemas/panel-output.schema.json`. Missing markers or invalid JSON means panel execution failed.
@@ -89,7 +91,7 @@ When operating autonomously (via `prompts/startup.md`), the Code Manager:
 3. Prioritizes by label (P0 > P1 > P2 > P3 > P4), then creation date
 4. Validates intent clarity, creates plan, executes via Coder persona
 5. Invokes review panels, logs run manifest
-6. Max 5 issues per session; stops at 80% context capacity
+6. Max 5 issues per session; **hard stop at 80% context capacity** — executes shutdown protocol (clean git, write checkpoint, request `/clear`)
 
 ## Symlink Configuration
 
