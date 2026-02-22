@@ -1,0 +1,39 @@
+# Severity reclassification rules for runtime signals
+# Applied after signal normalization, before entering the governance pipeline
+# See: governance/docs/runtime-feedback-architecture.md Section 1
+
+reclassification_rules:
+  version: "1.0.0"
+
+  # Security signals are never downgraded
+  - condition:
+      category: "security"
+      source_severity: ["critical", "high"]
+    action: "preserve"
+    rationale: "Security signals at critical/high are trusted from source."
+
+  # SLA violations inherit the SLA tier severity
+  - condition:
+      category: "sla_violation"
+    action: "map_to_sla_tier"
+    mapping:
+      tier_1: "critical"    # Customer-facing, revenue-impacting
+      tier_2: "high"        # Internal SLA, cross-team dependency
+      tier_3: "medium"      # Best-effort SLA
+    rationale: "SLA tier determines business impact."
+
+  # Repeated low-severity signals escalate
+  - condition:
+      severity: "low"
+      repeat_count_1h:
+        gte: 10
+    action: "escalate"
+    new_severity: "medium"
+    rationale: "Volume of low-severity signals indicates systemic issue."
+
+  # Signals affecting multiple components escalate
+  - condition:
+      affected_components_secondary_count:
+        gte: 3
+    action: "escalate_by_one"
+    rationale: "Blast radius across 3+ components indicates broader impact."

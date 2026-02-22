@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Baseline",
+  "description": "Baseline snapshot schema for drift detection. Baselines are captured after merge events and used to compare against runtime state.",
+  "type": "object",
+  "required": [
+    "baseline_id",
+    "component",
+    "manifest_id",
+    "established_at",
+    "baseline_type",
+    "snapshot",
+    "validity"
+  ],
+  "properties": {
+    "baseline_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this baseline."
+    },
+    "component": {
+      "type": "string",
+      "description": "Component this baseline applies to. Must match a component in the component registry."
+    },
+    "manifest_id": {
+      "type": "string",
+      "description": "Reference to the merge manifest that established this baseline."
+    },
+    "established_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the baseline was captured."
+    },
+    "baseline_type": {
+      "type": "string",
+      "enum": ["configuration", "behavior", "performance", "compliance"],
+      "description": "Category of baseline."
+    },
+    "snapshot": {
+      "type": "object",
+      "description": "The baseline data, varying by baseline_type.",
+      "properties": {
+        "configuration": {
+          "type": "object",
+          "description": "Full config snapshot as key-value pairs.",
+          "additionalProperties": true
+        },
+        "behavior": {
+          "type": "object",
+          "properties": {
+            "error_rate_baseline": { "type": "number" },
+            "latency_p50_baseline": { "type": "number" },
+            "latency_p99_baseline": { "type": "number" },
+            "throughput_baseline": { "type": "number" },
+            "error_codes_observed": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "performance": {
+          "type": "object",
+          "properties": {
+            "latency_p50_24h": { "type": "number" },
+            "latency_p99_24h": { "type": "number" },
+            "throughput_peak_24h": { "type": "number" },
+            "memory_p95_24h": { "type": "number" },
+            "cpu_p95_24h": { "type": "number" },
+            "gc_pause_p99_24h": { "type": "number" }
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "properties": {
+            "policy_profile": { "type": "string" },
+            "controls_passing": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "controls_not_applicable": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "evaluation_timestamp": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        }
+      }
+    },
+    "validity": {
+      "type": "object",
+      "required": ["valid_until"],
+      "properties": {
+        "valid_until": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Baselines expire and must be refreshed."
+        },
+        "superseded_by": {
+          "type": ["string", "null"],
+          "description": "Baseline ID that supersedes this one, or null if current."
+        }
+      }
+    }
+  }
+}

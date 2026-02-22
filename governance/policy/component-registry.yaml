@@ -1,0 +1,62 @@
+# Component criticality and ownership registry
+# Defines component metadata used by drift detection, signal routing, and severity calculation
+# See: governance/docs/runtime-feedback-architecture.md Section 4
+#
+# Consuming repositories should override this file with their own component definitions.
+# This file provides the schema and example entries.
+
+component_registry:
+  version: "1.0.0"
+
+  # Criticality levels and their scores (used in drift severity calculation)
+  criticality_levels:
+    critical:
+      score: 1.0
+      description: "Revenue-impacting, customer-facing, security boundary"
+      drift_detection_schedule:
+        configuration: 15   # minutes
+        behavior: continuous
+        performance: 60     # minutes
+        compliance: 360     # minutes (6 hours)
+    high:
+      score: 0.75
+      description: "Internal SLA, cross-team dependency"
+      drift_detection_schedule:
+        configuration: 30
+        behavior: continuous
+        performance: 60
+        compliance: 360
+    standard:
+      score: 0.5
+      description: "Standard service, limited blast radius"
+      drift_detection_schedule:
+        configuration: 60
+        behavior: continuous
+        performance: 60
+        compliance: 1440   # 24 hours
+    low:
+      score: 0.25
+      description: "Non-production, experimental, internal tooling"
+      drift_detection_schedule:
+        configuration: 60
+        behavior: continuous
+        performance: 60
+        compliance: 1440
+
+  # Example component entries (consuming repos replace these)
+  components: []
+  # components:
+  #   - name: "auth-service"
+  #     criticality: "critical"
+  #     owner: "platform-team"
+  #     policy_profile: "fin_pii_high"
+  #     dependencies:
+  #       - "user-database"
+  #       - "token-service"
+  #   - name: "admin-dashboard"
+  #     criticality: "standard"
+  #     owner: "internal-tools-team"
+  #     policy_profile: "default"
+  #     dependencies:
+  #       - "auth-service"
+  #       - "reporting-api"
