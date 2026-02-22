@@ -1,15 +1,18 @@
 name: Issue Monitor
 
-# Triggers when a new issue is opened or an issue is labeled.
-# Evaluates the issue for actionability, then dispatches to Claude
-# for autonomous processing via the governance startup loop.
+# Manual-only trigger for now. Evaluates the specified issue for
+# actionability, then dispatches to Claude for autonomous processing
+# via the governance startup loop.
 #
-# Note: The concurrency group prevents duplicate runs when an issue
-# is opened and labeled in quick succession.
+# Note: The concurrency group prevents duplicate runs for the same issue.
 
 on:
-  issues:
-    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to process'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -17,7 +20,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: issue-monitor-${{ github.event.issue.number }}
+  group: issue-monitor-${{ inputs.issue_number }}
   cancel-in-progress: true
 
 jobs:
@@ -30,6 +33,7 @@ jobs:
     outputs:
       actionable: ${{ steps.check.outputs.actionable }}
       reason: ${{ steps.check.outputs.reason }}
+      issue_title: ${{ steps.check.outputs.issue_title }}
     steps:
       - uses: actions/checkout@v4
 
@@ -37,11 +41,26 @@ jobs:
         id: check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          ISSUE_LABELS: ${{ toJson(github.event.issue.labels) }}
-          ISSUE_ASSIGNEES: ${{ toJson(github.event.issue.assignees) }}
-          ISSUE_UPDATED_AT: ${{ github.event.issue.updated_at }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
         run: |
+          # Fetch issue data via API
+          ISSUE_JSON=$(gh api "repos/${{ github.repository }}/issues/$ISSUE_NUMBER")
+          ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
+          ISSUE_LABELS=$(echo "$ISSUE_JSON" | jq '.labels')
+          ISSUE_ASSIGNEES=$(echo "$ISSUE_JSON" | jq '.assignees')
+          ISSUE_UPDATED_AT=$(echo "$ISSUE_JSON" | jq -r '.updated_at')
+          ISSUE_STATE=$(echo "$ISSUE_JSON" | jq -r '.state')
+
+          echo "issue_title=$ISSUE_TITLE" >> "$GITHUB_OUTPUT"
+
+          # Check if issue is open
+          if [ "$ISSUE_STATE" != "open" ]; then
+            echo "actionable=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Issue is not open (state: $ISSUE_STATE)" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping issue #$ISSUE_NUMBER — not open"
+            exit 0
+          fi
+
           # Check for exclusion labels
           EXCLUDE_LABELS="blocked wontfix duplicate refine"
           for label in $EXCLUDE_LABELS; do
@@ -63,14 +82,12 @@ jobs:
           fi
 
           # Check if updated by a human in the last 24 hours (per startup.md)
-          if [ -n "$ISSUE_UPDATED_AT" ]; then
+          if [ -n "$ISSUE_UPDATED_AT" ] && [ "$ISSUE_UPDATED_AT" != "null" ]; then
             UPDATED_EPOCH=$(date -d "$ISSUE_UPDATED_AT" +%s 2>/dev/null || echo "0")
             NOW_EPOCH=$(date +%s)
             if [ "$UPDATED_EPOCH" -gt 0 ]; then
-              AGE_HOURS=$(( (NOW_EPOCH - UPDATED_EPOCH) / 3600 ))
-              # For 'opened' events the updated_at equals created_at, so skip the
-              # 24h check on brand-new issues (age < 1 minute is effectively "just created")
               AGE_SECONDS=$(( NOW_EPOCH - UPDATED_EPOCH ))
+              AGE_HOURS=$(( AGE_SECONDS / 3600 ))
               if [ "$AGE_SECONDS" -gt 60 ] && [ "$AGE_HOURS" -lt 24 ]; then
                 echo "actionable=false" >> "$GITHUB_OUTPUT"
                 echo "reason=Issue was updated by a human within the last 24 hours" >> "$GITHUB_OUTPUT"
@@ -126,10 +143,10 @@ jobs:
             Read governance/prompts/startup.md for the full agentic loop specification.
 
             An issue has been created or updated that needs processing:
-            - Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}
+            - Issue #${{ inputs.issue_number }}: ${{ needs.evaluate.outputs.issue_title }}
             - Repository: ${{ github.repository }}
 
-            Enter the Startup Sequence at Step 4 (Validate Intent) for issue #${{ github.event.issue.number }}.
+            Enter the Startup Sequence at Step 4 (Validate Intent) for issue #${{ inputs.issue_number }}.
             Follow all governance steps through Step 7 (PR Monitoring & Review Loop).
 
             Key constraints:
@@ -138,6 +155,7 @@ jobs:
             - Create a PR referencing the issue
             - Monitor CI checks and Copilot recommendations
             - Maximum 3 review cycles per PR
+            - Update all affected documentation before committing (Step 6.4)
           allowed_tools: "Bash(git:*),Bash(gh:*),Bash(python:*),Bash(pip:*),Bash(npm:*),Bash(curl:*),Bash(sleep:*),Bash(date:*),Bash(mkdir:*),Bash(chmod:*),View,GlobTool,GrepTool,BatchTool,FileWriteTool,FileEditTool"
           max_turns: 50
           model: ${{ vars.CLAUDE_MODEL || 'claude-sonnet-4-20250514' }}
@@ -155,7 +173,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ISSUE_NUMBER="${{ github.event.issue.number }}"
+          ISSUE_NUMBER="${{ inputs.issue_number }}"
           REPO="${{ github.repository }}"
 
           echo "Assigning issue #$ISSUE_NUMBER to Copilot coding agent..."

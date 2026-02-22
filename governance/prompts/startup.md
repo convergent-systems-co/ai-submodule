@@ -98,13 +98,24 @@ For the highest-priority actionable issue:
 1. Adopt the Coder persona (`governance/personas/agentic/coder.md`)
 2. Implement the plan
 3. Write tests (if applicable to the change type)
-4. Commit with conventional commit messages — one logical change per commit (Git Commit Isolation)
-5. Push the branch
-6. Create a PR referencing the issue:
+4. **Update documentation (mandatory)** — Review all changes made in steps 2–3 and update every affected documentation file in the same commit(s). This is not optional and must not be deferred to a follow-up PR. Check each category:
+   - **`GOALS.md`** — Check off completed items (`- [x]`), add issue/PR to the "Completed Work" section if the work closes a goals item
+   - **`CLAUDE.md`** (root and `.ai/`) — Update if personas, panels, phases, conventions, architecture descriptions, or counts changed
+   - **`README.md`** — Update if bootstrap process, architecture overview, or policy descriptions changed
+   - **`DEVELOPER_GUIDE.md`** — Update if onboarding-relevant information, setup steps, or workflow descriptions changed
+   - **`governance/docs/*.md`** — Update architecture docs if governance layers, persona/panel definitions, context management, or policy logic changed
+   - **Schema files** (`governance/schemas/`) — Update if structured emission formats, manifest structures, or panel output contracts changed
+   - **Policy files** (`governance/policy/`) — Update if merge decision logic, thresholds, or profile configurations changed
+   - **`instructions/*.md`** — Update if code quality, security, testing, or communication guidance changed
+
+   If no documentation files are affected (e.g., a purely internal refactor with no user-facing or governance-facing changes), explicitly note this in the commit message body: `Docs: no documentation updates required — [reason]`.
+5. Commit with conventional commit messages — one logical change per commit (Git Commit Isolation)
+6. Push the branch
+7. Create a PR referencing the issue:
    ```bash
    gh pr create --title "<type>: <description>" --body "Closes #<issue-number>\n\n## Summary\n<description>\n\n## Plan\nSee .plans/<issue-number>-<description>.md"
    ```
-7. Comment on the issue that the PR has been created:
+8. Comment on the issue that the PR has been created:
    ```bash
    gh issue comment <issue-number> --body "PR #<pr-number> created. Entering monitoring loop."
    ```
@@ -244,11 +255,12 @@ Once governance approves (all checks pass, aggregate confidence meets threshold,
 After merge and before marking the plan as completed, run a lightweight retrospective per `governance/prompts/retrospective.md`:
 
 1. Evaluate planning accuracy, review cycle count, and token cost observations
-2. Post findings as a comment on the closed issue
-3. If findings warrant governance changes, create a new issue labeled `enhancement`
-4. Skip if the issue was trivial or context capacity is above 70%
+2. **Verify documentation completeness** — Confirm that all documentation categories from Step 6.4 were addressed during implementation. If any were missed (e.g., `GOALS.md` not updated for a goals-related issue, `CLAUDE.md` counts not updated after adding personas), create a follow-up issue labeled `docs` to track the gap. Do not re-open or amend the merged PR.
+3. Post findings as a comment on the closed issue (include documentation verification status)
+4. If findings warrant governance changes, create a new issue labeled `enhancement`
+5. Skip retrospective detail if the issue was trivial or context capacity is above 70% — but **never skip the documentation verification in substep 2**
 
-5. Update the plan status to `completed` in `.plans/{issue-number}-*.md`.
+6. Update the plan status to `completed` in `.plans/{issue-number}-*.md`.
 
 #### 7i: Mandatory Checkpoint (Between Issues)
 
@@ -272,7 +284,7 @@ If **no actionable issues remain** after Step 3 (all issues are closed, blocked,
 4. For the highest-priority unchecked item that is sufficiently clear to act on:
    a. **Create a GitHub issue** from the GOALS.md item, with a title matching the item text and a body describing the scope from the surrounding context in GOALS.md. Label it with the appropriate label (`enhancement` for features, `bug` for defects).
    b. **Enter the Startup Sequence at Step 4** (Validate Intent) with the newly created issue.
-5. When that issue is eventually merged (during the retrospective at Step 7h), update `GOALS.md` to check off the completed item (`- [x]`) and add the issue/PR to the "Completed Work" section.
+5. `GOALS.md` updates for the completed item are handled by the mandatory documentation step (Step 6.4) as part of the implementation commit. The retrospective (Step 7h) verifies completeness.
 6. If the highest-priority unchecked item is too vague to act on, skip it and move to the next unchecked item. Do not create an issue for vague items — note them for a future planning pass.
 7. If no unchecked GOALS.md items remain (or all remaining items are too vague), the loop exits.
 
@@ -282,6 +294,7 @@ Repeat until no actionable issues or goals remain, or a hard limit is reached.
 
 - Never work on more than one issue simultaneously (sequential, not parallel)
 - Always create a plan before writing code
+- **Always update documentation before committing** — Step 6.4 documentation review is mandatory for every issue
 - Always comment on the issue before starting work (announce intent)
 - Always create an issue before starting work (even for in-session tasks)
 - If any step fails, log the failure and move to the next issue

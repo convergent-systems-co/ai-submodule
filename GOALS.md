@@ -1,6 +1,6 @@
 # Goals and Status — Dark Factory Governance Platform
 
-This document tracks the maturity phases, completed work, and open enhancements for the governance platform. Updated as part of the agent's post-merge retrospective process.
+This document tracks the maturity phases, completed work, and open enhancements for the governance platform. Updated as part of the implementation commit (Step 6.4) and verified during the post-merge retrospective.
 
 ## Phase Status
 
@@ -62,6 +62,8 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | Issue | PR | Title | Impact |
 |-------|----|-------|--------|
 | #68 | #69 | Drift detection schemas and policy config | 2 JSON schemas + 8 YAML policy files for Phase 4b drift detection |
+| #71 | #72 | Simplify install with single-command setup | Streamlined bootstrap with venv support |
+| #73 | #74 | Issue monitor (local scripts + GitHub Actions) | GitHub Actions workflow + local shell/PowerShell scripts for autonomous issue dispatch |
 
 ## Open Work
 
