@@ -46,8 +46,8 @@ Every code change flows through these layers in order:
 
 ### Persona and Panel System
 
-- **Personas** (`governance/personas/`) — 42 role definitions across 11 categories. Each defines Role, Evaluate For, Output Format, Principles, Anti-patterns. They are reasoning roles, not model prompts.
-- **Panels** (`governance/personas/panels/`) — 15 multi-persona review workflows. Panels coordinate personas and emit structured JSON conforming to `governance/schemas/panel-output.schema.json`.
+- **Personas** (`governance/personas/`) — 57 role definitions across 13 categories. Each defines Role, Evaluate For, Output Format, Principles, Anti-patterns. They are reasoning roles, not model prompts.
+- **Panels** (`governance/personas/panels/`) — 16 multi-persona review workflows. Panels coordinate personas and emit structured JSON conforming to `governance/schemas/panel-output.schema.json`.
 - **Agentic personas** (`governance/personas/agentic/`) — Code Manager (orchestrator, never writes code) and Coder (executor, follows Code Manager direction).
 
 ### Policy Engine

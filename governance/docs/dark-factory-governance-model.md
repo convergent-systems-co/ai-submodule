@@ -94,23 +94,25 @@ It does NOT govern:
 
 The governance model operates on the following existing components:
 
-**Personas (42 across 11 categories):**
+**Personas (57 across 13 categories):**
 
 | Category | Count | Directory |
 |----------|-------|-----------|
 | Architecture | 3 | `governance/personas/architecture/` |
 | Compliance | 4 | `governance/personas/compliance/` |
 | Documentation | 2 | `governance/personas/documentation/` |
-| Domain Specific | 5 | `governance/personas/domain/` |
+| Domain Specific | 6 | `governance/personas/domain/` |
 | Engineering | 6 | `governance/personas/engineering/` |
 | FinOps | 2 | `governance/personas/finops/` |
 | Governance | 2 | `governance/personas/governance/` |
+| Language Specific | 11 | `governance/personas/language/` |
 | Leadership | 5 | `governance/personas/leadership/` |
 | Operations & Reliability | 6 | `governance/personas/operations/` |
+| Platform Specific | 2 | `governance/personas/platform/` |
 | Code Quality | 3 | `governance/personas/quality/` |
 | Special Purpose | 4 | `governance/personas/specialist/` |
 
-**Panels (15 multi-persona panels):**
+**Panels (16 multi-persona panels):**
 
 | Panel | Participants | Primary Governance Layer |
 |-------|-------------|------------------------|
@@ -119,6 +121,7 @@ The governance model operates on the following existing components:
 | Architecture Review | 5 | Cognitive (L2) / Execution (L3) |
 | Code Review | 5 | Execution (L3) |
 | Copilot Review | 5 | Execution (L3) |
+| Cost Analysis | 4 | Execution (L3) |
 | Data Design Review | 5 | Cognitive (L2) / Execution (L3) |
 | Documentation Review | 5 | Execution (L3) |
 | Incident Post-Mortem | 5 | Runtime (L4) |
@@ -1445,7 +1448,7 @@ Each step can be adopted independently. Steps 1-4 are additive with zero risk. S
 +---------------------+--------------------------------------------------+
 |                     |                                                  |
 | L3: Execution       | Coder (implementation)                           |
-|                     | All panel participants (15 panels)                |
+|                     | All panel participants (16 panels)                |
 |                     | Test Engineer (test validation)                  |
 |                     | Policy Engine (automated, not a persona)          |
 |                     |                                                  |
