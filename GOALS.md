@@ -57,6 +57,12 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #6 | #15 | FinOps group | FinOps Engineer and FinOps Analyst personas |
 | #7 | #16 | MITRE Specialist | Threat modeling panel and MITRE ATT&CK mapping |
 
+### Governance Infrastructure
+
+| Issue | PR | Title | Impact |
+|-------|----|-------|--------|
+| #68 | #69 | Drift detection schemas and policy config | 2 JSON schemas + 8 YAML policy files for Phase 4b drift detection |
+
 ## Open Work
 
 ### Needs Refinement
@@ -70,7 +76,7 @@ This document tracks the maturity phases, completed work, and open enhancements 
 
 The following Phase 4b capabilities are designed but not yet implemented:
 
-- [ ] **Drift detection** — Runtime monitoring for compliance regression
+- [x] **Drift detection** — Schemas and policy configuration files created (PR #69); runtime implementation pending
 - [ ] **Auto-remediation loops** — Automatic fix generation for detected drift
 - [ ] **Incident-to-DI generation** — Runtime anomalies automatically create Design Intents
 
