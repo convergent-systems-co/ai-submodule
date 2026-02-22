@@ -44,6 +44,8 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #36 | #47 | Dark Factory Next Steps | Goals section in README, Developer Quick Guide, GOALS.md cleanup |
 | #49 | #52 | Missing panel emissions | Added security-review and ai-expert-review baseline emissions |
 | #50 | #57 | Fix persona/panel counts | Corrected counts in CLAUDE.md and governance model doc |
+| #56 | #62 | Root-level convenience files | Added startup.md and init.md at repo root for discoverability |
+| #59 | #66 | Windows support | PowerShell bootstrap (init.ps1) with dependency checks and symlink/copy fallback |
 
 ### Personas and Panels
 
