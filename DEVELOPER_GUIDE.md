@@ -174,13 +174,14 @@ AI context windows are finite. The framework uses tiered loading:
   templates/                 # Language-specific scaffolding (go, python, node, react, csharp)
   governance/
     personas/                # 60 persona definitions (including 2 agentic) + 16 panels
-    policy/                  # 3 deterministic policy profiles (YAML)
-    schemas/                 # JSON Schema for emissions and manifests
+    policy/                  # 3 policy profiles + supporting rules (13 YAML files + signal-adapters/)
+    schemas/                 # 13 JSON Schemas for emissions, manifests, metrics, and validation
     prompts/                 # Reusable prompts and workflows
     docs/                    # Architecture and design documents
     emissions/               # Panel output (structured JSON)
     manifests/               # Run manifests (audit trail)
-  .plans/                    # Implementation plans
+  .plans/                    # Implementation plans (created in consuming repos by init.sh)
+  .panels/                   # Panel review reports (created in consuming repos by init.sh)
   .checkpoints/              # Session state checkpoints
   .governance/               # Policy engine runtime (Python)
 ```

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is the **Dark Factory Governance Platform** — an AI governance framework for autonomous software delivery, distributed as a git submodule to consuming repositories. It contains no application source code; it is entirely configuration, policy, schemas, and documentation.
 
-Current maturity: **Phase 4a (Policy-Bound Autonomy)**. Phases 4b and 5 are designed but not implemented.
+Current maturity: **Phase 4b (Autonomous Remediation)** — all governance artifacts implemented. Phase 5 sub-phases (5a-5e) are defined with achievability assessments; select 5b artifacts (retrospective aggregation, threshold auto-tuning) are implemented.
 
 ## Repository Commands
 

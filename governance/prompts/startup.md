@@ -430,7 +430,7 @@ Once governance approves (all checks pass, aggregate confidence meets threshold,
 After merge and before marking the plan as completed, run a lightweight retrospective per `governance/prompts/retrospective.md`:
 
 1. Evaluate planning accuracy, review cycle count, and token cost observations
-2. **Verify documentation completeness** — Confirm that all documentation categories from Step 6.4 were addressed during implementation. If any were missed (e.g., `GOALS.md` not updated for a goals-related issue, `CLAUDE.md` counts not updated after adding personas), create a follow-up issue labeled `docs` to track the gap. Do not re-open or amend the merged PR.
+2. **Verify documentation completeness** — Confirm that all documentation categories from Step 6.4 were addressed during implementation. Explicitly check each of the four primary docs (`GOALS.md`, `README.md`, `DEVELOPER_GUIDE.md`, `CLAUDE.md`) for consistency with the merged change — phase status, feature claims, file structure listings, persona/panel counts, and architecture descriptions must agree across all four files. If any were missed (e.g., `GOALS.md` not updated for a goals-related issue, `README.md` phase status not updated when a phase is completed, `CLAUDE.md` counts not updated after adding personas), create a follow-up issue labeled `docs` to track the gap. Do not re-open or amend the merged PR.
 3. Post findings as a comment on the closed issue (include documentation verification status)
 4. If findings warrant governance changes, create a new issue labeled `enhancement`
 5. Skip retrospective detail if the issue was trivial or context capacity is above 70% — but **never skip the documentation verification in substep 2**

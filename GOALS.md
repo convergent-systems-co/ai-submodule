@@ -65,10 +65,23 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #71 | #72 | Simplify install with single-command setup | Streamlined bootstrap with venv support |
 | #73 | #74 | Issue monitor (local scripts + GitHub Actions) | GitHub Actions workflow + local shell/PowerShell scripts for autonomous issue dispatch |
 | #81 | #83 | Auto-remediation loops | 2 JSON schemas (remediation action + verification) + agentic workflow prompt for Phase 4b autonomous remediation |
+| #85 | #86 | Fix archive-plans workflow | Branch + PR strategy for plan archival instead of direct push to main |
 | #87 | #89 | Incident-to-DI generation | Runtime DI schema, template, and 6-step agentic workflow for Phase 4b |
 | #92 | #93 | Backward compatibility enforcement | Breaking change schema + 6-step backward compatibility workflow for Phase 5 |
 | #90 | #91 | Template consolidation | Moved plan-template into templates/, updated all references, fixed stale architecture doc paths |
 | #80 | #94 | Copilot context management parity | Expanded Copilot detection strategies, Tier 1 instruction module, refine label re-evaluation in startup |
+| #96 | #97 | Copilot review hardening | Defense-in-depth jq filters, pre-merge thread verification gate, diagnostic pre-fetch |
+| #98 | #99 | Signal adapter configurations | Signal-adapters directory with example polling adapter configs for Phase 5 runtime feedback |
+| #100 | #101 | Autonomy metrics and weekly reporting | Metrics schema, health thresholds, and weekly report template for Phase 5 |
+| #102 | #104 | Fix agentic loop for PR resolution | Step 0 in startup.md — resolve all open PRs before scanning new issues |
+| #105 | #106 | Opt-in auto-merge repository config | Changed auto_merge default to opt-in (false) in config.yaml |
+| #107 | #108 | Governance workflow symlinks for consuming repos | init.sh copies governance workflows to consuming repo .github/workflows/ |
+| #109 | #111 | Agentic bootstrap prompt (init.md) | Interactive setup prompt for consuming repos — language template, repo settings, dependencies |
+| #110 | #121 | .plans/ and .panels/ project directories | init.sh creates .plans/ and .panels/ directories in consuming repos |
+| #112 | #125 | Copilot auto-fix configuration guide | Documentation for configuring GitHub Copilot auto-fix in governance workflow |
+| #113 | #115 | Retrospective aggregation schema | JSON Schema for aggregating panel accuracy and override frequency (Phase 5b) |
+| #116 | #123 | Auto-update .ai submodule | Startup and init.sh auto-update .ai submodule when behind remote |
+| #117 | #118 | Threshold auto-tuning policy | Policy rules for adjusting confidence thresholds from retrospective data (Phase 5b) |
 
 ## Open Work
 
@@ -97,9 +110,9 @@ The Phase 5 roadmap is informed by industry maturity models for autonomous softw
 
 ### Completed Phase 5 Prerequisites
 
-- [x] Runtime feedback loop (anomaly → signal → DI → implementation → deploy) — All governance artifacts implemented: schemas (PR #69), policies (PR #69), templates (PR #89), workflows (PR #83, #89), signal adapters (PR #98)
-- [x] Backward compatibility enforcement for governance changes (PR #92)
-- [x] Autonomy metrics and weekly reporting dashboard — Metrics schema, health thresholds, and weekly report template (PR #100)
+- [x] Runtime feedback loop (anomaly → signal → DI → implementation → deploy) — All governance artifacts implemented: schemas (PR #69), policies (PR #69), templates (PR #89), workflows (PR #83, #89), signal adapters (PR #99)
+- [x] Backward compatibility enforcement for governance changes (PR #93)
+- [x] Autonomy metrics and weekly reporting dashboard — Metrics schema, health thresholds, and weekly report template (PR #101)
 
 ### Sub-Phase Decomposition
 

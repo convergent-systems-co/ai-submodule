@@ -23,7 +23,7 @@ See [GOALS.md](GOALS.md) for detailed phase tracking, completed work, and open e
 |-------|------|-------------|--------|
 | 3 | Agentic Orchestration | Personas, panels, workflows with human gates | Implemented |
 | 4a | Policy-Bound Autonomy | Deterministic merge decisions, structured emissions | **Implemented** — CI enforcement live |
-| 4b | Autonomous Remediation | Auto-fix, drift detection, remediation loops | Partial — policy engine built, CI gating active |
+| 4b | Autonomous Remediation | Auto-fix, drift detection, remediation loops | **Implemented** — drift detection, auto-remediation, and incident-to-DI governance artifacts complete |
 | 5 | Dark Factory | Full automation — decomposed into sub-phases 5a-5e with achievability assessment | Phase 5a-5e defined |
 
 See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and open enhancements.
@@ -74,14 +74,34 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
 
     schemas/                   Enforcement artifacts (JSON Schema)
       panel-output.schema.json Structured emission standard for panel reviews
+      panels.schema.json       Panel configuration validation
+      panels.defaults.json     Default panel pass/fail thresholds
       run-manifest.schema.json Audit manifest for every merge decision
-      retrospective-aggregation.schema.json  Aggregated retrospective data across governance runs
+      baseline.schema.json     Baseline measurement definitions
+      breaking-change.schema.json          Breaking change detection for backward compatibility
+      remediation-action.schema.json       Auto-remediation action definitions (Phase 4b)
+      remediation-verification.schema.json Remediation verification criteria (Phase 4b)
+      runtime-di.schema.json               Runtime-generated Design Intent (Phase 4b)
+      runtime-signal.schema.json           Runtime anomaly signal classification (Phase 5)
+      autonomy-metrics.schema.json         Autonomy index and health thresholds (Phase 5)
+      retrospective-aggregation.schema.json  Aggregated retrospective data (Phase 5b)
+      project.schema.json                  Project configuration validation
 
-    policy/                    Deterministic policy profiles (YAML)
+    policy/                    Deterministic policy profiles and supporting rules (YAML)
       default.yaml             Standard risk tolerance
       fin_pii_high.yaml        Financial/PII — SOC2, PCI-DSS, HIPAA, GDPR
       infrastructure_critical.yaml  Infrastructure-as-code, deployment configs
       threshold-tuning.yaml    Auto-tuning rules for confidence threshold adjustment
+      drift-policy.yaml        Drift detection thresholds and triggers
+      drift-remediation.yaml   Drift remediation action rules
+      autonomy-thresholds.yaml Autonomy metric health thresholds
+      circuit-breaker.yaml     Safety circuit breaker rules
+      deduplication.yaml       Signal deduplication rules
+      rate-limits.yaml         Signal processing rate limits
+      severity-reclassification.yaml  Runtime severity reclassification rules
+      component-registry.yaml  Component ownership registry
+      signal-panel-mapping.yaml  Signal-to-panel routing rules
+      signal-adapters/         Polling adapter configurations for runtime signals
 
     emissions/                 Panel emission outputs (structured JSON)
     manifests/                 Run manifests (audit trail, append-only)
@@ -94,8 +114,10 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       autonomy-metrics.md                 Autonomy index and weekly reporting
       ci-gating-blueprint.md              CI checks, branch protection, auto-merge
       naming-review.md                    Persona/panel naming consistency review
-      retrospective-aggregation.md         Aggregated retrospective data schema docs
-      threshold-tuning.md                  Auto-tuning mechanism and safety bounds
+      repository-configuration.md         Repository settings and CODEOWNERS setup
+      copilot-auto-fix.md                 Copilot auto-fix configuration guide
+      retrospective-aggregation.md        Aggregated retrospective data schema docs
+      threshold-tuning.md                 Auto-tuning mechanism and safety bounds
 
   .governance/                 Policy engine runtime
     policy-engine.py           Deterministic evaluation engine (Phase 4b)
