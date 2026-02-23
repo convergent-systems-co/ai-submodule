@@ -118,6 +118,30 @@ workflows:
 
 `init.sh` creates symlinks (not copies) so that submodule updates flow automatically without re-running the script. If a consuming repo already has a regular file at the target path, it is not overwritten — a message instructs the user to remove it to use the symlink.
 
+### Stale Workflow Copies
+
+If a consuming repo copied (rather than symlinked) the governance workflow, the copy will not receive updates when the `.ai` submodule is updated. Stale copies may contain outdated behavior — for example, earlier versions of `dark-factory-governance.yml` auto-approved PRs when no panel emissions were detected.
+
+**To check if your workflow is a symlink or a copy:**
+
+```bash
+# Unix/macOS
+ls -la .github/workflows/dark-factory-governance.yml
+# If it starts with "l" (lrwxr-xr-x), it's a symlink. Otherwise, it's a copy.
+
+# PowerShell
+(Get-Item .github\workflows\dark-factory-governance.yml).Attributes
+# If it includes "ReparsePoint", it's a symlink.
+```
+
+**To fix a stale copy:**
+
+```bash
+# Remove the copy and re-run init to create a symlink
+rm .github/workflows/dark-factory-governance.yml
+bash .ai/init.sh
+```
+
 ### Backward Compatibility
 
 The legacy `workflows_to_copy` flat list is still supported. If `config.yaml` uses the old key, `init.sh` treats all listed workflows as required.

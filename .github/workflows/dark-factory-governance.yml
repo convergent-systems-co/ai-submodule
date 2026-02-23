@@ -195,7 +195,7 @@ jobs:
           retention-days: 90
 
   # -----------------------------------------------------------
-  # Job 3: Skip review when no emissions
+  # Job 3: Skip review when no emissions — warn, never approve
   # -----------------------------------------------------------
   skip-review:
     name: review
@@ -203,5 +203,29 @@ jobs:
     needs: [detect]
     if: needs.detect.outputs.has_emissions != 'true'
     steps:
-      - name: No emissions found
-        run: echo "No panel emissions found. Skipping governance review."
+      - name: Post skip-review warning on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "No panel emissions found. Posting warning comment on PR."
+          gh pr review "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --comment \
+            --body "## Dark Factory Governance Review
+
+          **Decision:** \`skipped\`
+          **Reason:** No panel emissions found. Governance review was not performed.
+
+          ### What this means
+
+          No JSON files were found in the \`governance/emissions/\` directory. This typically means:
+          - **Panels are not configured** for this repository, or
+          - **The workflow file is stale** — it was copied (not symlinked) from the \`.ai\` submodule and is out of date
+
+          ### Recommended actions
+
+          1. Run \`bash .ai/init.sh\` (or \`powershell -File .ai\\init.ps1\` on Windows) to ensure the governance workflow is symlinked from the submodule
+          2. If panels are not yet configured, see \`.ai/governance/docs/repository-configuration.md\` for setup instructions
+          3. If this repository intentionally has no panels, this warning is expected and can be ignored
+
+          > **Note:** This job does NOT approve the PR. A human reviewer or configured panel workflow must provide approval."
