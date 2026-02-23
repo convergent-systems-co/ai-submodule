@@ -55,6 +55,55 @@ PLATFORM="$(detect_platform)"
 echo "Platform: $PLATFORM"
 echo ""
 
+# --- Python detection (must run before symlinks section which uses PYTHON_CMD) ---
+
+find_python() {
+  # Try python3 first, then python
+  for cmd in python3 python; do
+    if command -v "$cmd" &>/dev/null; then
+      echo "$cmd"
+      return 0
+    fi
+  done
+  return 1
+}
+
+check_python_version() {
+  local cmd="$1"
+  local version
+  version="$($cmd --version 2>&1)"
+  if [[ "$version" =~ Python\ ([0-9]+)\.([0-9]+) ]]; then
+    local major="${BASH_REMATCH[1]}"
+    local minor="${BASH_REMATCH[2]}"
+    if [ "$major" -gt "$PYTHON_MIN_MAJOR" ] || { [ "$major" -eq "$PYTHON_MIN_MAJOR" ] && [ "$minor" -ge "$PYTHON_MIN_MINOR" ]; }; then
+      echo "  [OK] $version"
+      return 0
+    else
+      echo "  [WARN] $version found, but $PYTHON_MIN_MAJOR.$PYTHON_MIN_MINOR+ required"
+      return 1
+    fi
+  fi
+  echo "  [WARN] Could not parse Python version from: $version"
+  return 1
+}
+
+PYTHON_CMD=""
+PYTHON_OK=false
+
+echo "Checking dependencies..."
+
+if PYTHON_CMD="$(find_python)"; then
+  if check_python_version "$PYTHON_CMD"; then
+    PYTHON_OK=true
+  fi
+else
+  echo "  [WARN] Python is not installed or not in PATH"
+  echo "         The policy engine requires Python ${PYTHON_MIN_MAJOR}.${PYTHON_MIN_MINOR}+"
+  echo "         Install from: https://www.python.org/downloads/"
+fi
+
+echo ""
+
 # --- Submodule freshness check ---
 
 # If running in a consuming repo (submodule context), check if .ai is up to date
@@ -189,7 +238,7 @@ print(' '.join(wf))
     fi
     for wf_name in $WORKFLOWS_TO_LINK; do
       if [ -f "$WORKFLOW_SRC/$wf_name" ]; then
-        local link_target="../../.ai/.github/workflows/$wf_name"
+        link_target="../../.ai/.github/workflows/$wf_name"
         if [ -L "$WORKFLOW_DST/$wf_name" ] && [ "$(readlink "$WORKFLOW_DST/$wf_name")" = "$link_target" ]; then
           echo "  Workflow $wf_name already linked"
         elif [ -f "$WORKFLOW_DST/$wf_name" ] && [ ! -L "$WORKFLOW_DST/$wf_name" ]; then
@@ -248,51 +297,6 @@ fi
 echo ""
 
 # --- Dependency installation ---
-
-find_python() {
-  # Try python3 first, then python
-  for cmd in python3 python; do
-    if command -v "$cmd" &>/dev/null; then
-      echo "$cmd"
-      return 0
-    fi
-  done
-  return 1
-}
-
-check_python_version() {
-  local cmd="$1"
-  local version
-  version="$($cmd --version 2>&1)"
-  if [[ "$version" =~ Python\ ([0-9]+)\.([0-9]+) ]]; then
-    local major="${BASH_REMATCH[1]}"
-    local minor="${BASH_REMATCH[2]}"
-    if [ "$major" -gt "$PYTHON_MIN_MAJOR" ] || { [ "$major" -eq "$PYTHON_MIN_MAJOR" ] && [ "$minor" -ge "$PYTHON_MIN_MINOR" ]; }; then
-      echo "  [OK] $version"
-      return 0
-    else
-      echo "  [WARN] $version found, but $PYTHON_MIN_MAJOR.$PYTHON_MIN_MINOR+ required"
-      return 1
-    fi
-  fi
-  echo "  [WARN] Could not parse Python version from: $version"
-  return 1
-}
-
-PYTHON_CMD=""
-PYTHON_OK=false
-
-echo "Checking dependencies..."
-
-if PYTHON_CMD="$(find_python)"; then
-  if check_python_version "$PYTHON_CMD"; then
-    PYTHON_OK=true
-  fi
-else
-  echo "  [WARN] Python is not installed or not in PATH"
-  echo "         The policy engine requires Python ${PYTHON_MIN_MAJOR}.${PYTHON_MIN_MINOR}+"
-  echo "         Install from: https://www.python.org/downloads/"
-fi
 
 if [ "$INSTALL_DEPS" = "true" ]; then
   echo ""
