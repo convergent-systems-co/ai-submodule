@@ -24,7 +24,7 @@ See [GOALS.md](GOALS.md) for detailed phase tracking, completed work, and open e
 | 3 | Agentic Orchestration | Personas, panels, workflows with human gates | Implemented |
 | 4a | Policy-Bound Autonomy | Deterministic merge decisions, structured emissions | **Implemented** — CI enforcement live |
 | 4b | Autonomous Remediation | Auto-fix, drift detection, remediation loops | Partial — policy engine built, CI gating active |
-| 5 | Dark Factory | Full automation with runtime feedback and self-evolution | Architecture defined |
+| 5 | Dark Factory | Full automation — decomposed into sub-phases 5a-5e with achievability assessment | Phase 5a-5e defined |
 
 See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and open enhancements.
 
@@ -195,6 +195,17 @@ This repository is currently named `ai-submodule`. Given its evolution into a go
 | **`forge`** | Short, evocative of autonomous manufacturing |
 
 The rename should be coordinated across all consuming repositories that reference the submodule URL.
+
+## References & Industry Context
+
+The Phase 5 roadmap and maturity model are informed by the following industry frameworks. See [GOALS.md](GOALS.md) for detailed sub-phase decomposition and achievability assessment.
+
+| Source | Relevance |
+|--------|-----------|
+| [Dan Shapiro — 5 Levels of Agentic Coding](https://www.linkedin.com/pulse/5-levels-agentic-coding-dan-shapiro/) | Defines the L1-L5 progression that maps to Dark Factory's phase model |
+| [Mars Shot — MSV-CMM](https://www.mars-shot.dev/) | Capability maturity model for machine-speed verification; informs self-proving systems (5a) |
+| [Bessemer — Roadmap to AI Coding Agents](https://www.bvp.com/atlas/roadmap-to-ai-coding-agents) | Autonomy scale identifying the gap between assisted coding and full agency |
+| [Addy Osmani — The 70% Problem](https://addyo.substack.com/p/the-70-problem-hard-truths-about) | Analysis of where AI coding agents stall; informs achievability assessments |
 
 ## Why a Git Submodule?
 

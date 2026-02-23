@@ -24,6 +24,10 @@ When approaching 80% of context window:
 
 Never allow context to reach compaction with uncommitted changes, merge conflicts, or untracked state. A dirty compaction loses instructions and context that cannot be recovered.
 
+## Repository Configuration
+
+Repository settings (auto-merge, CODEOWNERS, branch protection) are declared in `config.yaml` and `project.yaml`. Run `bash .ai/init.sh` to apply. See `governance/docs/repository-configuration.md` for details.
+
 <!-- /ANCHOR -->
 
 *Domain-specific guidance in `instructions/`. Project-specific instructions extend this.*

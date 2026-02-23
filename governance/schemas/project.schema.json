@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/ai-submodule/schemas/project.schema.json",
+  "title": "Project Configuration",
+  "description": "Schema for project.yaml configuration, including repository settings applied by init.sh. The repository section declares GitHub repo settings (auto-merge, branch protection, CODEOWNERS) as code.",
+  "type": "object",
+  "properties": {
+    "repository": {
+      "type": "object",
+      "description": "GitHub repository settings applied by init.sh via gh api. All fields are optional; defaults come from config.yaml.",
+      "properties": {
+        "auto_merge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable GitHub auto-merge. Required for the agentic loop to merge PRs after CI + approval."
+        },
+        "delete_branch_on_merge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically delete feature branches after PR merge."
+        },
+        "allow_squash_merge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow squash-and-merge strategy for PRs."
+        },
+        "allow_merge_commit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow merge commit strategy for PRs."
+        },
+        "allow_rebase_merge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow rebase-and-merge strategy for PRs."
+        },
+        "codeowners": {
+          "type": "object",
+          "description": "CODEOWNERS file generation configuration.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to generate a CODEOWNERS file during init."
+            },
+            "default_owner": {
+              "type": "string",
+              "description": "Default code owner for all files (e.g., '@org/team').",
+              "examples": ["@SET-Apps/approvers"]
+            },
+            "rules": {
+              "type": "array",
+              "description": "Ordered list of CODEOWNERS rules. Later rules take precedence.",
+              "items": {
+                "type": "object",
+                "required": ["pattern", "owners"],
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "File pattern (CODEOWNERS glob syntax).",
+                    "examples": ["/.github/workflows/", "/infra/", "/.ai"]
+                  },
+                  "owners": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1,
+                    "description": "GitHub teams or users who own files matching this pattern.",
+                    "examples": [["@SET-Apps/devops_engineers"]]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "branch_protection": {
+          "type": "object",
+          "description": "Branch protection expectations. These are validated (not applied) by init.sh to surface misconfigurations.",
+          "properties": {
+            "expected_rulesets": {
+              "type": "array",
+              "description": "Rulesets expected to be configured at the org or repo level.",
+              "items": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the expected ruleset."
+                  },
+                  "required_approving_review_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Expected minimum number of approving reviews."
+                  },
+                  "require_code_owner_review": {
+                    "type": "boolean",
+                    "description": "Whether code owner review is expected to be required."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

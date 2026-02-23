@@ -109,6 +109,41 @@ itsfwcp/docs/36/next-steps
 
 Conventional commits: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`
 
+## Repository Configuration
+
+The `.ai` governance framework can configure GitHub repository settings to support the autonomous agentic workflow. Settings are declared in `config.yaml` (defaults) and overridden in `project.yaml` (per-project).
+
+### Required Settings for Agentic Loop
+
+| Setting | Required Value | Why |
+|---------|---------------|-----|
+| `allow_auto_merge` | `true` | PRs auto-merge after CI + approval |
+| `delete_branch_on_merge` | `true` | Clean up feature branches |
+| CODEOWNERS populated | Non-empty | `require_code_owner_review` ruleset needs owners |
+
+### Applying Settings
+
+Run `bash .ai/init.sh` -- the script will:
+1. Create symlinks (existing behavior)
+2. Configure repository settings via `gh api` (requires admin permissions)
+3. Generate CODEOWNERS if empty or missing
+
+If the script lacks admin permissions, it will print instructions for a repository admin to apply the settings manually. All steps degrade gracefully -- missing `gh` CLI or insufficient permissions are warnings, not errors.
+
+### Per-Project Overrides
+
+Add a `repository` section to your `project.yaml` to override defaults:
+
+```yaml
+repository:
+  codeowners:
+    rules:
+      - pattern: "/src/**/Authentication/"
+        owners: ["@my-org/security"]
+```
+
+See `governance/docs/repository-configuration.md` for full documentation and schema details.
+
 ## Context Management
 
 AI context windows are finite. The framework uses tiered loading:

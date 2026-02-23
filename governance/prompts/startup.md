@@ -44,6 +44,47 @@ When the user identifies a problem with a previously-created PR (e.g., failing c
 
 ## Startup Sequence
 
+### Pre-flight: Repository Configuration
+
+Before scanning issues, verify the repository supports the agentic workflow:
+
+1. Check `allow_auto_merge` is enabled:
+   ```bash
+   gh api repos/{owner}/{repo} --jq '.allow_auto_merge'
+   ```
+2. Check CODEOWNERS is present and non-empty:
+   ```bash
+   test -s CODEOWNERS && echo "OK" || echo "MISSING"
+   ```
+3. If either check fails:
+   - Warn the user: "Repository is not configured for the agentic loop."
+   - Suggest running `bash .ai/init.sh` to apply settings from `config.yaml`
+   - Continue with the startup sequence (non-blocking) but note that PR auto-merge may fail
+
+### Step 0: Resolve Open PRs
+
+**All open PRs must be resolved before the loop processes new issues.** This applies to PRs created by the agentic loop and PRs created by humans or other tools — all require panel evaluation.
+
+1. **List open PRs:**
+   ```bash
+   gh pr list --state open --json number,title,author,headRefName,createdAt,reviews --limit 20
+   ```
+
+2. **Categorize each PR:**
+   - **Agent PRs** (branch matches `itsfwcp/*/*`): Enter the full Step 7 review loop (7a through 7g) to resolve CI, Copilot recommendations, and merge.
+   - **Non-agent PRs** (created by humans or other tools): Evaluate using the review loop steps 7a-7c (CI checks, Copilot recommendations, review classification). Do not merge — leave for the human author. Post a review summary comment on the PR.
+
+3. **Resolution order:** Process PRs by creation date (oldest first). For each PR:
+   a. Check out the PR branch: `gh pr checkout <pr-number>`
+   b. Enter the Step 7 review loop at Step 7a
+   c. For agent PRs: complete through Step 7g (merge) or escalate after 3 review cycles
+   d. For non-agent PRs: complete through Step 7e (update comment), then move to the next PR
+   e. Return to `main` after each PR: `git checkout main`
+
+4. **Session accounting:** Each resolved PR (merged or escalated) counts toward the 3-issue session cap. If the cap is reached during PR resolution, execute the Context Capacity Shutdown Protocol — do not proceed to issue scanning.
+
+5. **No open PRs:** If no open PRs exist, proceed directly to Step 1.
+
 ### Step 1: Scan Open Issues
 
 Query GitHub for open issues that are not yet being worked on:
@@ -386,13 +427,14 @@ Repeat until no actionable issues or goals remain, or a hard limit is reached.
 
 ## Constraints
 
+- **Resolve all open PRs before starting new issues** — Step 0 is mandatory; never skip to Step 1 while open PRs exist
 - Never work on more than one issue simultaneously (sequential, not parallel)
 - Always create a plan before writing code
 - **Always update documentation before committing** — Step 6.4 documentation review is mandatory for every issue
 - Always comment on the issue before starting work (announce intent)
 - Always create an issue before starting work (even for in-session tasks)
 - If any step fails, log the failure and move to the next issue
-- **Maximum 3 issues per session** — hard cap, non-negotiable
+- **Maximum 3 issues per session** — hard cap, non-negotiable. Resolved PRs from Step 0 count toward this cap.
 - Maximum 3 review cycles per PR before escalating to human review
 - **Mandatory checkpoint after every issue** — Step 7i is never skipped
 - **Context capacity is a hard constraint** — if any detection signal triggers, execute the shutdown protocol immediately
@@ -418,7 +460,9 @@ When triggered:
      "timestamp": "ISO-8601",
      "branch": "current branch name",
      "issues_completed": ["#N", "#M"],
+     "prs_resolved": ["#P", "#Q"],
      "issues_remaining": ["#X", "#Y"],
+     "prs_remaining": ["#R"],
      "current_issue": "#Z or null",
      "current_step": "Step N description",
      "git_state": "clean",
@@ -436,7 +480,7 @@ When triggered:
 ## Exit Conditions
 
 Stop the loop when:
-- No actionable issues remain **and** no unchecked GOALS.md items can be converted to issues
-- **3 issues have been completed this session** — execute shutdown protocol, checkpoint, request `/clear`
+- No open PRs to resolve **and** no actionable issues remain **and** no unchecked GOALS.md items can be converted to issues
+- **3 issues/PRs have been completed this session** — execute shutdown protocol, checkpoint, request `/clear`
 - **Any context pressure signal triggers** — execute shutdown protocol immediately
 - A human sends a message (human input takes priority)
