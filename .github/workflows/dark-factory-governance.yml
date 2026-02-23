@@ -17,23 +17,40 @@ concurrency:
 
 jobs:
   # -----------------------------------------------------------
-  # Job 1: Detect panel emissions
+  # Job 1: Detect governance root and panel emissions
   # -----------------------------------------------------------
   detect:
     name: detect
     runs-on: ubuntu-latest
     outputs:
       has_emissions: ${{ steps.check.outputs.has_emissions }}
+      gov_root: ${{ steps.check.outputs.gov_root }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Check for panel emissions
         id: check
         run: |
-          EMISSIONS=$(find governance/emissions -name '*.json' 2>/dev/null | sort)
+          # Auto-detect governance root: root-level (ai-submodule repo) or .ai/ (consuming repo)
+          if [ -d "governance/emissions" ]; then
+            GOV_ROOT="."
+          elif [ -d ".ai/governance/emissions" ]; then
+            GOV_ROOT=".ai"
+          else
+            echo "has_emissions=false" >> "$GITHUB_OUTPUT"
+            echo "gov_root=." >> "$GITHUB_OUTPUT"
+            echo "No governance directory found at governance/ or .ai/governance/"
+            exit 0
+          fi
+          echo "gov_root=${GOV_ROOT}" >> "$GITHUB_OUTPUT"
+          echo "Governance root: ${GOV_ROOT}"
+
+          EMISSIONS=$(find "${GOV_ROOT}/governance/emissions" -name '*.json' 2>/dev/null | sort)
           if [ -z "$EMISSIONS" ]; then
             echo "has_emissions=false" >> "$GITHUB_OUTPUT"
-            echo "No panel emissions found in governance/emissions/"
+            echo "No panel emissions found in ${GOV_ROOT}/governance/emissions/"
           else
             echo "has_emissions=true" >> "$GITHUB_OUTPUT"
             echo "Found emissions:"
@@ -50,6 +67,8 @@ jobs:
     if: needs.detect.outputs.has_emissions == 'true'
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -62,10 +81,12 @@ jobs:
       - name: Run policy engine
         id: evaluate
         shell: bash
+        env:
+          GOV_ROOT: ${{ needs.detect.outputs.gov_root }}
         run: |
-          python .governance/policy-engine.py \
-            --emissions-dir governance/emissions/ \
-            --profile governance/policy/default.yaml \
+          python "${GOV_ROOT}/.governance/policy-engine.py" \
+            --emissions-dir "${GOV_ROOT}/governance/emissions/" \
+            --profile "${GOV_ROOT}/governance/policy/default.yaml" \
             --output manifest.json \
             --commit-sha "${{ github.event.pull_request.head.sha }}" \
             --pr-number "${{ github.event.pull_request.number }}" \
@@ -183,4 +204,4 @@ jobs:
     if: needs.detect.outputs.has_emissions != 'true'
     steps:
       - name: No emissions found
-        run: echo "No panel emissions found in governance/emissions/. Skipping governance review."
+        run: echo "No panel emissions found. Skipping governance review."

@@ -89,6 +89,37 @@ if [ -f "$PROJECT_ROOT/.gitmodules" ] && grep -q '\.ai' "$PROJECT_ROOT/.gitmodul
   echo ""
 fi
 
+# --- SSH to HTTPS URL conversion for CI compatibility ---
+
+# GitHub Actions uses GITHUB_TOKEN with HTTPS; SSH URLs fail in CI.
+# Only convert the .ai submodule entry to avoid affecting other submodules.
+if [ -f "$PROJECT_ROOT/.gitmodules" ]; then
+  if grep -q 'git@github\.com:' "$PROJECT_ROOT/.gitmodules" 2>/dev/null; then
+    echo "Converting .ai submodule SSH URL to HTTPS for CI compatibility..."
+    awk '
+      BEGIN { in_ai = 0 }
+      /^\[submodule ".ai"\]$/ { in_ai = 1 }
+      /^\[submodule / && $0 !~ /^\[submodule ".ai"\]$/ { in_ai = 0 }
+      {
+        if (in_ai && $0 ~ /^[[:space:]]*url[[:space:]]*=[[:space:]]*git@github\.com:/) {
+          sub(/git@github\.com:/, "https://github.com/")
+        }
+        print
+      }
+    ' "$PROJECT_ROOT/.gitmodules" > "$PROJECT_ROOT/.gitmodules.tmp"
+    mv "$PROJECT_ROOT/.gitmodules.tmp" "$PROJECT_ROOT/.gitmodules"
+    echo "  [OK] Converted SSH URL to HTTPS in .gitmodules (.ai submodule only)"
+    # Sync .git/config so existing clones use the updated URL immediately
+    if git -C "$PROJECT_ROOT" submodule sync .ai 2>/dev/null; then
+      echo "  [OK] Synchronized .ai submodule URL in .git/config"
+    else
+      echo "  [WARN] Could not sync submodule URL. Run: git submodule sync .ai" >&2
+    fi
+    echo "  Run 'git add .gitmodules && git commit -m \"chore: use HTTPS URL for .ai submodule\"' to save"
+  fi
+  echo ""
+fi
+
 # --- Symlinks ---
 
 echo "Initializing .ai submodule symlinks..."
