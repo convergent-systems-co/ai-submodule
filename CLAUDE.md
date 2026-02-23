@@ -51,7 +51,7 @@ Every code change flows through these layers in order:
 ### Persona and Panel System
 
 - **Personas** (`governance/personas/`) — 60 role definitions across 13 categories. Each defines Role, Evaluate For, Output Format, Principles, Anti-patterns. They are reasoning roles, not model prompts.
-- **Panels** (`governance/personas/panels/`) — 16 multi-persona review workflows. Panels coordinate personas and emit structured JSON conforming to `governance/schemas/panel-output.schema.json`.
+- **Panels** (`governance/personas/panels/`) — 17 multi-persona review workflows. Panels coordinate personas and emit structured JSON conforming to `governance/schemas/panel-output.schema.json`.
 - **Agentic personas** (`governance/personas/agentic/`) — Code Manager (orchestrator, never writes code) and Coder (executor, follows Code Manager direction).
 
 ### Policy Engine
@@ -61,7 +61,7 @@ Three deterministic YAML profiles in `governance/policy/`:
 - `fin_pii_high.yaml` — SOC2/PCI-DSS/HIPAA/GDPR, auto-merge disabled, 3-approver override
 - `infrastructure_critical.yaml` — Mandatory architecture and SRE review
 
-All profiles require security-review, threat-modeling, cost-analysis, and documentation-review panels on every PR. Policies are evaluated programmatically. AI models never interpret policy rules.
+All profiles require security-review, threat-modeling, cost-analysis, documentation-review, and data-governance-review panels on every PR. Policies are evaluated programmatically. AI models never interpret policy rules.
 
 ### Context Management (JIT Loading)
 

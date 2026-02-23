@@ -3,7 +3,7 @@
 # All policy evaluation is deterministic and must not depend on prose.
 
 profile_name: default
-profile_version: "1.1.0"
+profile_version: "1.2.0"
 description: >
   Baseline policy profile for standard repositories. Balances automation
   with human oversight. Suitable for internal applications with moderate
@@ -15,16 +15,17 @@ description: >
 weighting:
   model: weighted_average
   weights:
-    code-review: 0.20
-    security-review: 0.20
-    ai-expert-review: 0.15
-    architecture-review: 0.15
-    testing-review: 0.10
+    code-review: 0.18
+    security-review: 0.18
+    ai-expert-review: 0.12
+    architecture-review: 0.12
+    testing-review: 0.08
     performance-review: 0.05
-    copilot-review: 0.10
+    copilot-review: 0.08
     documentation-review: 0.05
     threat-modeling: 0.05
-    cost-analysis: 0.05
+    cost-analysis: 0.04
+    data-governance-review: 0.05
   # If a panel is not executed, its weight is redistributed proportionally.
   missing_panel_behavior: redistribute
 
@@ -160,6 +161,7 @@ required_panels:
   - threat-modeling
   - cost-analysis
   - documentation-review
+  - data-governance-review
 
 # Optional Panels
 # Panels executed based on change characteristics.

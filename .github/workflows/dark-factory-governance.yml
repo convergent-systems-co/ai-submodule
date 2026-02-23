@@ -255,6 +255,7 @@ jobs:
           - \`threat-modeling.json\`
           - \`cost-analysis.json\`
           - \`documentation-review.json\`
+          - \`data-governance-review.json\`
 
           ### What this means
 

@@ -313,7 +313,7 @@ print('OPTIONAL=' + ' '.join(opt))
   echo ""
   echo "Validating panel emissions..."
   EMISSIONS_DIR="$SCRIPT_DIR/governance/emissions"
-  REQUIRED_PANELS="code-review security-review threat-modeling cost-analysis documentation-review"
+  REQUIRED_PANELS="code-review security-review threat-modeling cost-analysis documentation-review data-governance-review"
   MISSING_PANELS=""
   for panel in $REQUIRED_PANELS; do
     if [ ! -f "$EMISSIONS_DIR/${panel}.json" ]; then

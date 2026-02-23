@@ -17,6 +17,7 @@ These panels must execute on every change (defined in `governance/policy/default
 3. **threat-modeling** — MITRE ATT&CK mapping, attack surface
 4. **cost-analysis** — Resource usage, budget impact
 5. **documentation-review** — Docs completeness, accuracy
+6. **data-governance-review** — Canonical model compliance, naming conventions, data standards from [dach-canonical-models](https://github.com/SET-Apps/dach-canonical-models)
 
 If any required panel is missing from `governance/emissions/`, the change is **not governance-approved**. The CI workflow will block the PR. In local mode, the agent must not proceed past the review step without panel emissions.
 

@@ -91,7 +91,8 @@ This document tracks the maturity phases, completed work, and open enhancements 
 
 | Issue | PR | Title | Impact |
 |-------|----|-------|--------|
-| #155 | — | Enforce Dark Governance Framework | Mandatory governance pipeline in all modes, CI blocks on missing panels, GOALS.md template in init.sh |
+| #155 | #156 | Enforce Dark Governance Framework | Mandatory governance pipeline in all modes, CI blocks on missing panels, GOALS.md template in init.sh |
+| #126 | — | Data Governance Standards enforcement | data-governance-review panel, canonical model compliance, missing-canonical workflow, dach-canonical-models integration |
 
 ## Open Work
 

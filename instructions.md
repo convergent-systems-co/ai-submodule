@@ -39,7 +39,7 @@ See `governance/docs/repository-configuration.md` for details.
 Every code change — regardless of size, urgency, or operating mode — must follow this sequence:
 
 1. **Plan first** — Create a plan in `.plans/` before writing any code. No implementation without a plan.
-2. **Panels must run** — Default panels (code-review, security-review, threat-modeling, cost-analysis, documentation-review) must execute on every change. If panel emissions are missing, the change is not governance-approved.
+2. **Panels must run** — Default panels (code-review, security-review, threat-modeling, cost-analysis, documentation-review, data-governance-review) must execute on every change. If panel emissions are missing, the change is not governance-approved.
 3. **Documentation with every change** — Update affected docs in the same commit (GOALS.md, CLAUDE.md, README.md, governance docs).
 
 ### Local Mode (no GitHub remote)
