@@ -167,7 +167,7 @@ The Phase 5 roadmap is informed by industry maturity models for autonomous softw
 
 ### 5e — Spec-Driven Interface (Achievable — Governance Artifacts)
 
-- [ ] Formal spec schema — JSON Schema richer than GitHub issue templates: structured acceptance criteria, dependency declarations, risk pre-classification, and machine-verifiable completion conditions
+- [x] Formal spec schema — JSON Schema richer than GitHub issue templates: structured acceptance criteria, dependency declarations, risk pre-classification, and machine-verifiable completion conditions (PR #163)
 - [ ] Acceptance verification workflow — Agentic workflow that validates implementation against spec-defined acceptance criteria before triggering review panels
 - [ ] Reduced human touchpoint model — Policy profile variant that requires human approval only for policy-override scenarios, with all other decisions fully automated
 

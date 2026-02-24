@@ -86,6 +86,7 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       autonomy-metrics.schema.json         Autonomy index and health thresholds (Phase 5)
       retrospective-aggregation.schema.json  Aggregated retrospective data (Phase 5b)
       project.schema.json                  Project configuration validation
+      formal-spec.schema.json              Formal specification for Phase 5e Spec-Driven Interface
 
     policy/                    Deterministic policy profiles and supporting rules (YAML)
       default.yaml             Standard risk tolerance
