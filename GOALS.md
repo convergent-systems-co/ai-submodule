@@ -94,6 +94,7 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #155 | #156 | Enforce Dark Governance Framework | Mandatory governance pipeline in all modes, CI blocks on missing panels, GOALS.md template in init.sh |
 | #126 | #157 | Data Governance Standards enforcement | data-governance-review panel, canonical model compliance, missing-canonical workflow, dach-canonical-models integration |
 | #158 | — | Phase 5a Self-Proving Systems | Test governance schema, test-generation panel, proof-of-correctness policy |
+| #167 | #168 | Reduced human touchpoint model (Phase 5e) | Near-full-autonomy policy profile; completes Phase 5e Spec-Driven Interface |
 
 ## Open Work
 
@@ -169,7 +170,7 @@ The Phase 5 roadmap is informed by industry maturity models for autonomous softw
 
 - [x] Formal spec schema — JSON Schema richer than GitHub issue templates: structured acceptance criteria, dependency declarations, risk pre-classification, and machine-verifiable completion conditions (PR #163)
 - [x] Acceptance verification workflow — Agentic workflow that validates implementation against spec-defined acceptance criteria before triggering review panels (PR #165)
-- [x] Reduced human touchpoint model — Policy profile variant that requires human approval only for policy-override scenarios, with all other decisions fully automated (PR #TBD)
+- [x] Reduced human touchpoint model — Policy profile variant that requires human approval only for policy-override scenarios, with all other decisions fully automated (PR #168)
 
 ### Sources
 
