@@ -96,6 +96,8 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       test-governance.schema.json          Test coverage expectations per policy profile (Phase 5a)
       cross-repo-escalation.schema.json    Cross-repo issue escalation records (#184)
       checkpoint.schema.json               Session checkpoint state for resumption (Phase 5c)
+      orchestrator-config.schema.json      Mass parallelization orchestrator config (Phase 5e)
+      integration-manifest.schema.json     Aggregated integration manifest (Phase 5e)
 
     policy/                    Deterministic policy profiles and supporting rules (YAML)
       default.yaml             Standard risk tolerance
@@ -114,6 +116,8 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       signal-panel-mapping.yaml  Signal-to-panel routing rules
       merge-sequencing.yaml    Multi-agent PR ordering rules — Phase 5d
       parallel-session-protocol.yaml  Parallel agent session coordination — Phase 5d
+      collision-domains.yaml   Path-based collision domain definitions — Phase 5e
+      integration-strategy.yaml  Staged integration strategy — Phase 5e
       signal-adapters/         Polling adapter configurations for runtime signals
 
     emissions/                 Panel emission outputs (structured JSON)
@@ -133,6 +137,7 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       threshold-tuning.md                 Auto-tuning mechanism and safety bounds
       cross-repo-escalation.md             Cross-repo escalation setup and architecture (#184)
       event-driven-triggers.md             Event-driven governance trigger setup (Phase 5c)
+      mass-parallelization.md              Mass parallelization model architecture (Phase 5e)
 
   .governance/                 Policy engine runtime
     policy-engine.py           Deterministic evaluation engine (Phase 4b)
@@ -286,6 +291,7 @@ Quick navigation to all documentation in this repository.
 | [Copilot Auto-Fix](governance/docs/copilot-auto-fix.md) | Configuring GitHub Copilot auto-fix in governance workflow |
 | [Cross-Repo Escalation](governance/docs/cross-repo-escalation.md) | Cross-repo issue escalation setup and architecture |
 | [Event-Driven Triggers](governance/docs/event-driven-triggers.md) | Event-driven governance session dispatch (Phase 5c) |
+| [Mass Parallelization](governance/docs/mass-parallelization.md) | Multi-agent orchestration with collision domains (Phase 5e) |
 | [Naming Review](governance/docs/naming-review.md) | Persona/panel naming consistency |
 
 ### Agentic Prompts

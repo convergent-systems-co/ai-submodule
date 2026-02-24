@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/ai-submodule/schemas/integration-manifest.schema.json",
+  "title": "IntegrationManifest",
+  "description": "Aggregated manifest emitted by the DevOps Integration Agent after merging multiple Worker session outputs. Records the aggregate governance posture, worker run references, and integration decision. Part of Phase 5e — Scalable Policy-Bound Autonomy.",
+  "type": "object",
+  "required": [
+    "integration_id",
+    "timestamp",
+    "worker_runs",
+    "aggregate_confidence",
+    "risk_level",
+    "policy_profile",
+    "human_intervention",
+    "integration_decision"
+  ],
+  "properties": {
+    "integration_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this integration batch."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the integration manifest was created."
+    },
+    "release_id": {
+      "type": "string",
+      "description": "Release train identifier (e.g., 'train-20260224'). Present when integration_strategy is 'staged' or 'release_train'."
+    },
+    "worker_runs": {
+      "type": "array",
+      "description": "References to individual worker run manifests.",
+      "items": {
+        "type": "object",
+        "required": ["worker_id", "issue_number", "pr_number", "manifest_path", "status"],
+        "properties": {
+          "worker_id": {
+            "type": "string",
+            "description": "Identifier of the worker session."
+          },
+          "issue_number": {
+            "type": "integer",
+            "description": "GitHub issue the worker processed."
+          },
+          "pr_number": {
+            "type": "integer",
+            "description": "PR number created by the worker."
+          },
+          "manifest_path": {
+            "type": "string",
+            "description": "Path to the worker's individual run manifest (governance/manifests/run-<task-id>.json)."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["integrated", "failed", "skipped", "pending"],
+            "description": "Integration status of this worker's output."
+          },
+          "confidence_score": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "Confidence score from the worker's governance review."
+          },
+          "collision_domain": {
+            "type": "string",
+            "description": "Collision domain the worker operated in."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "aggregate_confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Aggregate confidence score across all integrated workers. Calculated as the minimum of all individual worker confidence scores (weakest-link model)."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "negligible"],
+      "description": "Aggregate risk level for the integration batch."
+    },
+    "policy_profile": {
+      "type": "string",
+      "description": "Policy profile applied to the integration decision."
+    },
+    "human_intervention": {
+      "type": "boolean",
+      "description": "Whether human intervention was required during integration."
+    },
+    "conflicts_detected": {
+      "type": "array",
+      "description": "Conflicts detected during integration.",
+      "items": {
+        "type": "object",
+        "required": ["conflict_id", "resolution"],
+        "properties": {
+          "conflict_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Reference to a conflict-detection record."
+          },
+          "resolution": {
+            "type": "string",
+            "enum": ["auto_resolved", "human_resolved", "deferred", "failed"],
+            "description": "How the conflict was resolved."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "integration_decision": {
+      "type": "string",
+      "enum": ["merge_to_main", "hold_for_review", "reject", "partial_merge"],
+      "description": "Final integration decision. 'merge_to_main' = all workers integrated successfully. 'hold_for_review' = human review required. 'reject' = integration failed. 'partial_merge' = some workers integrated, others failed."
+    },
+    "parallel_efficiency": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Ratio of completed_sessions / max_concurrent_sessions. Tracks parallelization effectiveness."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total duration of the integration batch in milliseconds."
+    }
+  },
+  "additionalProperties": false
+}

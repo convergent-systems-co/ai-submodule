@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/ai-submodule/schemas/orchestrator-config.schema.json",
+  "title": "OrchestratorConfig",
+  "description": "Configuration schema for the Dark Factory Mass Parallelization Orchestrator. Defines session limits, collision detection mode, branch strategy, integration strategy, and manifest aggregation rules. The orchestrator is a singleton coordinator that decomposes Design Intents into isolated Worker sessions. Part of Phase 5e — Scalable Policy-Bound Autonomy.",
+  "type": "object",
+  "required": [
+    "version",
+    "session_limits",
+    "collision_detection",
+    "branch_strategy",
+    "integration_strategy",
+    "manifest_aggregation"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of this orchestrator configuration."
+    },
+    "session_limits": {
+      "type": "object",
+      "required": ["max_concurrent_sessions", "max_per_collision_domain"],
+      "properties": {
+        "max_concurrent_sessions": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16,
+          "default": 8,
+          "description": "Maximum number of Worker sessions running simultaneously."
+        },
+        "max_per_collision_domain": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8,
+          "default": 2,
+          "description": "Maximum number of Worker sessions operating within a single collision domain."
+        },
+        "max_policy_core_sessions": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2,
+          "default": 1,
+          "description": "Maximum sessions that may modify governance policy/schema artifacts simultaneously. Set to 1 for strict serialization of governance changes."
+        }
+      },
+      "additionalProperties": false
+    },
+    "collision_detection": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["strict", "advisory", "disabled"],
+          "default": "strict",
+          "description": "Collision detection mode. 'strict' blocks workers from overlapping collision domains. 'advisory' warns but allows overlap. 'disabled' turns off collision detection."
+        },
+        "collision_domains_ref": {
+          "type": "string",
+          "default": "governance/policy/collision-domains.yaml",
+          "description": "Path to the collision domain configuration file."
+        },
+        "conflict_schema_ref": {
+          "type": "string",
+          "default": "governance/schemas/conflict-detection.schema.json",
+          "description": "Path to the conflict detection schema for recording collisions."
+        }
+      },
+      "additionalProperties": false
+    },
+    "branch_strategy": {
+      "type": "string",
+      "enum": ["isolated", "shared_integration", "trunk"],
+      "default": "isolated",
+      "description": "Branch strategy for Worker sessions. 'isolated' = each worker gets its own branch (safest). 'shared_integration' = workers share domain integration branches. 'trunk' = all workers commit to a shared trunk (highest conflict risk)."
+    },
+    "integration_strategy": {
+      "type": "object",
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["staged", "direct", "release_train"],
+          "default": "staged",
+          "description": "Integration strategy. 'staged' = workers merge into domain branches, then release train, then main. 'direct' = workers merge directly to main (simplest but highest risk). 'release_train' = all workers merge into a time-boxed release branch."
+        },
+        "integration_strategy_ref": {
+          "type": "string",
+          "default": "governance/policy/integration-strategy.yaml",
+          "description": "Path to the detailed integration strategy configuration."
+        }
+      },
+      "additionalProperties": false
+    },
+    "manifest_aggregation": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the orchestrator aggregates worker manifests into an integration manifest."
+        },
+        "integration_manifest_schema_ref": {
+          "type": "string",
+          "default": "governance/schemas/integration-manifest.schema.json",
+          "description": "Path to the integration manifest schema."
+        }
+      },
+      "additionalProperties": false
+    },
+    "spawn_rules": {
+      "type": "object",
+      "description": "Conditions that must be true before the orchestrator spawns a new worker session.",
+      "properties": {
+        "require_no_unresolved_conflict": {
+          "type": "boolean",
+          "default": true,
+          "description": "Do not spawn a new worker if there are unresolved conflicts in its target collision domain."
+        },
+        "require_governance_ci_green": {
+          "type": "boolean",
+          "default": true,
+          "description": "Do not spawn a new worker if the main branch governance CI is failing."
+        },
+        "require_no_blocking_sessions": {
+          "type": "boolean",
+          "default": true,
+          "description": "Do not spawn a new worker if a high-risk session is in progress that may destabilize the target domain."
+        }
+      },
+      "additionalProperties": false
+    },
+    "failure_containment": {
+      "type": "object",
+      "description": "Rules for handling worker session failures.",
+      "properties": {
+        "on_worker_failure": {
+          "type": "string",
+          "enum": ["mark_failed", "retry_once", "escalate"],
+          "default": "mark_failed",
+          "description": "Action when a worker fails. 'mark_failed' = log failure, do not integrate. 'retry_once' = restart the worker session once. 'escalate' = escalate to human immediately."
+        },
+        "update_autonomy_metrics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Update autonomy metrics (parallel_efficiency) when a worker fails."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
