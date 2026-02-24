@@ -21,6 +21,7 @@ Standardized multi-phase workflows that chain personas, prompts, and panels toge
 | **Migration** | System, dependency, or data migrations | 6 | `migration.md` |
 | **Architecture Decision** | Making and documenting an architectural choice | 5 | `architecture-decision.md` |
 | **Incident Response** | Handling an active incident through post-mortem | 6 | `incident-response.md` |
+| **Acceptance Verification** | Validating implementation against formal spec criteria | 5 | `acceptance-verification.md` |
 
 ## Artifact Prefixes
 
@@ -36,6 +37,7 @@ Each workflow uses a unique prefix for its artifacts, enabling cross-referencing
 | `MIG` | Migration |
 | `ADR` | Architecture Decision |
 | `INC` | Incident Response |
+| `AV` | Acceptance Verification |
 
 ## Conventions
 
