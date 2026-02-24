@@ -2,7 +2,7 @@
 
 **Author:** Code Manager (agentic)
 **Date:** 2026-02-24
-**Status:** in_progress
+**Status:** completed
 **Issue:** https://github.com/SET-Apps/ai-submodule/issues/200
 **Branch:** `itsfwcp/docs/200/developer-guide-usage-patterns`
 

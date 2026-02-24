@@ -106,6 +106,7 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #193 | #194 | Documentation review and README cross-linking | Documentation Index in README, GOALS.md accuracy, DEVELOPER_GUIDE.md links |
 | #195 | #197 | Panel tool execution capabilities | Platform-agnostic tool capabilities for all 19 panels |
 | #198 | — | Mass parallelization model (Phase 5e) | Orchestrator config, collision domains, integration strategy, integration manifest |
+| #200 | #201 | Developer Guide usage patterns and recovery | Recovery & re-entry patterns, diagnostic commands, troubleshooting FAQ |
 
 ## Open Work
 
