@@ -168,7 +168,7 @@ The governance platform operates through three distinct artifact types:
 - **Principles** — Guiding rules for evaluation
 - **Anti-patterns** — What to reject or flag
 
-**Panels** coordinate multiple personas into review workflows. There are 18 panels in `governance/personas/panels/`. Each panel:
+**Panels** coordinate multiple personas into review workflows. There are 19 panels in `governance/personas/panels/`. Each panel:
 1. Activates relevant personas for the review type
 2. Evaluates changes against persona-specific criteria
 3. Emits structured JSON between `<!-- STRUCTURED_EMISSION_START -->` and `<!-- STRUCTURED_EMISSION_END -->` markers

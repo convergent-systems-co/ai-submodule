@@ -180,6 +180,8 @@ optional_panels:
     trigger: files_changed_in ["src/", "lib/", "pkg/", "app/"]
   - panel: copilot-review
     trigger: always
+  - panel: governance-compliance-review
+    trigger: always
 
 # Proof-of-Correctness Rules (Phase 5a)
 # Verification level requirements per risk classification.
