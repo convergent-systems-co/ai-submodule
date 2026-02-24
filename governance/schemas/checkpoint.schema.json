@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/ai-submodule/schemas/checkpoint.schema.json",
+  "title": "SessionCheckpoint",
+  "description": "Schema for agentic session checkpoint files written to .checkpoints/ during the Context Capacity Shutdown Protocol. These files enable session resumption after context resets.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "branch",
+    "issues_completed",
+    "issues_remaining",
+    "git_state",
+    "pending_work"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the checkpoint was written."
+    },
+    "branch": {
+      "type": "string",
+      "description": "Git branch name at the time of checkpoint."
+    },
+    "issues_completed": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^#\\d+$"
+      },
+      "description": "Issues completed in this session (e.g., ['#42', '#43']). Array length is the session issue counter."
+    },
+    "prs_resolved": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^#\\d+$"
+      },
+      "description": "PRs resolved (merged or escalated) in this session."
+    },
+    "issues_remaining": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^#\\d+$"
+      },
+      "description": "Issues identified as actionable but not yet started. Must be re-validated on resume (issue state may have changed)."
+    },
+    "prs_remaining": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^#\\d+$"
+      },
+      "description": "Open PRs that were not resolved before shutdown."
+    },
+    "current_issue": {
+      "type": ["string", "null"],
+      "pattern": "^#\\d+$",
+      "description": "Issue that was in progress when shutdown was triggered. Null if shutdown occurred between issues."
+    },
+    "current_step": {
+      "type": "string",
+      "description": "The startup.md step that was active at shutdown (e.g., 'Step 7a — Wait for CI Checks')."
+    },
+    "git_state": {
+      "type": "string",
+      "enum": ["clean", "dirty"],
+      "description": "Git working tree state. Must be 'clean' for a valid checkpoint — dirty checkpoints indicate the shutdown protocol was not completed correctly."
+    },
+    "pending_work": {
+      "type": "string",
+      "description": "Human-readable description of what remains to be done."
+    },
+    "prs_created": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^#\\d+$"
+      },
+      "description": "PRs created during this session."
+    },
+    "manifests_written": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Run manifest IDs written during this session."
+    },
+    "review_cycle": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "maximum": 3,
+      "description": "Current review cycle number if shutdown occurred during Step 7 (PR monitoring). Null otherwise."
+    }
+  },
+  "additionalProperties": false
+}

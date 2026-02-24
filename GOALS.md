@@ -100,7 +100,8 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #178 | #179 | Governance workflow health check | Startup pre-flight checks verify governance workflow is enabled and healthy |
 | #181 | #182 | Parallel session protocol (Phase 5d) | Session lifecycle, work assignment, coordination, and handoff rules; completes Phase 5d governance artifacts |
 | #184 | #187 | Cross-repo issue escalation | Escalation schema, workflow prompt, detection criteria, dedup mechanism, project.yaml config extension, policy rules |
-| #186 | — | Issue state validation | Agents verify issues are still open before starting/resuming work; rule in ANCHOR block propagates to all AI tooling |
+| #186 | #188 | Issue state validation | Agents verify issues are still open before starting/resuming work; rule in ANCHOR block propagates to all AI tooling |
+| #189 | — | Checkpoint resumption schema and workflow | Formalized checkpoint schema + resumption workflow for Phase 5c |
 
 ## Open Work
 
@@ -159,7 +160,7 @@ The Phase 5 roadmap is informed by industry maturity models for autonomous softw
 ### 5c — Always-On Orchestration (Partially Achievable)
 
 - [ ] Event-driven webhook trigger — GitHub webhook listener that triggers governance sessions on issue creation, PR events, and deployment status changes
-- [ ] Automatic checkpoint resumption — Mechanism to resume agentic sessions from `.checkpoints/` state files after context resets or tool restarts
+- [x] Automatic checkpoint resumption — Checkpoint schema and resumption workflow for reliable session recovery after context resets (PR #189)
 - [ ] Cross-session state persistence — Schema and storage strategy for maintaining governance context across multiple agentic sessions
 
 > **Blocked by:** Claude Code and GitHub Copilot are session-based tools without persistent daemon capabilities. Scheduled triggers via GitHub Actions (#74) partially address this, but true always-on orchestration requires runtime infrastructure.

@@ -69,6 +69,7 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       retrospective.md         Post-merge process evaluation prompt
       governance-compliance-checklist.md  Required governance steps per PR (#176)
       cross-repo-escalation-workflow.md   Cross-repo escalation detect-dedup-escalate flow (#184)
+      checkpoint-resumption-workflow.md    Session resumption from checkpoint files (Phase 5c)
       templates/               Reusable document templates
         plan-template.md       Standardized plan template for AI and humans
         runtime-di-template.md DI template for runtime-generated intents
@@ -94,6 +95,7 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       persona-effectiveness.schema.json    Per-persona signal-to-noise ratio (Phase 5b)
       test-governance.schema.json          Test coverage expectations per policy profile (Phase 5a)
       cross-repo-escalation.schema.json    Cross-repo issue escalation records (#184)
+      checkpoint.schema.json               Session checkpoint state for resumption (Phase 5c)
 
     policy/                    Deterministic policy profiles and supporting rules (YAML)
       default.yaml             Standard risk tolerance
