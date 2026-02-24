@@ -99,7 +99,8 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #173 | #174 | Merge sequencing policy (Phase 5d) | PR ordering rules for multi-agent coordination; second Phase 5d governance artifact |
 | #178 | #179 | Governance workflow health check | Startup pre-flight checks verify governance workflow is enabled and healthy |
 | #181 | #182 | Parallel session protocol (Phase 5d) | Session lifecycle, work assignment, coordination, and handoff rules; completes Phase 5d governance artifacts |
-| #184 | — | Cross-repo issue escalation | Escalation schema, workflow prompt, detection criteria, dedup mechanism, project.yaml config extension, policy rules |
+| #184 | #187 | Cross-repo issue escalation | Escalation schema, workflow prompt, detection criteria, dedup mechanism, project.yaml config extension, policy rules |
+| #186 | — | Issue state validation | Agents verify issues are still open before starting/resuming work; rule in ANCHOR block propagates to all AI tooling |
 
 ## Open Work
 

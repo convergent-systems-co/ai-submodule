@@ -42,6 +42,20 @@ When the user identifies a problem with a previously-created PR (e.g., failing c
 1. Check out the existing branch for that PR
 2. Enter the Startup Sequence at Step 7 (PR Monitoring & Review Loop)
 
+## Issue State Validation (Checkpoint Restore)
+
+When resuming from a checkpoint (`.checkpoints/` file), **before continuing any work**:
+
+1. For each issue listed in `current_issue` and `issues_remaining`, verify it is still open:
+   ```bash
+   gh issue view <number> --json state --jq '.state'
+   ```
+2. If `current_issue` is **closed**, do not resume work on it. Remove it from the work queue and proceed to the next remaining issue.
+3. If any `issues_remaining` are closed, remove them from the queue.
+4. If all issues are closed, proceed to Step 1 (Scan Open Issues) for a fresh scan.
+
+Closed issues represent a user decision. Continuing work on them wastes compute and creates noise.
+
 ## Startup Sequence
 
 ### Pre-flight: Update .ai Submodule
@@ -210,14 +224,19 @@ Sort actionable issues by:
 ### Step 4: Validate Intent (Layer 1)
 
 For the highest-priority actionable issue:
-1. Read the issue body
-2. Validate it has clear acceptance criteria or a reproducible description
-3. If the intent is unclear, has too many decision points, or lacks sufficient detail for action:
+1. **Verify the issue is still open** before any other validation:
+   ```bash
+   gh issue view <number> --json state --jq '.state'
+   ```
+   If the issue is closed, skip it and move to the next actionable issue. Do not start or continue work on closed issues — even if a branch or checkpoint exists for it.
+2. Read the issue body
+3. Validate it has clear acceptance criteria or a reproducible description
+4. If the intent is unclear, has too many decision points, or lacks sufficient detail for action:
    - Label the issue `refine`
    - Comment on the issue explaining what needs clarification or which decisions must be made by the user
    - Move to the next issue
    - **Important**: The `refine` label is a request for human input, not a permanent exclusion. When a human updates the issue (adds comments, edits the body, or removes the label), Step 2a will re-evaluate it in the next session. Never treat `refine` as cached state that persists across sessions — always re-check against the live API.
-4. If the intent is clear, proceed to Step 5
+5. If the intent is clear, proceed to Step 5
 
 ### Step 5: Create Plan
 

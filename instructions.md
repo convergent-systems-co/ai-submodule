@@ -36,6 +36,20 @@ Repository settings (auto-merge, CODEOWNERS, branch protection) are declared in 
 
 See `governance/docs/repository-configuration.md` for details.
 
+## Issue State Validation
+
+Before starting or resuming work on any GitHub issue, verify it is still open:
+
+```bash
+gh issue view <number> --json state --jq '.state'
+```
+
+- If the issue is **closed**, do not start or continue work on it — even if a checkpoint or branch exists for it.
+- During checkpoint restores, re-validate all in-flight and remaining issues before resuming.
+- If an issue is closed while an agent is mid-flight, stop work at the next opportunity and notify the user.
+
+Closed issues represent a user decision. Continuing work on them wastes compute and creates noise.
+
 ## Governance Pipeline — Mandatory
 
 **The governance pipeline applies to ALL work, in ALL modes (local and remote). No exceptions.**
