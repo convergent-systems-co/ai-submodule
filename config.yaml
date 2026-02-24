@@ -73,3 +73,17 @@ repository:
         require_code_owner_review: true
       - name: "Pull Request - Base"
       - name: "JM Compliance Workflow"
+
+# Cross-repo issue escalation defaults
+# Consuming repos opt in via project.yaml; disabled by default
+escalation:
+  enabled: false
+  target_repository: "SET-Apps/ai-submodule"
+  auth_method: "GITHUB_TOKEN"
+  rate_limit: 3
+  criteria:
+    path_based: true
+    workflow_failure: true
+    policy_gap: true
+    schema_validation: true
+    init_failure: true

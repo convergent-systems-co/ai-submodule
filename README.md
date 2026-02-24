@@ -67,6 +67,8 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       startup.md               Agentic improvement loop entry point
       init.md                  Agentic bootstrap prompt (interactive install for consuming repos)
       retrospective.md         Post-merge process evaluation prompt
+      governance-compliance-checklist.md  Required governance steps per PR (#176)
+      cross-repo-escalation-workflow.md   Cross-repo escalation detect-dedup-escalate flow (#184)
       templates/               Reusable document templates
         plan-template.md       Standardized plan template for AI and humans
         runtime-di-template.md DI template for runtime-generated intents
@@ -88,6 +90,10 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       project.schema.json                  Project configuration validation
       formal-spec.schema.json              Formal specification for Phase 5e Spec-Driven Interface
       conflict-detection.schema.json       Multi-agent conflict detection for Phase 5d
+      governance-compliance.schema.json    Governance step compliance evidence (#176)
+      persona-effectiveness.schema.json    Per-persona signal-to-noise ratio (Phase 5b)
+      test-governance.schema.json          Test coverage expectations per policy profile (Phase 5a)
+      cross-repo-escalation.schema.json    Cross-repo issue escalation records (#184)
 
     policy/                    Deterministic policy profiles and supporting rules (YAML)
       default.yaml             Standard risk tolerance
@@ -123,6 +129,7 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       copilot-auto-fix.md                 Copilot auto-fix configuration guide
       retrospective-aggregation.md        Aggregated retrospective data schema docs
       threshold-tuning.md                 Auto-tuning mechanism and safety bounds
+      cross-repo-escalation.md             Cross-repo escalation setup and architecture (#184)
 
   .governance/                 Policy engine runtime
     policy-engine.py           Deterministic evaluation engine (Phase 4b)

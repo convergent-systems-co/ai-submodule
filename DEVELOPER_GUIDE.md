@@ -174,9 +174,9 @@ AI context windows are finite. The framework uses tiered loading:
   init.ps1                   # Bootstrap script (Windows)
   templates/                 # Language-specific scaffolding (go, python, node, react, csharp)
   governance/
-    personas/                # 60 persona definitions (including 2 agentic) + 16 panels
-    policy/                  # 4 policy profiles + supporting rules (15 YAML files + signal-adapters/)
-    schemas/                 # 15 JSON Schemas for emissions, manifests, metrics, and validation
+    personas/                # 60 persona definitions (including 2 agentic) + 19 panels
+    policy/                  # 4 policy profiles + supporting rules (16 YAML files + signal-adapters/)
+    schemas/                 # 19 JSON Schemas for emissions, manifests, metrics, and validation
     prompts/                 # Reusable prompts and workflows
     docs/                    # Architecture and design documents
     emissions/               # Panel output (structured JSON)

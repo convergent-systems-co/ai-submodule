@@ -107,6 +107,82 @@
         }
       },
       "additionalProperties": false
+    },
+    "escalation": {
+      "type": "object",
+      "description": "Cross-repo issue escalation configuration. When enabled, the agentic loop detects framework-level issues and escalates them to the upstream governance repository.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable cross-repo escalation. Must be explicitly set to true — disabled by default."
+        },
+        "target_repository": {
+          "type": "string",
+          "default": "SET-Apps/ai-submodule",
+          "pattern": "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$",
+          "description": "Upstream repository to escalate framework-level issues to."
+        },
+        "auth_method": {
+          "type": "string",
+          "enum": ["GITHUB_TOKEN", "PAT", "GITHUB_APP"],
+          "default": "GITHUB_TOKEN",
+          "description": "Authentication method for creating issues on the target repository."
+        },
+        "token_secret": {
+          "type": "string",
+          "description": "Name of the repository secret containing the PAT. Only used when auth_method is PAT.",
+          "examples": ["ESCALATION_TOKEN"]
+        },
+        "app_id_secret": {
+          "type": "string",
+          "description": "Name of the secret containing the GitHub App ID. Only used when auth_method is GITHUB_APP."
+        },
+        "private_key_secret": {
+          "type": "string",
+          "description": "Name of the secret containing the GitHub App private key. Only used when auth_method is GITHUB_APP."
+        },
+        "rate_limit": {
+          "type": "integer",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum number of escalations per agentic session. Prevents spam from misconfigured repos."
+        },
+        "criteria": {
+          "type": "object",
+          "description": "Which detection criteria are active. All default to true when escalation is enabled.",
+          "properties": {
+            "path_based": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when issues involve .ai/governance/ files."
+            },
+            "workflow_failure": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when the governance workflow fails due to framework code errors."
+            },
+            "policy_gap": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when the policy engine encounters unmatched scenarios."
+            },
+            "schema_validation": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when governance schema validation fails on valid-looking artifacts."
+            },
+            "init_failure": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when init.sh fails due to missing governance files."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

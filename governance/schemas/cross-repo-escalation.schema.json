@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/ai-submodule/schemas/cross-repo-escalation.schema.json",
+  "title": "CrossRepoEscalation",
+  "description": "Schema for cross-repository issue escalation records. Tracks framework-level issues detected in consuming repositories that are escalated to the ai-submodule upstream repository.",
+  "type": "object",
+  "required": [
+    "escalation_id",
+    "source_repository",
+    "target_repository",
+    "detection_criteria",
+    "dedup_key",
+    "severity",
+    "description",
+    "status",
+    "timestamp"
+  ],
+  "properties": {
+    "escalation_id": {
+      "type": "string",
+      "pattern": "^esc-[a-f0-9]{8}$",
+      "description": "Unique identifier for this escalation record (e.g., esc-a1b2c3d4)."
+    },
+    "source_repository": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$",
+      "description": "Consuming repository in owner/repo format where the issue was detected."
+    },
+    "source_issue_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The local issue number in the consuming repo that triggered escalation. Null if detected outside an issue context."
+    },
+    "target_repository": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$",
+      "description": "Upstream repository to escalate to (e.g., SET-Apps/ai-submodule)."
+    },
+    "detection_criteria": {
+      "type": "object",
+      "required": ["type", "detail"],
+      "description": "What triggered the escalation.",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "path_based",
+            "workflow_failure",
+            "policy_gap",
+            "schema_validation",
+            "init_failure"
+          ],
+          "description": "Category of detection criteria that matched."
+        },
+        "detail": {
+          "type": "string",
+          "description": "Specific detail about what was detected (e.g., file path, error message, missing policy rule)."
+        },
+        "affected_files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Files in the .ai/ governance directory that are affected."
+        },
+        "error_output": {
+          "type": "string",
+          "description": "Relevant error output or log excerpt from the failure."
+        }
+      }
+    },
+    "dedup_key": {
+      "type": "string",
+      "description": "Hash of (detection_criteria.type + detection_criteria.detail) used for duplicate prevention. Embedded in upstream issue body as <!-- dedup:{key} --> marker."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"],
+      "description": "Severity of the framework-level issue."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Human-readable description of what the consuming repo's agent detected."
+    },
+    "upstream_issue_number": {
+      "type": ["integer", "null"],
+      "minimum": 1,
+      "description": "Issue number created in the target repository. Null until escalation completes."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["detected", "escalated", "duplicate", "resolved", "skipped"],
+      "description": "Current status of the escalation. 'detected' = identified but not yet escalated. 'escalated' = upstream issue created. 'duplicate' = upstream issue already exists. 'resolved' = upstream fix merged. 'skipped' = rate-limited or disabled."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the escalation was detected."
+    },
+    "resolved_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the upstream issue was resolved. Null until resolved."
+    }
+  },
+  "additionalProperties": false
+}
