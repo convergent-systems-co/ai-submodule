@@ -92,7 +92,8 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | Issue | PR | Title | Impact |
 |-------|----|-------|--------|
 | #155 | #156 | Enforce Dark Governance Framework | Mandatory governance pipeline in all modes, CI blocks on missing panels, GOALS.md template in init.sh |
-| #126 | — | Data Governance Standards enforcement | data-governance-review panel, canonical model compliance, missing-canonical workflow, dach-canonical-models integration |
+| #126 | #157 | Data Governance Standards enforcement | data-governance-review panel, canonical model compliance, missing-canonical workflow, dach-canonical-models integration |
+| #158 | — | Phase 5a Self-Proving Systems | Test governance schema, test-generation panel, proof-of-correctness policy |
 
 ## Open Work
 
@@ -137,9 +138,9 @@ The Phase 5 roadmap is informed by industry maturity models for autonomous softw
 
 ### 5a — Self-Proving Systems (Partially Achievable)
 
-- [ ] Test governance schema — JSON Schema defining test coverage expectations, mutation testing thresholds, and proof-of-correctness criteria per policy profile
-- [ ] Test-generation panel definition — Panel that emits test requirements as structured JSON; consuming repos execute tests via their own CI
-- [ ] Proof-of-correctness policy — Policy rules that gate merge on formal verification artifacts (type proofs, property tests, contract checks)
+- [x] Test governance schema — JSON Schema defining test coverage expectations, mutation testing thresholds, and proof-of-correctness criteria per policy profile (PR #158)
+- [x] Test-generation panel definition — Panel that emits test requirements as structured JSON; consuming repos execute tests via their own CI (PR #158)
+- [x] Proof-of-correctness policy — Policy rules that gate merge on formal verification artifacts (type proofs, property tests, contract checks) (PR #158)
 
 ### 5b — Self-Evolution (Achievable — Governance Artifacts)
 

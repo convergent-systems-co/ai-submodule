@@ -176,5 +176,29 @@ optional_panels:
     trigger: test_files_changed == true
   - panel: data-design-review
     trigger: files_changed_in ["db/", "migrations/", "schema/"]
+  - panel: test-generation-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/", "app/"]
   - panel: copilot-review
     trigger: always
+
+# Proof-of-Correctness Rules (Phase 5a)
+# Verification level requirements per risk classification.
+# Consuming repos declare compliance via governance/schemas/test-governance.schema.json.
+proof_of_correctness:
+  enabled: true
+  rules:
+    - name: basic_verification
+      description: "Low-risk changes require basic test coverage."
+      condition: risk_level in ["low", "negligible"]
+      required_verification_level: basic
+      enforcement: warn
+    - name: standard_verification
+      description: "Medium-risk changes require standard verification (unit + integration + type checks)."
+      condition: risk_level == "medium"
+      required_verification_level: standard
+      enforcement: warn
+    - name: strict_verification
+      description: "High or critical risk changes require strict verification (property tests, contract checks)."
+      condition: risk_level in ["high", "critical"]
+      required_verification_level: strict
+      enforcement: block
