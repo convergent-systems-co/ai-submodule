@@ -160,7 +160,7 @@ The Phase 5 roadmap is informed by industry maturity models for autonomous softw
 
 ### 5d — Multi-Agent Coordination (Blocked)
 
-- [ ] Conflict detection schema — JSON Schema for detecting when multiple agents modify overlapping files or governance state
+- [x] Conflict detection schema — JSON Schema for detecting when multiple agents modify overlapping files or governance state (PR #TBD)
 - [ ] Merge sequencing policy — Policy rules for ordering concurrent agent PRs to avoid conflicts and maintain governance consistency
 - [ ] Parallel agent session protocol — Specification for spawning, coordinating, and reconciling multiple concurrent agent sessions
 
