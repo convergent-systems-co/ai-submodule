@@ -227,7 +227,7 @@ if [ "$IS_SUBMODULE" = "true" ]; then
     OPTIONAL_WORKFLOWS=""
     if [ -n "$PYTHON_CMD" ]; then
       CONFIG_WORKFLOWS=$("$PYTHON_CMD" -c "
-import yaml, os
+import yaml, os, sys
 
 def deep_merge(base, override):
     result = dict(base)
@@ -241,7 +241,7 @@ def deep_merge(base, override):
     return result
 
 config = {}
-for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in sys.argv[1:]:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -257,7 +257,7 @@ else:
     opt = []
 print('REQUIRED=' + ' '.join(req))
 print('OPTIONAL=' + ' '.join(opt))
-" 2>/dev/null)
+" "$AI_DIR/config.yaml" "$AI_DIR/project.yaml" "$PROJECT_ROOT/project.yaml" 2>/dev/null)
       if [ -n "$CONFIG_WORKFLOWS" ]; then
         REQUIRED_WORKFLOWS=$(echo "$CONFIG_WORKFLOWS" | grep '^REQUIRED=' | sed 's/^REQUIRED=//')
         OPTIONAL_WORKFLOWS=$(echo "$CONFIG_WORKFLOWS" | grep '^OPTIONAL=' | sed 's/^OPTIONAL=//')
@@ -336,9 +336,9 @@ print('OPTIONAL=' + ' '.join(opt))
   PROJECT_DIRS=".plans .panels"
   if [ -n "$PYTHON_CMD" ]; then
     CONFIG_DIRS=$("$PYTHON_CMD" -c "
-import yaml, os
+import yaml, os, sys
 config = {}
-for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in sys.argv[1:]:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -351,7 +351,7 @@ for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.
                     config[k] = v
 dirs = config.get('project_directories', [{'path': '.plans'}, {'path': '.panels'}])
 print(' '.join(d.get('path', '') for d in dirs if d.get('path')))
-" 2>/dev/null) && PROJECT_DIRS="$CONFIG_DIRS"
+" "$AI_DIR/config.yaml" "$AI_DIR/project.yaml" "$PROJECT_ROOT/project.yaml" 2>/dev/null) && PROJECT_DIRS="$CONFIG_DIRS"
   fi
   for dir_name in $PROJECT_DIRS; do
     dir_path="$PROJECT_ROOT/$dir_name"
@@ -482,19 +482,23 @@ def deep_merge(base, override):
             result[k] = v
     return result
 
+field = sys.argv[1]
+default_value = sys.argv[2]
+config_files = sys.argv[3:]
+
 config = {}
-for f in ['$config_file', '$project_file', '$root_project_file']:
+for f in config_files:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
             config = deep_merge(config, data)
 
-val = deep_get(config, '$field'.split('.'))
+val = deep_get(config, field.split('.'))
 if val is None:
-    print('$default_value')
+    print(default_value)
 else:
     print(str(val).lower() if isinstance(val, bool) else val)
-" 2>/dev/null || echo "$default_value"
+" "$field" "$default_value" "$config_file" "$project_file" "$root_project_file" 2>/dev/null || echo "$default_value"
 }
 
 # Generate CODEOWNERS content from config
@@ -509,7 +513,7 @@ generate_codeowners() {
   fi
 
   "$python_cmd" -c "
-import yaml, os
+import yaml, os, sys
 
 def deep_merge(base, override):
     result = dict(base)
@@ -523,7 +527,7 @@ def deep_merge(base, override):
     return result
 
 config = {}
-for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in sys.argv[1:]:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -552,7 +556,7 @@ for rule in co.get('rules', []):
     owners = ' '.join(rule.get('owners', []))
     if pattern and owners:
         print(f'{pattern} {owners}')
-" 2>/dev/null
+" "$AI_DIR/config.yaml" "$AI_DIR/project.yaml" "$PROJECT_ROOT/project.yaml" 2>/dev/null
 }
 
 configure_repository() {
@@ -675,8 +679,11 @@ def deep_merge(base, override):
             result[k] = v
     return result
 
+codeowners_path = sys.argv[1]
+config_files = sys.argv[2:]
+
 config = {}
-for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in config_files:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -700,7 +707,6 @@ for rule in co.get('rules', []):
         required_entries[pattern] = owners
 
 # Read existing CODEOWNERS
-codeowners_path = '$codeowners_path'
 with open(codeowners_path, 'r') as f:
     existing_lines = f.readlines()
 
@@ -754,7 +760,7 @@ if changes_made:
     print('  [OK] CODEOWNERS updated — governance entries merged')
 else:
     print('  [OK] CODEOWNERS already has all governance-required entries')
-" 2>/dev/null
+" "$codeowners_path" "$AI_DIR/config.yaml" "$AI_DIR/project.yaml" "$PROJECT_ROOT/project.yaml" 2>/dev/null
 
   local exit_code=$?
   if [ $exit_code -ne 0 ]; then
@@ -791,7 +797,7 @@ validate_rulesets() {
 
   local expected_names
   expected_names=$("$python_cmd" -c "
-import yaml, os
+import yaml, os, sys
 
 def deep_merge(base, override):
     result = dict(base)
@@ -805,7 +811,7 @@ def deep_merge(base, override):
     return result
 
 config = {}
-for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in sys.argv[1:]:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -816,7 +822,7 @@ for rs in rulesets:
     name = rs.get('name', '')
     if name:
         print(name)
-" 2>/dev/null)
+" "$AI_DIR/config.yaml" "$AI_DIR/project.yaml" "$PROJECT_ROOT/project.yaml" 2>/dev/null)
 
   if [ -z "$expected_names" ]; then
     echo "  [SKIP] No expected rulesets configured"
