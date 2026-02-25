@@ -372,6 +372,210 @@ class TestBlockConditions:
 
 
 # ===========================================================================
+# Compound block conditions
+# ===========================================================================
+
+
+class TestCompoundBlockConditions:
+    """Tests for compound 'and' block conditions (issue #230)."""
+
+    def test_critical_and_not_auto_remediable_blocks(self):
+        """Critical flag + not auto_remediable should block."""
+        log = _log()
+        flags = [
+            {"flag": "vuln_found", "severity": "critical", "description": "CVE", "auto_remediable": False},
+        ]
+        profile = make_profile(block_conditions=[
+            {"description": "Critical non-remediable", "condition": 'any_policy_flag_severity == "critical" and not auto_remediable'}
+        ])
+        blocked, reason = policy_engine.evaluate_block_conditions(
+            0.90, "low", flags, [], True, profile, log
+        )
+        assert blocked is True
+        assert "non-remediable" in reason.lower()
+
+    def test_critical_and_auto_remediable_does_not_trigger_compound(self):
+        """Critical flag + auto_remediable=True — compound condition evaluates False.
+
+        Note: evaluate_block_conditions has a universal critical/high flag block
+        that catches this separately. This test verifies the compound evaluator
+        correctly returns False when all flags are auto-remediable.
+        """
+        flags = [
+            {"flag": "vuln_found", "severity": "critical", "description": "CVE", "auto_remediable": True},
+        ]
+        result = policy_engine._evaluate_block_condition(
+            'any_policy_flag_severity == "critical" and not auto_remediable',
+            0.90, "low", flags,
+        )
+        assert result is False
+
+    def test_non_critical_and_not_auto_remediable_does_not_block(self):
+        """Non-critical flag + not auto_remediable should NOT block (first sub-condition false)."""
+        log = _log()
+        flags = [
+            {"flag": "style_issue", "severity": "low", "description": "Lint", "auto_remediable": False},
+        ]
+        profile = make_profile(block_conditions=[
+            {"description": "Critical non-remediable", "condition": 'any_policy_flag_severity == "critical" and not auto_remediable'}
+        ])
+        blocked, _ = policy_engine.evaluate_block_conditions(
+            0.90, "low", flags, [], True, profile, log
+        )
+        assert blocked is False
+
+    def test_no_flags_does_not_block(self):
+        """No flags at all should NOT block on compound condition."""
+        log = _log()
+        profile = make_profile(block_conditions=[
+            {"description": "Critical non-remediable", "condition": 'any_policy_flag_severity == "critical" and not auto_remediable'}
+        ])
+        blocked, _ = policy_engine.evaluate_block_conditions(
+            0.90, "low", [], [], True, profile, log
+        )
+        assert blocked is False
+
+    def test_context_dependent_compound_does_not_block(self):
+        """Compound with context-dependent sub-condition returns False (cannot evaluate)."""
+        log = _log()
+        profile = make_profile(block_conditions=[
+            {"description": "Missing data panel", "condition": 'panel_missing("data-design-review") and data_files_changed'}
+        ])
+        blocked, _ = policy_engine.evaluate_block_conditions(
+            0.90, "low", [], [], True, profile, log
+        )
+        assert blocked is False
+
+    def test_multiple_critical_flags_mixed_remediable(self):
+        """Multiple flags — one critical non-remediable should block."""
+        log = _log()
+        flags = [
+            {"flag": "style_issue", "severity": "low", "description": "Lint", "auto_remediable": True},
+            {"flag": "vuln_found", "severity": "critical", "description": "CVE", "auto_remediable": False},
+        ]
+        profile = make_profile(block_conditions=[
+            {"description": "Critical non-remediable", "condition": 'any_policy_flag_severity == "critical" and not auto_remediable'}
+        ])
+        blocked, _ = policy_engine.evaluate_block_conditions(
+            0.90, "low", flags, [], True, profile, log
+        )
+        assert blocked is True
+
+    def test_all_flags_auto_remediable_compound_returns_false(self):
+        """All critical flags are auto-remediable — compound condition evaluates False."""
+        flags = [
+            {"flag": "vuln_a", "severity": "critical", "description": "A", "auto_remediable": True},
+            {"flag": "vuln_b", "severity": "critical", "description": "B", "auto_remediable": True},
+        ]
+        result = policy_engine._evaluate_block_condition(
+            'any_policy_flag_severity == "critical" and not auto_remediable',
+            0.90, "low", flags,
+        )
+        assert result is False
+
+
+class TestCompoundBlockSubCondition:
+    """Unit tests for _evaluate_block_sub_condition."""
+
+    def test_any_policy_flag_severity(self):
+        flags = [{"flag": "x", "severity": "critical", "description": "t"}]
+        result = policy_engine._evaluate_block_sub_condition(
+            'any_policy_flag_severity == "critical"', 0.9, "low", flags
+        )
+        assert result is True
+
+    def test_any_policy_flag_severity_no_match(self):
+        flags = [{"flag": "x", "severity": "low", "description": "t"}]
+        result = policy_engine._evaluate_block_sub_condition(
+            'any_policy_flag_severity == "critical"', 0.9, "low", flags
+        )
+        assert result is False
+
+    def test_auto_remediable_true(self):
+        flags = [{"flag": "x", "severity": "critical", "description": "t", "auto_remediable": True}]
+        result = policy_engine._evaluate_block_sub_condition(
+            "auto_remediable", 0.9, "low", flags
+        )
+        assert result is True
+
+    def test_auto_remediable_false(self):
+        flags = [{"flag": "x", "severity": "critical", "description": "t", "auto_remediable": False}]
+        result = policy_engine._evaluate_block_sub_condition(
+            "auto_remediable", 0.9, "low", flags
+        )
+        assert result is False
+
+    def test_auto_remediable_no_flags(self):
+        result = policy_engine._evaluate_block_sub_condition(
+            "auto_remediable", 0.9, "low", []
+        )
+        assert result is True
+
+    def test_context_dependent_returns_none(self):
+        result = policy_engine._evaluate_block_sub_condition(
+            "data_files_changed", 0.9, "low", []
+        )
+        assert result is None
+
+    def test_panel_missing_returns_none(self):
+        result = policy_engine._evaluate_block_sub_condition(
+            'panel_missing("data-design-review")', 0.9, "low", []
+        )
+        assert result is None
+
+    def test_unknown_returns_none(self):
+        result = policy_engine._evaluate_block_sub_condition(
+            "some_unknown_pattern", 0.9, "low", []
+        )
+        assert result is None
+
+    def test_aggregate_confidence_lt(self):
+        result = policy_engine._evaluate_block_sub_condition(
+            "aggregate_confidence < 0.40", 0.30, "low", []
+        )
+        assert result is True
+
+    def test_aggregate_confidence_gte(self):
+        result = policy_engine._evaluate_block_sub_condition(
+            "aggregate_confidence >= 0.85", 0.90, "low", []
+        )
+        assert result is True
+
+
+class TestCompoundEscalationConditions:
+    """Tests for compound 'and' escalation conditions."""
+
+    def test_context_dependent_compound_does_not_escalate(self):
+        """Compound with context-dependent sub-condition returns False."""
+        log = _log()
+        profile = make_profile(escalation_rules=[
+            {"name": "sec_dismiss", "condition": 'dismissed_finding_severity in ["critical", "high"] and dismissed_finding_panel == "security-review"', "action": "human_review_required"}
+        ])
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "low", [], [], profile, log)
+        assert result is None
+
+    def test_evaluable_compound_escalation(self):
+        """Compound escalation with evaluable sub-conditions."""
+        log = _log()
+        flags = [{"flag": "issue", "severity": "critical", "description": "t"}]
+        profile = make_profile(escalation_rules=[
+            {"name": "compound", "condition": 'risk_level == "high" and any_policy_flag_severity in ["critical"]', "action": "human_review_required"}
+        ])
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "high", flags, [], profile, log)
+        assert result == "human_review_required"
+
+    def test_evaluable_compound_escalation_partial_false(self):
+        """One sub-condition false → no escalation."""
+        log = _log()
+        flags = [{"flag": "issue", "severity": "low", "description": "t"}]
+        profile = make_profile(escalation_rules=[
+            {"name": "compound", "condition": 'risk_level == "high" and any_policy_flag_severity in ["critical"]', "action": "human_review_required"}
+        ])
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "high", flags, [], profile, log)
+        assert result is None
+
+
+# ===========================================================================
 # Escalation rules
 # ===========================================================================
 

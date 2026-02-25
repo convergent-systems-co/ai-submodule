@@ -350,6 +350,10 @@ def _evaluate_block_condition(condition: str, confidence: float, risk: str, flag
     """Evaluate a single block condition string."""
     cond = condition.strip()
 
+    # Handle compound 'and' conditions
+    if " and " in cond:
+        return _evaluate_compound_block_condition(cond, confidence, risk, flags)
+
     # Pattern: aggregate_confidence < 0.40
     if cond.startswith("aggregate_confidence <"):
         threshold = float(cond.split("<")[1].strip())
@@ -370,11 +374,79 @@ def _evaluate_block_condition(condition: str, confidence: float, risk: str, flag
         # Handled by check_required_panels, skip here
         return False
 
-    # Pattern with "and" — compound conditions we skip (context-dependent)
-    if " and " in cond:
-        return False
-
     return False
+
+
+def _evaluate_compound_block_condition(condition: str, confidence: float, risk: str, flags: list) -> bool:
+    """Evaluate a compound 'and' block condition by splitting and evaluating each sub-condition."""
+    parts = condition.split(" and ")
+    for part in parts:
+        part = part.strip()
+        negated = part.startswith("not ")
+        if negated:
+            part = part[4:].strip()
+
+        result = _evaluate_block_sub_condition(part, confidence, risk, flags)
+        if result is None:
+            # Context-dependent sub-condition — cannot fully evaluate
+            return False
+        if negated:
+            result = not result
+        if not result:
+            return False
+    return True
+
+
+def _evaluate_block_sub_condition(sub_cond: str, confidence: float, risk: str, flags: list):
+    """Evaluate a single sub-condition within a compound block condition.
+
+    Returns True/False if evaluable, or None if context-dependent.
+    """
+    cond = sub_cond.strip()
+
+    # Pattern: aggregate_confidence < 0.40
+    if cond.startswith("aggregate_confidence"):
+        if "<" in cond and ">=" not in cond:
+            threshold = float(cond.split("<")[1].strip())
+            return confidence < threshold
+        if ">=" in cond:
+            threshold = float(cond.split(">=")[1].strip())
+            return confidence >= threshold
+
+    # Pattern: any_policy_flag_severity == "critical"
+    if cond.startswith("any_policy_flag_severity =="):
+        level = cond.split('"')[1]
+        return any(f.get("severity") == level for f in flags)
+
+    # Pattern: any_policy_flag == "pii_exposure"
+    if cond.startswith("any_policy_flag =="):
+        flag_name = cond.split('"')[1]
+        return any(f["flag"] == flag_name for f in flags)
+
+    # Pattern: any_policy_flag starts_with "pii_"
+    if "starts_with" in cond and "policy_flag" in cond:
+        prefix = cond.split('"')[1]
+        return any(f["flag"].startswith(prefix) for f in flags)
+
+    # Pattern: auto_remediable (bare boolean — True when all flags are auto-remediable)
+    if cond == "auto_remediable":
+        return all(f.get("auto_remediable", False) for f in flags) if flags else True
+
+    # Pattern: panel_missing("...")
+    if cond.startswith("panel_missing("):
+        return None  # Context-dependent
+
+    # Context-dependent patterns
+    if any(ctx in cond for ctx in [
+        "data_files_changed", "auth_files_changed", "deployment_files_changed",
+        "infrastructure_files_changed", "panel_executed", "no_rollback_plan",
+        "schema_validation_failed", "schema_path_matches",
+        "init_script_failed", "error_cause",
+        "workflow_name", "error_source",
+    ]):
+        return None
+
+    return None  # Unknown — treat as context-dependent
 
 
 def evaluate_escalation_rules(aggregate_confidence, aggregate_risk, policy_flags, emissions, profile, log):
@@ -409,6 +481,10 @@ def evaluate_escalation_rules(aggregate_confidence, aggregate_risk, policy_flags
 def _evaluate_escalation_condition(condition: str, confidence: float, risk: str, flags: list, emissions: list) -> bool:
     """Evaluate a single escalation condition string."""
     cond = condition.strip()
+
+    # Handle compound 'and' conditions
+    if " and " in cond:
+        return _evaluate_compound_escalation_condition(cond, confidence, risk, flags, emissions)
 
     # Pattern: aggregate_confidence < 0.70
     if cond.startswith("aggregate_confidence <"):
@@ -446,6 +522,76 @@ def _evaluate_escalation_condition(condition: str, confidence: float, risk: str,
         return False
 
     return False
+
+
+def _evaluate_compound_escalation_condition(condition: str, confidence: float, risk: str, flags: list, emissions: list) -> bool:
+    """Evaluate a compound 'and' escalation condition by splitting and evaluating each sub-condition."""
+    parts = condition.split(" and ")
+    for part in parts:
+        part = part.strip()
+        negated = part.startswith("not ")
+        if negated:
+            part = part[4:].strip()
+
+        result = _evaluate_escalation_sub_condition(part, confidence, risk, flags, emissions)
+        if result is None:
+            return False
+        if negated:
+            result = not result
+        if not result:
+            return False
+    return True
+
+
+def _evaluate_escalation_sub_condition(sub_cond: str, confidence: float, risk: str, flags: list, emissions: list):
+    """Evaluate a single sub-condition within a compound escalation condition.
+
+    Returns True/False if evaluable, or None if context-dependent.
+    """
+    cond = sub_cond.strip()
+
+    # Pattern: aggregate_confidence < 0.70
+    if cond.startswith("aggregate_confidence"):
+        if "<" in cond and ">=" not in cond:
+            threshold = float(cond.split("<")[1].strip())
+            return confidence < threshold
+        if ">=" in cond:
+            threshold = float(cond.split(">=")[1].strip())
+            return confidence >= threshold
+
+    # Pattern: risk_level == "critical"
+    if cond.startswith("risk_level =="):
+        level = cond.split('"')[1]
+        return risk == level
+
+    # Pattern: risk_level in ["critical", "high"]
+    if cond.startswith("risk_level in"):
+        levels = _extract_list(cond)
+        return risk in levels
+
+    # Pattern: any_policy_flag_severity in ["critical", "high"]
+    if "policy_flag_severity" in cond or ("policy_flag" in cond and "severity" in cond):
+        levels = _extract_list(cond)
+        return any(f.get("severity") in levels for f in flags)
+
+    # Pattern: any_policy_flag starts_with "pii_"
+    if "starts_with" in cond and "policy_flag" in cond:
+        prefix = cond.split('"')[1]
+        return any(f["flag"].startswith(prefix) for f in flags)
+
+    # Pattern: panel_disagreement_detected == true
+    if "panel_disagreement" in cond:
+        verdicts = {e.get("aggregate_verdict", "approve") for e in emissions}
+        return len(verdicts) > 1
+
+    # Context-dependent patterns
+    if any(ctx in cond for ctx in [
+        "files_changed_in", "services_affected",
+        "dismissed_finding_severity", "dismissed_finding_panel",
+    ]):
+        return None
+
+    return None  # Unknown — treat as context-dependent
 
 
 def evaluate_auto_merge(aggregate_confidence, aggregate_risk, policy_flags, emissions, ci_passed, profile, log):

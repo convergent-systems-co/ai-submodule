@@ -227,3 +227,85 @@ class TestReducedTouchpointIntegration:
         # Reduced touchpoint allows medium risk for auto-merge
         assert exit_code == 0
         assert manifest["decision"]["action"] == "auto_merge"
+
+
+# ===========================================================================
+# Compound block condition integration tests (issue #230)
+# ===========================================================================
+
+
+class TestCompoundBlockIntegration:
+    """Integration tests verifying compound block conditions through the full pipeline."""
+
+    def test_default_profile_critical_non_remediable_blocks(self, tmp_path):
+        """default.yaml: critical flag + not auto_remediable triggers block via compound condition.
+
+        The compound condition 'any_policy_flag_severity == "critical" and not auto_remediable'
+        in default.yaml should now correctly evaluate. Even though the universal critical flag
+        block also catches this, the compound condition is independently correct.
+        """
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions[0]["policy_flags"] = [
+            {"flag": "vuln_critical", "severity": "critical", "description": "Critical CVE", "auto_remediable": False},
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_default_profile_compound_condition_evaluates(self, tmp_path):
+        """default.yaml: verify compound condition is evaluated (not silently skipped).
+
+        Before the fix, compound conditions returned False and were logged as 'Not triggered'.
+        After the fix, the compound condition should evaluate and log as 'fail' (triggered).
+        """
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions[0]["policy_flags"] = [
+            {"flag": "vuln_critical", "severity": "critical", "description": "Critical CVE", "auto_remediable": False},
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        log_stream = io.StringIO()
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=log_stream,
+        )
+        log_output = log_stream.getvalue()
+        # The compound condition description from default.yaml should appear as triggered
+        assert "Critical policy violation" in log_output or "non-remediable" in log_output.lower()
+
+    def test_reduced_touchpoint_critical_non_remediable_blocks(self, tmp_path):
+        """reduced_touchpoint.yaml has the same compound block condition as default.yaml."""
+        emissions = all_required_emissions(confidence=0.80, risk_level="low")
+        emissions[0]["policy_flags"] = [
+            {"flag": "vuln_critical", "severity": "critical", "description": "Critical CVE", "auto_remediable": False},
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("reduced_touchpoint"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_context_dependent_compound_conditions_skip_gracefully(self, tmp_path):
+        """fin_pii_high.yaml compound conditions with context-dependent sub-conditions don't block.
+
+        Conditions like 'panel_missing("data-design-review") and data_files_changed' cannot
+        be fully evaluated from emissions alone and should return False gracefully.
+        """
+        panels = [
+            "code-review", "security-review", "data-design-review",
+            "testing-review", "threat-modeling", "cost-analysis",
+            "documentation-review",
+        ]
+        emissions = all_required_emissions(confidence=0.95, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("fin_pii_high"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Should not block — context-dependent compound conditions return False
+        assert manifest["decision"]["action"] != "block" or "missing" in manifest["decision"]["rationale"].lower()
