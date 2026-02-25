@@ -88,7 +88,7 @@ flowchart TD
 5. **Code Manager** runs security review, context-specific panels, pushes the PR, monitors CI/Copilot
 6. After merge, writes a checkpoint and loops back for the next issue (max 3 per session)
 
-See [startup.md](governance/prompts/startup.md) for the full protocol and [agent-protocol.md](governance/prompts/agent-protocol.md) for inter-agent communication.
+See [startup.md](../../governance/prompts/startup.md) for the full protocol and [agent-protocol.md](../../governance/prompts/agent-protocol.md) for inter-agent communication.
 
 ## Common Operations
 
@@ -116,7 +116,7 @@ ls -t .checkpoints/*.json | head -1   # find the most recent checkpoint
 cat .checkpoints/<latest>.json         # see where things left off
 ```
 
-Then tell the agent: `continue` or `Resume from checkpoint: .checkpoints/<file>`. See [checkpoint resumption workflow](governance/prompts/checkpoint-resumption-workflow.md) for the full protocol.
+Then tell the agent: `continue` or `Resume from checkpoint: .checkpoints/<file>`. See [checkpoint resumption workflow](../../governance/prompts/checkpoint-resumption-workflow.md) for the full protocol.
 
 ### No checkpoint exists
 
@@ -195,12 +195,12 @@ If the agent repeats itself, forgets decisions, or re-reads files it already rea
 
 ## Further Reading
 
-- [README.md](README.md) — Full architecture, governance layers, file structure, and [Documentation Index](README.md#documentation-index)
-- [GOALS.md](GOALS.md) — Phase status and completed work
-- [governance/prompts/reviews/](governance/prompts/reviews/) — 19 consolidated review prompts (preferred, replaces individual persona/panel files)
-- [governance/personas/index.md](governance/personas/index.md) — All 62 personas (including 4 agentic: DevOps Engineer, Code Manager, Coder, Tester) and 19 panels _(deprecated — see consolidated review prompts)_
+- [README.md](../../README.md) — Full architecture, governance layers, file structure, and [Documentation Index](../../README.md#documentation-index)
+- [GOALS.md](../../GOALS.md) — Phase status and completed work
+- [governance/prompts/reviews/](../../governance/prompts/reviews/) — 19 consolidated review prompts (preferred, replaces individual persona/panel files)
+- [governance/personas/index.md](../../governance/personas/index.md) — All 62 personas (including 4 agentic: DevOps Engineer, Code Manager, Coder, Tester) and 19 panels _(deprecated — see consolidated review prompts)_
 - [docs/architecture/governance-model.md](../architecture/governance-model.md) — Governance layers, policy profiles, and how changes flow through the system
 - [docs/configuration/repository-setup.md](../configuration/repository-setup.md) — Repository settings, CODEOWNERS, per-project overrides
 - [docs/architecture/context-management.md](../architecture/context-management.md) — Context tiers, capacity detection, shutdown protocol
-- [governance/prompts/startup.md](governance/prompts/startup.md) — Agentic loop entry point (full protocol)
-- [governance/prompts/checkpoint-resumption-workflow.md](governance/prompts/checkpoint-resumption-workflow.md) — Checkpoint recovery protocol
+- [governance/prompts/startup.md](../../governance/prompts/startup.md) — Agentic loop entry point (full protocol)
+- [governance/prompts/checkpoint-resumption-workflow.md](../../governance/prompts/checkpoint-resumption-workflow.md) — Checkpoint recovery protocol
