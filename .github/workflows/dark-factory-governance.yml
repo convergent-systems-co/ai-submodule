@@ -129,14 +129,17 @@ jobs:
         shell: bash
         env:
           GOV_ROOT: ${{ needs.detect.outputs.gov_root }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           python "${GOV_ROOT}/governance/bin/policy-engine.py" \
             --emissions-dir "${GOV_ROOT}/governance/emissions/" \
             --profile "${GOV_ROOT}/governance/policy/default.yaml" \
             --output manifest.json \
-            --commit-sha "${{ github.event.pull_request.head.sha }}" \
-            --pr-number "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
+            --commit-sha "$COMMIT_SHA" \
+            --pr-number "$PR_NUMBER" \
+            --repo "$REPO_NAME" \
             --log-file evaluation.log \
             --ci-checks-passed true || true
 
@@ -188,26 +191,30 @@ jobs:
         if: steps.evaluate.outputs.decision == 'auto_merge'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review "${{ github.event.pull_request.number }}" --approve --body-file review-body.md
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr review "$PR_NUMBER" --approve --body-file review-body.md
 
       - name: Approve PR (human review required — bot satisfies CODEOWNER gate)
         if: steps.evaluate.outputs.decision == 'human_review_required'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review "${{ github.event.pull_request.number }}" --approve --body-file review-body.md
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr review "$PR_NUMBER" --approve --body-file review-body.md
 
       - name: Comment — auto-remediate
         if: steps.evaluate.outputs.decision == 'auto_remediate'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review "${{ github.event.pull_request.number }}" --comment --body-file review-body.md
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr review "$PR_NUMBER" --comment --body-file review-body.md
 
       - name: Block PR
         if: steps.evaluate.outputs.decision == 'block'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          gh pr review "${{ github.event.pull_request.number }}" --request-changes --body-file review-body.md
+          gh pr review "$PR_NUMBER" --request-changes --body-file review-body.md
           exit 1
 
       - name: Upload governance artifacts
@@ -272,10 +279,12 @@ jobs:
         if: steps.optout.outputs.skip_validation != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           echo "No panel emissions found. Blocking PR."
-          gh pr review "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
+          gh pr review "$PR_NUMBER" \
+            --repo "$REPO_NAME" \
             --request-changes \
             --body "## Dark Factory Governance Review
 
@@ -309,10 +318,12 @@ jobs:
         if: steps.optout.outputs.skip_validation == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           echo "Panel validation opted out via project.yaml. Posting warning."
-          gh pr review "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" \
+          gh pr review "$PR_NUMBER" \
+            --repo "$REPO_NAME" \
             --approve \
             --body "## Dark Factory Governance Review
 
