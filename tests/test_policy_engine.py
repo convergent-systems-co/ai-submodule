@@ -1,0 +1,565 @@
+"""Unit tests for every evaluation function in the policy engine."""
+
+import io
+import pytest
+
+from conftest import policy_engine, make_emission, make_profile, all_required_emissions
+
+EvaluationLog = policy_engine.EvaluationLog
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _log():
+    return EvaluationLog(stream=io.StringIO())
+
+
+# ===========================================================================
+# Utility helpers
+# ===========================================================================
+
+
+class TestRiskIndex:
+    def test_all_levels_map_correctly(self):
+        assert policy_engine.risk_index("negligible") == 0
+        assert policy_engine.risk_index("low") == 1
+        assert policy_engine.risk_index("medium") == 2
+        assert policy_engine.risk_index("high") == 3
+        assert policy_engine.risk_index("critical") == 4
+
+    def test_unknown_returns_zero(self):
+        assert policy_engine.risk_index("unknown") == 0
+        assert policy_engine.risk_index("") == 0
+
+
+class TestExtractList:
+    def test_parses_list(self):
+        result = policy_engine._extract_list('risk_level in ["critical", "high"]')
+        assert result == ["critical", "high"]
+
+    def test_single_item(self):
+        result = policy_engine._extract_list('risk_level in ["low"]')
+        assert result == ["low"]
+
+    def test_no_match(self):
+        result = policy_engine._extract_list("no quotes here")
+        assert result == []
+
+
+class TestExtractComparison:
+    def test_gte(self):
+        op, val = policy_engine._extract_comparison('count(panel_risk == "high") >= 2')
+        assert op == ">="
+        assert val == 2
+
+    def test_eq(self):
+        op, val = policy_engine._extract_comparison('count(panel_risk == "high") == 1')
+        assert op == "=="
+        assert val == 1
+
+    def test_lt(self):
+        op, val = policy_engine._extract_comparison('count(panel_risk == "low") < 3')
+        assert op == "<"
+        assert val == 3
+
+    def test_no_match_returns_default(self):
+        op, val = policy_engine._extract_comparison("no comparison")
+        assert op == ">="
+        assert val == 0
+
+
+class TestCompare:
+    def test_gte(self):
+        assert policy_engine._compare(2, ">=", 2) is True
+        assert policy_engine._compare(1, ">=", 2) is False
+
+    def test_lte(self):
+        assert policy_engine._compare(2, "<=", 2) is True
+        assert policy_engine._compare(3, "<=", 2) is False
+
+    def test_eq(self):
+        assert policy_engine._compare(1, "==", 1) is True
+        assert policy_engine._compare(1, "==", 2) is False
+
+    def test_gt(self):
+        assert policy_engine._compare(3, ">", 2) is True
+        assert policy_engine._compare(2, ">", 2) is False
+
+    def test_lt(self):
+        assert policy_engine._compare(1, "<", 2) is True
+        assert policy_engine._compare(2, "<", 2) is False
+
+    def test_unknown_op(self):
+        assert policy_engine._compare(1, "!=", 1) is False
+
+
+class TestSlugify:
+    def test_basic(self):
+        assert policy_engine._slugify("Hello World!") == "hello_world"
+
+    def test_special_chars(self):
+        assert policy_engine._slugify("foo@bar#baz") == "foo_bar_baz"
+
+    def test_truncation(self):
+        long_text = "a" * 100
+        result = policy_engine._slugify(long_text)
+        assert len(result) <= 50
+
+    def test_strips_leading_trailing_underscores(self):
+        assert policy_engine._slugify("  --hello--  ") == "hello"
+
+
+# ===========================================================================
+# Confidence computation
+# ===========================================================================
+
+
+class TestWeightedConfidence:
+    def test_single_panel(self):
+        log = _log()
+        emissions = [make_emission(panel_name="code-review", confidence_score=0.90)]
+        profile = make_profile(weights={"code-review": 1.0})
+        result = policy_engine.compute_weighted_confidence(emissions, profile, log)
+        assert result == pytest.approx(0.90, abs=0.01)
+
+    def test_multiple_panels(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", confidence_score=0.90),
+            make_emission(panel_name="security-review", confidence_score=0.80),
+        ]
+        profile = make_profile(weights={"code-review": 0.50, "security-review": 0.50})
+        result = policy_engine.compute_weighted_confidence(emissions, profile, log)
+        assert result == pytest.approx(0.85, abs=0.01)
+
+    def test_missing_panel_redistribute(self):
+        log = _log()
+        # Only code-review present, security-review absent
+        emissions = [make_emission(panel_name="code-review", confidence_score=0.90)]
+        profile = make_profile(
+            weights={"code-review": 0.50, "security-review": 0.50},
+            missing_panel_behavior="redistribute",
+        )
+        result = policy_engine.compute_weighted_confidence(emissions, profile, log)
+        # With redistribution, code-review gets weight 0.50/0.50 = 1.0
+        assert result == pytest.approx(0.90, abs=0.01)
+
+    def test_all_panels_present_no_redistribution_needed(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", confidence_score=0.90),
+            make_emission(panel_name="security-review", confidence_score=0.80),
+        ]
+        profile = make_profile(
+            weights={"code-review": 0.50, "security-review": 0.50},
+        )
+        result = policy_engine.compute_weighted_confidence(emissions, profile, log)
+        assert result == pytest.approx(0.85, abs=0.01)
+
+    def test_empty_emissions(self):
+        log = _log()
+        profile = make_profile()
+        result = policy_engine.compute_weighted_confidence([], profile, log)
+        assert result == 0.0
+
+
+# ===========================================================================
+# Risk aggregation
+# ===========================================================================
+
+
+class TestRiskAggregation:
+    def test_any_critical(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", risk_level="low"),
+            make_emission(panel_name="security-review", risk_level="critical"),
+        ]
+        profile = make_profile()
+        result = policy_engine.compute_aggregate_risk(emissions, profile, log)
+        assert result == "critical"
+
+    def test_two_high(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", risk_level="high"),
+            make_emission(panel_name="security-review", risk_level="high"),
+            make_emission(panel_name="threat-modeling", risk_level="low"),
+        ]
+        profile = make_profile()
+        result = policy_engine.compute_aggregate_risk(emissions, profile, log)
+        assert result == "high"
+
+    def test_one_high(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", risk_level="high"),
+            make_emission(panel_name="security-review", risk_level="low"),
+        ]
+        profile = make_profile()
+        result = policy_engine.compute_aggregate_risk(emissions, profile, log)
+        assert result == "medium"
+
+    def test_all_low(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", risk_level="low"),
+            make_emission(panel_name="security-review", risk_level="negligible"),
+        ]
+        profile = make_profile()
+        result = policy_engine.compute_aggregate_risk(emissions, profile, log)
+        assert result == "low"
+
+    def test_no_rule_match_falls_back_to_highest(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", risk_level="medium"),
+        ]
+        # Profile with no matching rules
+        profile = make_profile(risk_rules=[
+            {
+                "description": "Only matches critical",
+                "condition": 'any_panel_risk == "critical"',
+                "result": "critical",
+            },
+        ])
+        result = policy_engine.compute_aggregate_risk(emissions, profile, log)
+        assert result == "medium"  # fallback to highest severity
+
+
+# ===========================================================================
+# Risk condition evaluator
+# ===========================================================================
+
+
+class TestEvaluateRiskCondition:
+    def _risk_levels(self, emissions):
+        return {e["panel_name"]: e["risk_level"] for e in emissions}
+
+    def _risk_counts(self, emissions):
+        counts = {}
+        for r in policy_engine.RISK_ORDER:
+            counts[r] = sum(1 for e in emissions if e["risk_level"] == r)
+        return counts
+
+    def test_any_panel_risk_eq(self):
+        emissions = [make_emission(risk_level="critical")]
+        assert policy_engine._evaluate_risk_condition(
+            'any_panel_risk == "critical"',
+            self._risk_levels(emissions),
+            self._risk_counts(emissions),
+            emissions,
+        ) is True
+
+    def test_any_panel_risk_in(self):
+        emissions = [make_emission(risk_level="high")]
+        assert policy_engine._evaluate_risk_condition(
+            'any_panel_risk in ["critical", "high"]',
+            self._risk_levels(emissions),
+            self._risk_counts(emissions),
+            emissions,
+        ) is True
+
+    def test_count_panel_risk(self):
+        emissions = [
+            make_emission(panel_name="a", risk_level="high"),
+            make_emission(panel_name="b", risk_level="high"),
+        ]
+        assert policy_engine._evaluate_risk_condition(
+            'count(panel_risk == "high") >= 2',
+            self._risk_levels(emissions),
+            self._risk_counts(emissions),
+            emissions,
+        ) is True
+
+    def test_all_panels_risk_in(self):
+        emissions = [
+            make_emission(panel_name="a", risk_level="low"),
+            make_emission(panel_name="b", risk_level="negligible"),
+        ]
+        assert policy_engine._evaluate_risk_condition(
+            'all_panels_risk in ["low", "negligible"]',
+            self._risk_levels(emissions),
+            self._risk_counts(emissions),
+            emissions,
+        ) is True
+
+    def test_panel_risk_named(self):
+        emissions = [
+            make_emission(panel_name="security-review", risk_level="critical"),
+        ]
+        assert policy_engine._evaluate_risk_condition(
+            'panel_risk("security-review") == "critical"',
+            self._risk_levels(emissions),
+            self._risk_counts(emissions),
+            emissions,
+        ) is True
+
+
+# ===========================================================================
+# Required panels
+# ===========================================================================
+
+
+class TestRequiredPanels:
+    def test_all_present(self):
+        log = _log()
+        emissions = all_required_emissions()
+        profile = make_profile()
+        missing = policy_engine.check_required_panels(emissions, profile, log)
+        assert missing == []
+
+    def test_missing_panel(self):
+        log = _log()
+        emissions = all_required_emissions()
+        # Remove the last emission
+        emissions = emissions[:-1]
+        profile = make_profile()
+        missing = policy_engine.check_required_panels(emissions, profile, log)
+        assert len(missing) == 1
+        assert "data-governance-review" in missing
+
+
+# ===========================================================================
+# Block conditions
+# ===========================================================================
+
+
+class TestBlockConditions:
+    def test_block_missing_required(self):
+        log = _log()
+        blocked, reason = policy_engine.evaluate_block_conditions(
+            0.90, "low", [], ["security-review"], True, make_profile(), log
+        )
+        assert blocked is True
+        assert "missing" in reason.lower()
+
+    def test_block_ci_failed(self):
+        log = _log()
+        blocked, reason = policy_engine.evaluate_block_conditions(
+            0.90, "low", [], [], False, make_profile(), log
+        )
+        assert blocked is True
+        assert "CI" in reason
+
+    def test_block_low_confidence_threshold(self):
+        log = _log()
+        profile = make_profile(block_conditions=[
+            {"description": "Low confidence", "condition": "aggregate_confidence < 0.40"}
+        ])
+        blocked, reason = policy_engine.evaluate_block_conditions(
+            0.30, "low", [], [], True, profile, log
+        )
+        assert blocked is True
+
+    def test_block_critical_policy_flag(self):
+        log = _log()
+        flags = [{"flag": "pii_exposure", "severity": "critical", "description": "PII found"}]
+        blocked, reason = policy_engine.evaluate_block_conditions(
+            0.90, "low", flags, [], True, make_profile(), log
+        )
+        assert blocked is True
+        assert "policy flags" in reason.lower()
+
+    def test_no_block_happy_path(self):
+        log = _log()
+        blocked, _ = policy_engine.evaluate_block_conditions(
+            0.90, "low", [], [], True, make_profile(), log
+        )
+        assert blocked is False
+
+
+# ===========================================================================
+# Escalation rules
+# ===========================================================================
+
+
+class TestEscalationRules:
+    def test_escalation_low_confidence(self):
+        log = _log()
+        profile = make_profile(escalation_rules=[
+            {"name": "low_conf", "condition": "aggregate_confidence < 0.70", "action": "human_review_required"}
+        ])
+        result, _ = policy_engine.evaluate_escalation_rules(0.60, "low", [], [], profile, log)
+        assert result == "human_review_required"
+
+    def test_escalation_critical_risk(self):
+        log = _log()
+        profile = make_profile(escalation_rules=[
+            {"name": "crit", "condition": 'risk_level == "critical"', "action": "human_review_required"}
+        ])
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "critical", [], [], profile, log)
+        assert result == "human_review_required"
+
+    def test_escalation_policy_violation(self):
+        log = _log()
+        flags = [{"flag": "pii_leak", "severity": "critical", "description": "PII"}]
+        profile = make_profile(escalation_rules=[
+            {"name": "policy", "condition": 'any_policy_flag_severity in ["critical", "high"]', "action": "block"}
+        ])
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "low", flags, [], profile, log)
+        assert result == "block"
+
+    def test_escalation_panel_disagreement(self):
+        log = _log()
+        emissions = [
+            make_emission(panel_name="a", aggregate_verdict="approve"),
+            make_emission(panel_name="b", aggregate_verdict="request_changes"),
+        ]
+        profile = make_profile(escalation_rules=[
+            {"name": "disagree", "condition": "panel_disagreement_detected == true", "action": "human_review_required"}
+        ])
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "low", [], emissions, profile, log)
+        assert result == "human_review_required"
+
+    def test_escalation_requires_human_review(self):
+        log = _log()
+        emissions = [make_emission(requires_human_review=True)]
+        profile = make_profile()
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "low", [], emissions, profile, log)
+        assert result == "human_review_required"
+
+    def test_no_escalation_happy_path(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        result, _ = policy_engine.evaluate_escalation_rules(0.90, "low", [], emissions, profile, log)
+        assert result is None
+
+
+# ===========================================================================
+# Auto-merge conditions
+# ===========================================================================
+
+
+class TestAutoMerge:
+    def test_all_pass(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        result = policy_engine.evaluate_auto_merge(0.90, "low", [], emissions, True, profile, log)
+        assert result is True
+
+    def test_disabled_profile(self):
+        log = _log()
+        profile = make_profile(auto_merge_enabled=False)
+        result = policy_engine.evaluate_auto_merge(0.90, "low", [], [], True, profile, log)
+        assert result is False
+
+    def test_fail_low_confidence(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        result = policy_engine.evaluate_auto_merge(0.70, "low", [], emissions, True, profile, log)
+        assert result is False
+
+    def test_fail_high_risk(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        result = policy_engine.evaluate_auto_merge(0.90, "high", [], emissions, True, profile, log)
+        assert result is False
+
+    def test_fail_policy_flag(self):
+        log = _log()
+        flags = [{"flag": "breaking_change", "severity": "high", "description": "API break"}]
+        emissions = [make_emission()]
+        profile = make_profile()
+        result = policy_engine.evaluate_auto_merge(0.90, "low", flags, emissions, True, profile, log)
+        assert result is False
+
+    def test_fail_ci_failed(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        result = policy_engine.evaluate_auto_merge(0.90, "low", [], emissions, False, profile, log)
+        assert result is False
+
+
+# ===========================================================================
+# Auto-remediate conditions
+# ===========================================================================
+
+
+class TestAutoRemediate:
+    def test_all_pass(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        result = policy_engine.evaluate_auto_remediate(0.90, "low", [], emissions, profile, log)
+        assert result is True
+
+    def test_disabled(self):
+        log = _log()
+        profile = make_profile(auto_remediate_enabled=False)
+        result = policy_engine.evaluate_auto_remediate(0.90, "low", [], [], profile, log)
+        assert result is False
+
+    def test_fail_risk(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile(auto_remediate_conditions=[
+            'risk_level == "low"',
+        ])
+        result = policy_engine.evaluate_auto_remediate(0.90, "high", [], emissions, profile, log)
+        assert result is False
+
+    def test_fail_not_remediable(self):
+        log = _log()
+        flags = [{"flag": "issue", "severity": "medium", "description": "test", "auto_remediable": False}]
+        profile = make_profile(auto_remediate_conditions=[
+            "all_policy_flags.auto_remediable == true",
+        ])
+        result = policy_engine.evaluate_auto_remediate(0.90, "low", flags, [], profile, log)
+        assert result is False
+
+
+# ===========================================================================
+# Manifest generation
+# ===========================================================================
+
+
+class TestManifest:
+    def test_structure(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        manifest = policy_engine.generate_manifest(
+            emissions, profile, 0.90, "low", "auto_merge",
+            "All conditions met", log, commit_sha="a" * 40,
+        )
+        assert "manifest_version" in manifest
+        assert "manifest_id" in manifest
+        assert "timestamp" in manifest
+        assert "decision" in manifest
+        assert manifest["decision"]["action"] == "auto_merge"
+        assert manifest["aggregate_confidence"] == 0.90
+        assert manifest["risk_level"] == "low"
+
+    def test_panels_listed(self):
+        log = _log()
+        emissions = all_required_emissions()
+        profile = make_profile()
+        manifest = policy_engine.generate_manifest(
+            emissions, profile, 0.90, "low", "auto_merge",
+            "OK", log,
+        )
+        panel_names = [p["panel_name"] for p in manifest["panels_executed"]]
+        assert "code-review" in panel_names
+        assert "security-review" in panel_names
+        assert len(panel_names) == 6
+
+    def test_repository_context(self):
+        log = _log()
+        emissions = [make_emission()]
+        profile = make_profile()
+        manifest = policy_engine.generate_manifest(
+            emissions, profile, 0.90, "low", "auto_merge", "OK", log,
+            commit_sha="a" * 40, pr_number=42, repo="owner/repo-name",
+        )
+        assert manifest["repository"]["owner"] == "owner"
+        assert manifest["repository"]["name"] == "repo-name"
+        assert manifest["repository"]["commit_sha"] == "a" * 40
+        assert manifest["repository"]["pr_number"] == 42

@@ -51,6 +51,7 @@ The Code Manager is the primary orchestrator of the Dark Factory governance pipe
 - **PR check status**: Have all CI checks passed? If not, what failed and why?
 - **Copilot recommendation coverage**: Has every Copilot comment been addressed (implemented or dismissed with rationale)?
 - **Panel finding resolution**: Has every critical/high finding been fixed? Are medium findings addressed?
+- **Test Coverage Gate status**: Has the Coder run the Test Coverage Gate (`governance/prompts/test-coverage-gate.md`) and did it pass? Do not allow push without a passing gate.
 - **Review cycle count**: How many review cycles has this PR been through? (Max 3 before human escalation)
 - **Review thread resolution**: Are ALL review threads (from any author) resolved or outdated? The pre-merge GraphQL verification must confirm zero active unresolved threads before merge proceeds.
 - **Issue update currency**: Is the issue up to date with the latest PR status?

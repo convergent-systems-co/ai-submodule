@@ -264,12 +264,13 @@ For the highest-priority actionable issue:
 
    If no documentation files are affected (e.g., a purely internal refactor with no user-facing or governance-facing changes), explicitly note this in the commit message body: `Docs: no documentation updates required — [reason]`.
 5. Commit with conventional commit messages — one logical change per commit (Git Commit Isolation)
-6. Push the branch
-7. Create a PR referencing the issue:
+6. **Run the Test Coverage Gate (mandatory)** — Execute `governance/prompts/test-coverage-gate.md` before pushing. This gate runs the full test suite, enforces 80% minimum coverage, and verifies test completeness for changed files. The push **must not proceed** until the gate passes. If the gate blocks after 3 fix attempts, escalate to the Code Manager — do not push broken or under-tested code.
+7. Push the branch
+8. Create a PR referencing the issue:
    ```bash
    gh pr create --title "<type>: <description>" --body "Closes #<issue-number>\n\n## Summary\n<description>\n\n## Plan\nSee .plans/<issue-number>-<description>.md"
    ```
-8. Comment on the issue that the PR has been created:
+9. Comment on the issue that the PR has been created:
    ```bash
    gh issue comment <issue-number> --body "PR #<pr-number> created. Entering monitoring loop."
    ```
@@ -401,9 +402,10 @@ gh issue comment <issue-number> --body "## PR Update
 
 If any code changes were made in Steps 7d:
 
-1. Push the updated branch: `git push`
-2. Return to **Step 7a** — the governance workflow will re-trigger on the push
-3. Repeat the entire 7a-7f cycle until:
+1. **Run the Test Coverage Gate** — Execute `governance/prompts/test-coverage-gate.md` before pushing. All tests must pass and coverage must meet the 80% threshold. If the gate blocks, fix the issues before pushing.
+2. Push the updated branch: `git push`
+3. Return to **Step 7a** — the governance workflow will re-trigger on the push
+4. Repeat the entire 7a-7f cycle until:
    - All CI checks pass
    - All Copilot recommendations are addressed (implemented or dismissed)
    - The governance-review workflow produces an `APPROVE` decision
