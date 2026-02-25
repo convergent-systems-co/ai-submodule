@@ -72,6 +72,35 @@ Content accessed via tool calls or file reads, never pre-loaded.
 
 **Tier 3 budget: 0 tokens (no context cost)**
 
+## Tier Budget Exceptions
+
+Some prompts intentionally exceed their assigned tier budget. These exceptions are documented here with rationale. Prompts not listed below must stay within their tier budget.
+
+### Documented Exceptions
+
+| Prompt | Tier | Budget | Actual | Rationale |
+|--------|------|--------|--------|-----------|
+| `governance/prompts/startup.md` | 0+1 | ~2,400 tokens | ~4,700 tokens | Contains the full agentic loop with ANCHOR section that must survive context resets. Splitting into phases would fragment the critical shutdown protocol and risk lost instructions on context compaction. Loaded once at session start; not reloaded during the session. |
+| `governance/prompts/reviews/threat-modeling.md` | 2 | ~3,000 tokens | ~5,350 tokens | Self-contained review prompt implementing Anthropic's Parallelization (Voting) pattern. Inlines 5 threat perspectives with full evaluation criteria. Splitting would break prompt locality — each perspective needs access to all others for cross-referencing. Loaded only during threat-modeling panel execution. |
+| `governance/prompts/reviews/security-review.md` | 2 | ~3,000 tokens | ~3,400 tokens | Self-contained review prompt with 5 security perspectives. Marginally over budget. Same locality rationale as threat-modeling. |
+
+### When Exceptions Are Acceptable
+
+An exception is justified when:
+1. **Splitting would degrade output quality** — the prompt relies on cross-referencing between sections
+2. **The prompt implements a recognized AI pattern** (Parallelization, Voting) that requires locality
+3. **The prompt contains ANCHOR content** that must survive context resets
+4. **The prompt is loaded infrequently** — exceeding budget on a rarely-loaded prompt has less impact than on a frequently-loaded one
+
+### When Exceptions Are NOT Acceptable
+
+Do not add exceptions for:
+- Prompts that can be decomposed without quality loss
+- Prompts loaded at multiple tiers simultaneously
+- Instructional content that could move to Tier 3 (on-demand)
+
+> **Note:** Token counts are approximate (1 token ≈ 4 characters) and tied to the prompt content at the time of this documentation. Counts may drift as prompts evolve.
+
 ## Instruction Decomposition
 
 ### Current Problem
