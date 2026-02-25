@@ -1326,3 +1326,140 @@ class TestFindSchemaDir:
         assert isinstance(schema, dict)
         assert "$schema" in schema or "type" in schema
         assert "properties" in schema
+
+
+# ===========================================================================
+# Dry-run mode (issue #253)
+# ===========================================================================
+
+
+class TestDryRun:
+    """Issue #253: --dry-run flag should preview decision without side-effects."""
+
+    def _write_emission(self, directory, panel_name, content):
+        """Helper to write a JSON emission file."""
+        import json as _json
+        fpath = directory / f"{panel_name}.json"
+        fpath.write_text(_json.dumps(content))
+
+    def _valid_emission(self, panel_name):
+        """Return a valid emission dict for the given panel."""
+        return make_emission(panel_name=panel_name)
+
+    def _setup_emissions_and_profile(self, tmp_path):
+        """Write all required emissions and a default profile; return profile path."""
+        import yaml as _yaml
+        for panel in [
+            "code-review", "security-review", "threat-modeling",
+            "cost-analysis", "documentation-review", "data-governance-review",
+        ]:
+            self._write_emission(tmp_path, panel, self._valid_emission(panel))
+        profile_path = tmp_path / "profile.yaml"
+        profile_path.write_text(_yaml.dump(make_profile()))
+        return str(profile_path)
+
+    def test_dry_run_returns_exit_code_zero(self, tmp_path):
+        """Dry-run must always return exit code 0."""
+        profile_path = self._setup_emissions_and_profile(tmp_path)
+
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path),
+            profile_path,
+            ci_passed=True,
+            log_stream=io.StringIO(),
+            dry_run=True,
+        )
+
+        assert exit_code == 0
+
+    def test_dry_run_decision_action_is_dry_run(self, tmp_path):
+        """The manifest decision action should be 'dry_run'."""
+        profile_path = self._setup_emissions_and_profile(tmp_path)
+
+        manifest, _ = policy_engine.evaluate(
+            str(tmp_path),
+            profile_path,
+            ci_passed=True,
+            log_stream=io.StringIO(),
+            dry_run=True,
+        )
+
+        assert manifest["decision"]["action"] == "dry_run"
+        assert "dry-run" in manifest["decision"]["rationale"].lower() or \
+               "dry_run" in manifest["decision"]["rationale"].lower()
+
+    def test_dry_run_still_computes_confidence_and_risk(self, tmp_path):
+        """Dry-run should compute aggregate confidence and risk normally."""
+        profile_path = self._setup_emissions_and_profile(tmp_path)
+
+        manifest, _ = policy_engine.evaluate(
+            str(tmp_path),
+            profile_path,
+            ci_passed=True,
+            log_stream=io.StringIO(),
+            dry_run=True,
+        )
+
+        assert manifest["aggregate_confidence"] > 0
+        assert manifest["risk_level"] in ("negligible", "low", "medium", "high", "critical")
+
+    def test_dry_run_prints_summary(self, tmp_path):
+        """Dry-run should write a DRY RUN SUMMARY to the log stream."""
+        profile_path = self._setup_emissions_and_profile(tmp_path)
+        log_stream = io.StringIO()
+
+        policy_engine.evaluate(
+            str(tmp_path),
+            profile_path,
+            ci_passed=True,
+            log_stream=log_stream,
+            dry_run=True,
+        )
+
+        output = log_stream.getvalue()
+        assert "DRY RUN SUMMARY" in output
+        assert "Confidence:" in output
+        assert "Risk:" in output
+
+    def test_dry_run_exits_zero_even_when_would_block(self, tmp_path):
+        """Even if the normal evaluation would block, dry-run returns 0."""
+        import yaml as _yaml
+        # Write emissions with critical risk — would normally block
+        for panel in [
+            "code-review", "security-review", "threat-modeling",
+            "cost-analysis", "documentation-review", "data-governance-review",
+        ]:
+            self._write_emission(
+                tmp_path, panel,
+                make_emission(panel_name=panel, risk_level="critical", confidence_score=0.30),
+            )
+        profile_path = tmp_path / "profile.yaml"
+        profile_path.write_text(_yaml.dump(make_profile()))
+
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path),
+            str(profile_path),
+            ci_passed=False,
+            log_stream=io.StringIO(),
+            dry_run=True,
+        )
+
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "dry_run"
+
+    def test_dry_run_includes_panel_names_in_summary(self, tmp_path):
+        """The dry-run summary should list which panels were loaded."""
+        profile_path = self._setup_emissions_and_profile(tmp_path)
+        log_stream = io.StringIO()
+
+        policy_engine.evaluate(
+            str(tmp_path),
+            profile_path,
+            ci_passed=True,
+            log_stream=log_stream,
+            dry_run=True,
+        )
+
+        output = log_stream.getvalue()
+        assert "code-review" in output
+        assert "security-review" in output

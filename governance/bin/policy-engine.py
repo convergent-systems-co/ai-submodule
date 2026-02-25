@@ -10,8 +10,15 @@ Usage:
         --profile governance/policy/default.yaml \
         --output manifest.json
 
+    Dry-run (preview only, always exits 0):
+    python governance/bin/policy-engine.py \
+        --emissions-dir governance/emissions/ \
+        --profile governance/policy/default.yaml \
+        --output /dev/null \
+        --dry-run
+
 Exit codes:
-    0 = auto_merge
+    0 = auto_merge (or dry_run)
     1 = block
     2 = human_review_required
     3 = auto_remediate
@@ -952,8 +959,14 @@ def generate_manifest(
 # Main evaluation pipeline
 # ---------------------------------------------------------------------------
 
-def evaluate(emissions_dir, profile_path, ci_passed=True, commit_sha=None, pr_number=None, repo=None, log_stream=None):
-    """Run the full policy evaluation pipeline. Returns (manifest, exit_code)."""
+def evaluate(emissions_dir, profile_path, ci_passed=True, commit_sha=None, pr_number=None, repo=None, log_stream=None, dry_run=False):
+    """Run the full policy evaluation pipeline. Returns (manifest, exit_code).
+
+    When *dry_run* is True the engine loads emissions and the profile,
+    computes aggregate confidence and risk, then prints a summary and
+    returns early with exit code 0.  No block/escalation/merge evaluation
+    is performed and no manifest is written to disk.
+    """
     log = EvaluationLog(stream=log_stream)
 
     log._stream.write(f"\n{'='*60}\n")
@@ -1055,6 +1068,26 @@ def evaluate(emissions_dir, profile_path, ci_passed=True, commit_sha=None, pr_nu
     # Step 6: Compute aggregate risk
     log._stream.write("\n--- Step 5: Compute aggregate risk ---\n")
     aggregate_risk = compute_aggregate_risk(emissions, profile, log)
+
+    # Dry-run early exit — report what we know and return success.
+    if dry_run:
+        panel_names = [e["panel_name"] for e in emissions]
+        log._stream.write(f"\n{'='*60}\n")
+        log._stream.write(f"  === DRY RUN SUMMARY ===\n")
+        log._stream.write(f"  Profile:    {profile.get('profile_name', 'unknown')} (v{profile.get('profile_version', '?')})\n")
+        log._stream.write(f"  Panels:     {len(emissions)} loaded ({', '.join(panel_names)})\n")
+        log._stream.write(f"  Confidence: {aggregate_confidence:.4f}\n")
+        log._stream.write(f"  Risk:       {aggregate_risk}\n")
+        if missing_required:
+            log._stream.write(f"  Missing:    {', '.join(missing_required)}\n")
+        log._stream.write(f"  (No manifest written — dry-run mode)\n")
+        log._stream.write(f"{'='*60}\n")
+        # Build a lightweight manifest for the return value (not written to disk).
+        manifest = generate_manifest(
+            emissions, profile, aggregate_confidence, aggregate_risk,
+            "dry_run", "Dry-run mode — no decision executed", log, commit_sha, pr_number, repo
+        )
+        return manifest, 0
 
     # Step 6b: Phase 4b transition — downgrade missing-panel block when all
     # present panels approve with sufficient confidence.  This keeps the
@@ -1174,6 +1207,7 @@ def main():
     parser.add_argument("--commit-sha", help="Git commit SHA for manifest")
     parser.add_argument("--pr-number", type=int, help="PR number for manifest context")
     parser.add_argument("--repo", help="Repository name (owner/repo) for manifest context")
+    parser.add_argument("--dry-run", action="store_true", help="Preview decision without writing manifest or exiting non-zero")
 
     args = parser.parse_args()
 
@@ -1190,6 +1224,7 @@ def main():
             pr_number=args.pr_number,
             repo=args.repo,
             log_stream=log_stream,
+            dry_run=args.dry_run,
         )
 
         # Validate manifest against schema before writing

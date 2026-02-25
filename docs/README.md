@@ -83,6 +83,7 @@ Metrics, tuning, and operational guides.
 | [Migration Summary](operations/migration-summary.md) | Migration steps and deliverable checklist |
 | [Threshold Tuning](operations/threshold-tuning.md) | Auto-tuning mechanism and safety bounds |
 | [Retrospective Aggregation](operations/retrospective-aggregation.md) | Aggregated retrospective data schema documentation |
+| [Token Costs](operations/token-costs.md) | Per-PR token budget, model pricing, cost estimation, and `--dry-run` mode |
 
 ## Research
 
