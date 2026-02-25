@@ -1,6 +1,6 @@
 # Dark Factory Governance — Python dependencies
-# Used by the policy engine (.governance/policy-engine.py)
-# Install: pip install -r .ai/.governance/requirements.txt
+# Used by the policy engine (governance/bin/policy-engine.py)
+# Install: pip install -r .ai/governance/bin/requirements.txt
 jsonschema>=4.0.0
 pyyaml>=6.0.0
 pytest>=8.0.0
