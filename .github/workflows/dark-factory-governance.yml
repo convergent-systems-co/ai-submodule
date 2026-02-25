@@ -77,7 +77,7 @@ jobs:
         run: pip install -r governance/bin/requirements.txt
 
       - name: Run tests with coverage
-        run: pytest tests/ -v --cov=.governance --cov-fail-under=80
+        run: pytest tests/ -v --cov=governance/bin --cov-fail-under=80
 
   # -----------------------------------------------------------
   # Job 3: Run policy engine and post review
