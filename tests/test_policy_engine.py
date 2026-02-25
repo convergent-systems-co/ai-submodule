@@ -990,3 +990,52 @@ class TestEmissionLoadingExceptions:
         bad_file.write_text('{"panel_name": 123}')  # panel_name should be string
         emissions, valid = policy_engine.load_emissions(str(tmp_path), schema, log)
         assert valid is False
+
+
+# ===========================================================================
+# Emission freshness and replay protection (issue #240)
+# ===========================================================================
+
+
+class TestEmissionFreshness:
+    """Issue #240: emission freshness and replay protection."""
+
+    def test_matching_commit_sha_no_warning(self):
+        log = _log()
+        emission = make_emission()
+        emission["execution_context"] = {"commit_sha": "a" * 40}
+        warnings = policy_engine.validate_emission_freshness(emission, "a" * 40, log)
+        assert warnings == []
+
+    def test_mismatched_commit_sha_warns(self):
+        log = _log()
+        emission = make_emission()
+        emission["execution_context"] = {"commit_sha": "a" * 40}
+        warnings = policy_engine.validate_emission_freshness(emission, "b" * 40, log)
+        assert len(warnings) == 1
+        assert "does not match" in warnings[0]
+
+    def test_no_commit_sha_no_warning(self):
+        """Missing commit_sha in either emission or expected should not warn."""
+        log = _log()
+        emission = make_emission()
+        warnings = policy_engine.validate_emission_freshness(emission, "", log)
+        assert warnings == []
+
+    def test_stale_emission_warns(self):
+        log = _log()
+        emission = make_emission()
+        from datetime import datetime, timezone, timedelta
+        old_time = datetime.now(timezone.utc) - timedelta(hours=48)
+        emission["timestamp"] = old_time.isoformat()
+        warnings = policy_engine.validate_emission_freshness(emission, "", log)
+        assert len(warnings) == 1
+        assert "old" in warnings[0]
+
+    def test_fresh_emission_no_warning(self):
+        log = _log()
+        emission = make_emission()
+        from datetime import datetime, timezone
+        emission["timestamp"] = datetime.now(timezone.utc).isoformat()
+        warnings = policy_engine.validate_emission_freshness(emission, "", log)
+        assert warnings == []

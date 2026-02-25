@@ -159,6 +159,51 @@ def validate_emission_consistency(emission: dict, log: EvaluationLog) -> list:
     return warnings
 
 
+def validate_emission_freshness(emission: dict, expected_commit_sha: str, log: EvaluationLog) -> list:
+    """Check emission freshness and provenance.
+
+    Returns a list of warning strings. Warnings are logged but do not
+    reject the emission — the policy engine records them for audit.
+    """
+    warnings = []
+    panel = emission.get("panel_name", "unknown")
+    ctx = emission.get("execution_context", {})
+
+    # Rule 1: commit_sha mismatch
+    emission_sha = ctx.get("commit_sha", "")
+    if expected_commit_sha and emission_sha and emission_sha != expected_commit_sha:
+        msg = (
+            f"Freshness: {panel} emission commit_sha '{emission_sha[:8]}' "
+            f"does not match expected '{expected_commit_sha[:8]}'"
+        )
+        warnings.append(msg)
+        log.record(f"freshness_{panel}", "fail", msg)
+
+    # Rule 2: timestamp age check (24 hour threshold)
+    timestamp_str = emission.get("timestamp", "")
+    if timestamp_str:
+        try:
+            from datetime import datetime, timezone, timedelta
+            emission_time = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+            now = datetime.now(timezone.utc)
+            age = now - emission_time
+            max_age = timedelta(hours=24)
+            if age > max_age:
+                msg = (
+                    f"Freshness: {panel} emission is {age.total_seconds() / 3600:.1f}h old "
+                    f"(threshold: 24h)"
+                )
+                warnings.append(msg)
+                log.record(f"freshness_{panel}", "fail", msg)
+        except (ValueError, TypeError):
+            pass  # Can't parse timestamp — not a freshness issue
+
+    if not warnings:
+        log.record(f"freshness_{panel}", "pass", "Emission is fresh and provenance matches")
+
+    return warnings
+
+
 # ---------------------------------------------------------------------------
 # Policy loading
 # ---------------------------------------------------------------------------
@@ -904,6 +949,18 @@ def evaluate(emissions_dir, profile_path, ci_passed=True, commit_sha=None, pr_nu
         log.record(
             "consistency_summary", "fail",
             f"{len(all_consistency_warnings)} consistency warning(s) detected"
+        )
+
+    # Step 2c: Freshness and provenance checks
+    log._stream.write("\n--- Step 1c: Freshness and provenance checks ---\n")
+    all_freshness_warnings = []
+    for emission in emissions:
+        warnings = validate_emission_freshness(emission, commit_sha or "", log)
+        all_freshness_warnings.extend(warnings)
+    if all_freshness_warnings:
+        log.record(
+            "freshness_summary", "fail",
+            f"{len(all_freshness_warnings)} freshness warning(s) detected"
         )
 
     # Step 3: Load profile
