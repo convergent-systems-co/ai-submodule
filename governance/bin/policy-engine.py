@@ -458,17 +458,26 @@ def _evaluate_block_condition(condition: str, confidence: float, risk: str, flag
 
     # Pattern: aggregate_confidence < 0.40
     if cond.startswith("aggregate_confidence <"):
-        threshold = float(cond.split("<")[1].strip())
+        try:
+            threshold = float(cond.split("<")[1].strip())
+        except (ValueError, IndexError):
+            return False
         return confidence < threshold
 
     # Pattern: any_policy_flag == "pii_exposure"
     if cond.startswith("any_policy_flag =="):
-        flag_name = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        flag_name = parts[1]
         return any(f["flag"] == flag_name for f in flags)
 
     # Pattern: any_policy_flag starts_with "pii_"
     if "starts_with" in cond and "policy_flag" in cond:
-        prefix = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        prefix = parts[1]
         return any(f["flag"].startswith(prefix) for f in flags)
 
     # Pattern: panel_missing("security-review")
@@ -509,25 +518,40 @@ def _evaluate_block_sub_condition(sub_cond: str, confidence: float, risk: str, f
     # Pattern: aggregate_confidence < 0.40
     if cond.startswith("aggregate_confidence"):
         if "<" in cond and ">=" not in cond:
-            threshold = float(cond.split("<")[1].strip())
+            try:
+                threshold = float(cond.split("<")[1].strip())
+            except (ValueError, IndexError):
+                return False
             return confidence < threshold
         if ">=" in cond:
-            threshold = float(cond.split(">=")[1].strip())
+            try:
+                threshold = float(cond.split(">=")[1].strip())
+            except (ValueError, IndexError):
+                return False
             return confidence >= threshold
 
     # Pattern: any_policy_flag_severity == "critical"
     if cond.startswith("any_policy_flag_severity =="):
-        level = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        level = parts[1]
         return any(f.get("severity") == level for f in flags)
 
     # Pattern: any_policy_flag == "pii_exposure"
     if cond.startswith("any_policy_flag =="):
-        flag_name = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        flag_name = parts[1]
         return any(f["flag"] == flag_name for f in flags)
 
     # Pattern: any_policy_flag starts_with "pii_"
     if "starts_with" in cond and "policy_flag" in cond:
-        prefix = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        prefix = parts[1]
         return any(f["flag"].startswith(prefix) for f in flags)
 
     # Pattern: auto_remediable (bare boolean — True when all flags are auto-remediable)
@@ -590,12 +614,18 @@ def _evaluate_escalation_condition(condition: str, confidence: float, risk: str,
 
     # Pattern: aggregate_confidence < 0.70
     if cond.startswith("aggregate_confidence <"):
-        threshold = float(cond.split("<")[1].strip())
+        try:
+            threshold = float(cond.split("<")[1].strip())
+        except (ValueError, IndexError):
+            return False
         return confidence < threshold
 
     # Pattern: risk_level == "critical"
     if cond.startswith("risk_level =="):
-        level = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        level = parts[1]
         return risk == level
 
     # Pattern: risk_level in ["critical", "high", "medium"]
@@ -610,7 +640,10 @@ def _evaluate_escalation_condition(condition: str, confidence: float, risk: str,
 
     # Pattern: any_policy_flag starts_with "pii_"
     if "starts_with" in cond and "policy_flag" in cond:
-        prefix = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        prefix = parts[1]
         return any(f["flag"].startswith(prefix) for f in flags)
 
     # Pattern: panel_disagreement_detected == true
@@ -633,7 +666,10 @@ def _evaluate_escalation_condition(condition: str, confidence: float, risk: str,
 
     # Pattern: dismissed_finding_panel == "security-review"
     if cond.startswith("dismissed_finding_panel =="):
-        panel = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        panel = parts[1]
         for e in emissions:
             if e.get("panel_name") == panel:
                 for flag in e.get("policy_flags", []):
@@ -678,15 +714,24 @@ def _evaluate_escalation_sub_condition(sub_cond: str, confidence: float, risk: s
     # Pattern: aggregate_confidence < 0.70
     if cond.startswith("aggregate_confidence"):
         if "<" in cond and ">=" not in cond:
-            threshold = float(cond.split("<")[1].strip())
+            try:
+                threshold = float(cond.split("<")[1].strip())
+            except (ValueError, IndexError):
+                return False
             return confidence < threshold
         if ">=" in cond:
-            threshold = float(cond.split(">=")[1].strip())
+            try:
+                threshold = float(cond.split(">=")[1].strip())
+            except (ValueError, IndexError):
+                return False
             return confidence >= threshold
 
     # Pattern: risk_level == "critical"
     if cond.startswith("risk_level =="):
-        level = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        level = parts[1]
         return risk == level
 
     # Pattern: risk_level in ["critical", "high"]
@@ -701,7 +746,10 @@ def _evaluate_escalation_sub_condition(sub_cond: str, confidence: float, risk: s
 
     # Pattern: any_policy_flag starts_with "pii_"
     if "starts_with" in cond and "policy_flag" in cond:
-        prefix = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        prefix = parts[1]
         return any(f["flag"].startswith(prefix) for f in flags)
 
     # Pattern: panel_disagreement_detected == true
@@ -724,7 +772,10 @@ def _evaluate_escalation_sub_condition(sub_cond: str, confidence: float, risk: s
 
     # Pattern: dismissed_finding_panel == "security-review"
     if cond.startswith("dismissed_finding_panel =="):
-        panel = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        panel = parts[1]
         for e in emissions:
             if e.get("panel_name") == panel:
                 for flag in e.get("policy_flags", []):
@@ -767,7 +818,10 @@ def _evaluate_auto_merge_condition(condition: str, confidence: float, risk: str,
 
     # Pattern: aggregate_confidence >= 0.85
     if cond.startswith("aggregate_confidence >="):
-        threshold = float(cond.split(">=")[1].strip())
+        try:
+            threshold = float(cond.split(">=")[1].strip())
+        except (ValueError, IndexError):
+            return False
         return confidence >= threshold
 
     # Pattern: risk_level in ["low", "negligible"]
@@ -827,7 +881,10 @@ def _evaluate_auto_remediate_condition(condition: str, confidence: float, risk: 
 
     # Pattern: risk_level == "low"
     if cond.startswith("risk_level =="):
-        level = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        level = parts[1]
         return risk == level
 
     # Pattern: risk_level in ["low", "medium"]
@@ -841,12 +898,18 @@ def _evaluate_auto_remediate_condition(condition: str, confidence: float, risk: 
 
     # Pattern: aggregate_confidence >= 0.60
     if cond.startswith("aggregate_confidence >="):
-        threshold = float(cond.split(">=")[1].strip())
+        try:
+            threshold = float(cond.split(">=")[1].strip())
+        except (ValueError, IndexError):
+            return False
         return confidence >= threshold
 
     # Pattern: no_policy_flag starts_with "pii_"
     if "no_policy_flag" in cond and "starts_with" in cond:
-        prefix = cond.split('"')[1]
+        parts = cond.split('"')
+        if len(parts) < 2:
+            return False
+        prefix = parts[1]
         return not any(f["flag"].startswith(prefix) for f in flags)
 
     # Context-dependent — fail-closed
