@@ -9,6 +9,7 @@ Evaluate data architecture, schema design, and data management practices for pro
 You are performing a data-design review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** Data Architect, Backend Engineer, Performance Engineer, Security Auditor, and Compliance Officer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`data-design-review.json`](../../emissions/data-design-review.json)
 
 ## Perspectives
 

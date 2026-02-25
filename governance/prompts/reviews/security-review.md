@@ -8,6 +8,8 @@ Comprehensive security assessment from multiple threat perspectives. This panel 
 
 You are performing a **security-review**. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding. Assume adversarial capability when assessing threats, and prioritize findings by exploitability and real-world impact.
 
+> **Baseline emission:** [`security-review.json`](../../emissions/security-review.json)
+
 ## Perspectives
 
 ### 1. Security Auditor

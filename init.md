@@ -1,6 +1,6 @@
 # Initialize Dark Factory Governance
 
-> **Bootstrap script:** [`init.sh`](init.sh)
+> **Bootstrap script:** [`bin/init.sh`](bin/init.sh)
 
 This guide covers setting up the Dark Factory Governance Platform as a git submodule in your project.
 
@@ -15,7 +15,7 @@ git submodule add git@github.com:SET-Apps/ai-submodule.git .ai
 ### 2. Run the Bootstrap Script
 
 ```bash
-bash .ai/init.sh
+bash .ai/bin/init.sh
 ```
 
 This creates symlinks in your project root:
@@ -36,7 +36,7 @@ git commit -m "chore: add Dark Factory governance submodule"
 git submodule update --remote .ai
 ```
 
-Then re-run `bash .ai/init.sh` if the symlink configuration has changed.
+Then re-run `bash .ai/bin/init.sh` if the symlink configuration has changed.
 
 ## What's Included
 
@@ -47,7 +47,7 @@ Then re-run `bash .ai/init.sh` if the symlink configuration has changed.
 | `governance/policy/` | 3 deterministic policy profiles (default, fin_pii_high, infrastructure_critical) |
 | `governance/schemas/` | JSON schemas for structured emissions and panel configuration |
 | `governance/prompts/` | Workflow prompts, templates (plan, runtime DI), startup loop |
-| `governance/docs/` | Architecture docs, context management, governance model |
+| `docs/` | Architecture docs, context management, governance model |
 
 ## Configuration
 

@@ -36,7 +36,7 @@ The orchestrator decomposes Design Intents into Task Contracts and manages worke
 - Status tracking
 - Manifest aggregation
 
-**Configuration:** [`governance/schemas/orchestrator-config.schema.json`](../schemas/orchestrator-config.schema.json)
+**Configuration:** [`governance/schemas/orchestrator-config.schema.json`](../../governance/schemas/orchestrator-config.schema.json)
 
 ### Workers (N Isolated Sessions)
 
@@ -54,7 +54,7 @@ Owns all merge operations. Workers never merge directly.
 
 **Responsibilities:** Rebase operations, merge sequencing, conflict resolution, integration branch hygiene, manifest finalization.
 
-**Configuration:** [`governance/policy/integration-strategy.yaml`](../policy/integration-strategy.yaml)
+**Configuration:** [`governance/policy/integration-strategy.yaml`](../../governance/policy/integration-strategy.yaml)
 
 ### Governance CI
 
@@ -82,10 +82,10 @@ Collision domains group related paths to reduce merge risk. Workers in the same 
 | bootstrap | `init.sh`, `init.ps1`, `instructions/**` | 1 | High |
 | persona-catalog | `governance/personas/**` (excl. panels/agentic) | 2 | Medium |
 | prompts | `governance/prompts/**` | 2 | Medium |
-| documentation | `governance/docs/**`, `README.md`, etc. | 3 | Low |
+| documentation | `docs/**`, `README.md`, etc. | 3 | Low |
 | templates | `governance/templates/**` | 3 | Low |
 
-**Configuration:** [`governance/policy/collision-domains.yaml`](../policy/collision-domains.yaml)
+**Configuration:** [`governance/policy/collision-domains.yaml`](../../governance/policy/collision-domains.yaml)
 
 ## Integration Strategy
 
@@ -102,15 +102,15 @@ Stage 3: Release Train → Main
          - Integration manifest required, full governance gate
 ```
 
-**Configuration:** [`governance/policy/integration-strategy.yaml`](../policy/integration-strategy.yaml)
+**Configuration:** [`governance/policy/integration-strategy.yaml`](../../governance/policy/integration-strategy.yaml)
 
 ## Manifest Aggregation
 
 Each worker emits an individual run manifest. The DevOps Integration Agent aggregates these into an integration manifest.
 
-**Worker manifest:** `governance/manifests/run-<task-id>.json` (per [`run-manifest.schema.json`](../schemas/run-manifest.schema.json))
+**Worker manifest:** `governance/manifests/run-<task-id>.json` (per [`run-manifest.schema.json`](../../governance/schemas/run-manifest.schema.json))
 
-**Integration manifest:** `governance/manifests/integration-<release-id>.json` (per [`integration-manifest.schema.json`](../schemas/integration-manifest.schema.json))
+**Integration manifest:** `governance/manifests/integration-<release-id>.json` (per [`integration-manifest.schema.json`](../../governance/schemas/integration-manifest.schema.json))
 
 The integration manifest records:
 - All worker run references
@@ -147,15 +147,15 @@ When a worker fails:
 
 `parallel_efficiency = completed_sessions / max_concurrent_sessions`
 
-Tracked weekly alongside other autonomy metrics defined in [`governance/docs/autonomy-metrics.md`](autonomy-metrics.md).
+Tracked weekly alongside other autonomy metrics defined in [`docs/operations/autonomy-metrics.md`](../operations/autonomy-metrics.md).
 
 ## Builds On
 
 | Artifact | Phase | Purpose |
 |----------|-------|---------|
-| [`conflict-detection.schema.json`](../schemas/conflict-detection.schema.json) | 5d | Records agent conflicts |
-| [`merge-sequencing.yaml`](../policy/merge-sequencing.yaml) | 5d | PR ordering rules |
-| [`parallel-session-protocol.yaml`](../policy/parallel-session-protocol.yaml) | 5d | Session lifecycle and coordination |
+| [`conflict-detection.schema.json`](../../governance/schemas/conflict-detection.schema.json) | 5d | Records agent conflicts |
+| [`merge-sequencing.yaml`](../../governance/policy/merge-sequencing.yaml) | 5d | PR ordering rules |
+| [`parallel-session-protocol.yaml`](../../governance/policy/parallel-session-protocol.yaml) | 5d | Session lifecycle and coordination |
 
 ## Limitations
 

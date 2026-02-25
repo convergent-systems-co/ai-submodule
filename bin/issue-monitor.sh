@@ -1,11 +1,11 @@
 #!/bin/bash
-# scripts/issue-monitor.sh — Background issue monitor for Linux/macOS.
+# bin/issue-monitor.sh — Background issue monitor for Linux/macOS.
 # Polls GitHub for actionable issues and dispatches them to Claude or Copilot.
 #
 # Usage (from consuming repo root, where .ai is the submodule):
-#   bash .ai/scripts/issue-monitor.sh                    # Foreground
-#   nohup bash .ai/scripts/issue-monitor.sh &            # Background
-#   AI_MONITOR_BACKEND=copilot bash .ai/scripts/issue-monitor.sh  # Copilot backend
+#   bash .ai/bin/issue-monitor.sh                    # Foreground
+#   nohup bash .ai/bin/issue-monitor.sh &            # Background
+#   AI_MONITOR_BACKEND=copilot bash .ai/bin/issue-monitor.sh  # Copilot backend
 #
 # Environment variables:
 #   AI_MONITOR_INTERVAL  — Poll interval in seconds (default: 300)
@@ -13,7 +13,7 @@
 #   AI_MONITOR_REPO      — Repository in owner/repo format (auto-detected)
 #   AI_MONITOR_MODEL     — Claude model to use (default: claude-opus-4-6)
 #   AI_MONITOR_DRY_RUN   — Set to "true" to log without dispatching (default: false)
-#   AI_MONITOR_LOG       — Log file path (default: scripts/issue-monitor.log)
+#   AI_MONITOR_LOG       — Log file path (default: bin/issue-monitor.log)
 #
 # Security note:
 #   This script dispatches issues to AI agents. Only run on repositories where
@@ -41,7 +41,7 @@ for arg in "$@"; do
     --interval=*) INTERVAL="${arg#*=}" ;;
     --model=*) MODEL="${arg#*=}" ;;
     --help|-h)
-      echo "Usage: bash .ai/scripts/issue-monitor.sh [OPTIONS]"
+      echo "Usage: bash .ai/bin/issue-monitor.sh [OPTIONS]"
       echo ""
       echo "Options:"
       echo "  --dry-run         Log actions without dispatching"

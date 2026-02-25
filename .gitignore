@@ -26,5 +26,5 @@ venv/
 .checkpoints/*.json
 
 # Issue monitor runtime files
-scripts/*.log
-scripts/.issue-monitor-state
+bin/*.log
+bin/.issue-monitor-state

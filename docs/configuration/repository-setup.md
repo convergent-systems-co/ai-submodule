@@ -6,7 +6,7 @@ The governance framework can configure GitHub repository settings to support the
 
 The agentic loop (startup.md) requires specific GitHub repository settings to function: auto-merge must be enabled so PRs merge after CI + approval, CODEOWNERS must be populated so `require_code_owner_review` rulesets work, and branch protection rulesets must be configured for governance enforcement. Without these settings, the autonomous workflow breaks silently.
 
-Previously, these settings were configured manually per-repository. This feature declares them as code in `config.yaml` and applies them during `init.sh` bootstrap.
+Previously, these settings were configured manually per-repository. This feature declares them as code in `config.yaml` and applies them during `bin/init.sh` bootstrap.
 
 ## Configuration
 
@@ -139,7 +139,7 @@ ls -la .github/workflows/dark-factory-governance.yml
 ```bash
 # Remove the copy and re-run init to create a symlink
 rm .github/workflows/dark-factory-governance.yml
-bash .ai/init.sh
+bash .ai/bin/init.sh
 ```
 
 ### Backward Compatibility
@@ -159,7 +159,7 @@ The agentic startup sequence (`governance/prompts/startup.md`) includes a pre-fl
 1. Checks `allow_auto_merge` is enabled via `gh api`
 2. Checks CODEOWNERS file exists and is non-empty
 3. Checks governance workflow (`dark-factory-governance.yml`) exists in `.github/workflows/`
-4. If any check fails, warns the user and suggests running `bash .ai/init.sh`
+4. If any check fails, warns the user and suggests running `bash .ai/bin/init.sh`
 
 This catches misconfiguration before the agentic loop starts, preventing silent failures during PR merge.
 

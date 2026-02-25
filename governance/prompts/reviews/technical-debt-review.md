@@ -9,6 +9,7 @@ Assess and prioritize technical debt for strategic remediation. This panel inven
 You are performing a technical-debt-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** Refactor Specialist, Systems Architect, Test Engineer, Tech Lead are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`technical-debt-review.json`](../../emissions/technical-debt-review.json)
 
 ## Perspectives
 

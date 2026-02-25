@@ -9,6 +9,7 @@ Evaluate test coverage, quality, and testing approach comprehensively. This pane
 You are performing a testing-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** Test Engineer, Failure Engineer, Performance Engineer, Security Auditor, Code Reviewer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`testing-review.json`](../../emissions/testing-review.json)
 
 ## Perspectives
 

@@ -31,10 +31,10 @@ Never allow context to reach compaction with uncommitted changes, merge conflict
 ## Repository Configuration
 
 Repository settings (auto-merge, CODEOWNERS, branch protection) are declared in `config.yaml` and `project.yaml`. To apply:
-- **CLI:** `bash .ai/init.sh` (or `bash .ai/init.sh --install-deps` for full setup)
+- **CLI:** `bash .ai/bin/init.sh` (or `bash .ai/bin/init.sh --install-deps` for full setup)
 - **Agentic:** Tell your AI assistant to read and execute `governance/prompts/init.md` for an interactive, guided setup
 
-See `governance/docs/repository-configuration.md` for details.
+See `docs/configuration/repository-setup.md` for details.
 
 ## Issue State Validation
 
@@ -64,7 +64,7 @@ Every code change — regardless of size, urgency, or operating mode — must fo
 
 When operating without a GitHub remote (no issues, PRs, or CI):
 - Plans are still mandatory — write to `.plans/` before implementing.
-- Panel evaluation still applies — the policy engine can run locally via `python .governance/policy-engine.py`.
+- Panel evaluation still applies — the policy engine can run locally via `python governance/bin/policy-engine.py`.
 - Commit messages must still use conventional commit format.
 - Skip only GitHub-specific steps (issue comments, PR creation, Copilot polling).
 

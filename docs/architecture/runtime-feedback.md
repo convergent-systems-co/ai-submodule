@@ -1441,7 +1441,7 @@ The following files are defined or referenced by this architecture. Files marked
 
 | File | Status | Purpose |
 |---|---|---|
-| `governance/docs/runtime-feedback-architecture.md` | This document | Design specification |
+| `docs/architecture/runtime-feedback.md` | This document | Design specification |
 | `governance/schemas/runtime-signal.schema.json` | Implemented (PR #69) | Signal normalization schema |
 | `governance/schemas/baseline.schema.json` | Implemented (PR #69) | Baseline snapshot schema |
 | `governance/prompts/templates/runtime-di-template.md` | Implemented (PR #89) | DI template for runtime-generated intents |

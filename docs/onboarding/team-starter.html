@@ -279,7 +279,7 @@
         <div class="step-body">
           <div class="step-title">Bootstrap the framework</div>
           <div class="step-desc">Run the init script. It creates symlinks for all AI tools, sets up <code>.plans/</code> and <code>.panels/</code> folders, copies governance workflows, and generates CODEOWNERS.</div>
-          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="cmd">powershell</span> <span class="flag">-ExecutionPolicy Bypass -File</span> <span class="str">.ai\init.ps1</span> <span class="flag">-InstallDeps</span></code></pre></div>
+          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="cmd">powershell</span> <span class="flag">-ExecutionPolicy Bypass -File</span> <span class="str">.ai\bin\init.ps1</span> <span class="flag">-InstallDeps</span></code></pre></div>
           <div class="step-note">⚡ <code>-InstallDeps</code> creates a Python venv and installs <code>jsonschema</code> + <code>pyyaml</code> automatically</div>
         </div>
       </div>

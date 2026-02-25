@@ -14,8 +14,8 @@ There is no build system, test runner, or linter. This is a configuration-only r
 
 **Bootstrap (for consuming repos):**
 ```bash
-bash .ai/init.sh                    # Symlinks only
-bash .ai/init.sh --install-deps     # Symlinks + Python venv + dependencies
+bash .ai/bin/init.sh                    # Symlinks only
+bash .ai/bin/init.sh --install-deps     # Symlinks + Python venv + dependencies
 ```
 Checks `.ai` submodule freshness (auto-updates if behind), creates symlinks for CLAUDE.md, .cursorrules, and .github/copilot-instructions.md, creates `.plans/` and `.panels/` directories, generates GOALS.md from template, and validates required panel emissions.
 
@@ -56,7 +56,7 @@ Every code change flows through these layers in order:
 - **Panels** (`governance/personas/panels/`) — _Deprecated._ 19 multi-persona review workflows. Superseded by consolidated review prompts. Will be removed in a future release.
 - **Agentic personas** (`governance/personas/agentic/`) — Code Manager (orchestrator, never writes code) and Coder (executor, follows Code Manager direction).
 
-> See `governance/docs/RESEARCH.md` for the research supporting the persona consolidation decision (Issue #220).
+> See `docs/research/README.md` for the research supporting the persona consolidation decision (Issue #220).
 
 ### Policy Engine
 
@@ -76,7 +76,7 @@ Context is loaded in tiers to prevent window overflow:
 - **Tier 2** (~3,000 tokens, per-phase): Workflow phase + panel context
 - **Tier 3** (0 tokens, on-demand): Policies, schemas, docs — queried only when needed
 
-**Hard stop at 80% context capacity.** When approaching this limit: stop all work, clean git state, write a checkpoint to `.checkpoints/`, report to user, and request `/clear`. Never allow context to compact with dirty state. See `governance/docs/context-management.md` for the full shutdown protocol.
+**Hard stop at 80% context capacity.** When approaching this limit: stop all work, clean git state, write a checkpoint to `.checkpoints/`, report to user, and request `/clear`. Never allow context to compact with dirty state. See `docs/architecture/context-management.md` for the full shutdown protocol.
 
 ### Structured Emissions
 

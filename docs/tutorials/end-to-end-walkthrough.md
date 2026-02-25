@@ -31,7 +31,7 @@ git submodule add git@github.com:SET-Apps/ai-submodule.git .ai
 
 # Verify it was added
 ls .ai/
-# Expected: config.yaml  governance/  init.sh  instructions.md  ...
+# Expected: bin/  config.yaml  governance/  instructions.md  ...
 
 # Commit the submodule reference
 git add .ai .gitmodules
@@ -41,14 +41,14 @@ git push origin main
 
 ### 1.2 Run the Bootstrap Script
 
-The bootstrap script (`init.sh`) configures your repository for governance. It is idempotent and safe to re-run.
+The bootstrap script (`bin/init.sh`) configures your repository for governance. It is idempotent and safe to re-run.
 
 ```bash
 # Basic bootstrap (symlinks and structure only)
-bash .ai/init.sh
+bash .ai/bin/init.sh
 
 # Full bootstrap (includes Python dependencies for policy engine)
-bash .ai/init.sh --install-deps
+bash .ai/bin/init.sh --install-deps
 ```
 
 **What the bootstrap does:**
@@ -133,7 +133,7 @@ The submodule updates independently from your project:
 git submodule update --remote .ai
 
 # Re-run bootstrap to apply any new configurations
-bash .ai/init.sh
+bash .ai/bin/init.sh
 
 # Commit the updated submodule reference
 git add .ai
@@ -533,12 +533,12 @@ Phase 5: Evolution (sub-phases)
 
 ```bash
 # Bootstrap
-bash .ai/init.sh                     # Symlinks + structure
-bash .ai/init.sh --install-deps      # Full install with dependencies
+bash .ai/bin/init.sh                     # Symlinks + structure
+bash .ai/bin/init.sh --install-deps      # Full install with dependencies
 
 # Update submodule
 git submodule update --remote .ai
-bash .ai/init.sh
+bash .ai/bin/init.sh
 
 # Create a feature branch (following naming convention)
 git checkout -b itsfwcp/feat/42/add-user-auth
@@ -595,9 +595,9 @@ Panel Emissions → Policy Engine → Decision
 
 ## Further Reading
 
-- [Developer Guide](../../DEVELOPER_GUIDE.md) — Quick start and key concepts
-- [CI Gating Blueprint](ci-gating-blueprint.md) — Detailed CI pipeline specification
-- [Context Management](context-management.md) — AI context tiers and capacity management
-- [Dark Factory Governance Model](dark-factory-governance-model.md) — Full architecture reference
-- [Repository Configuration](repository-configuration.md) — Branch protection and settings
-- [Threshold Tuning](threshold-tuning.md) — Confidence threshold adjustment policy
+- [Developer Guide](../onboarding/developer-guide.md) — Quick start and key concepts
+- [CI Gating Blueprint](../configuration/ci-gating.md) — Detailed CI pipeline specification
+- [Context Management](../architecture/context-management.md) — AI context tiers and capacity management
+- [Dark Factory Governance Model](../architecture/governance-model.md) — Full architecture reference
+- [Repository Configuration](../configuration/repository-setup.md) — Branch protection and settings
+- [Threshold Tuning](../operations/threshold-tuning.md) — Confidence threshold adjustment policy

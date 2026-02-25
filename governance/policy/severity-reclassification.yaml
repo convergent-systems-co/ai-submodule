@@ -1,6 +1,6 @@
 # Severity reclassification rules for runtime signals
 # Applied after signal normalization, before entering the governance pipeline
-# See: governance/docs/runtime-feedback-architecture.md Section 1
+# See: docs/architecture/runtime-feedback.md Section 1
 
 reclassification_rules:
   version: "1.0.0"

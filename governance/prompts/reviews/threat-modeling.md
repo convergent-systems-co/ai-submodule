@@ -8,6 +8,8 @@ Systematic threat analysis mapping attack surfaces to MITRE ATT&CK, identifying 
 
 You are performing a **threat-modeling** review. Evaluate the provided code change from multiple perspectives to build a complete threat model. Each perspective must produce an independent finding. The output must follow the standardized 7-section template exactly — this ensures consistency across all threat models and enables automated aggregation.
 
+> **Baseline emission:** [`threat-modeling.json`](../../emissions/threat-modeling.json)
+
 ## Perspectives
 
 ### 1. MITRE Specialist

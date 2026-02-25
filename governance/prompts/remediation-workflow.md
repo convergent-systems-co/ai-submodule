@@ -9,7 +9,7 @@ This workflow is executed by the Code Manager when a drift signal triggers remed
 Before entering this workflow, ensure:
 
 1. A drift signal has been received and normalized (conforming to `governance/schemas/runtime-signal.schema.json`)
-2. The drift has been classified by type and severity (per `governance/docs/runtime-feedback-architecture.md` Section 4)
+2. The drift has been classified by type and severity (per `docs/architecture/runtime-feedback.md` Section 4)
 3. A baseline exists for the affected component (conforming to `governance/schemas/baseline.schema.json`)
 
 **Policy files referenced by this workflow:**

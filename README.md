@@ -37,9 +37,9 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
   instructions.md              Base AI instructions (< 200 tokens, Tier 0)
   instructions/                Decomposed instruction modules (code-quality, security, testing, etc.)
   config.yaml                  Symlink and sync configuration
-  init.sh                      Bootstrap script for consuming repos (macOS/Linux)
-  init.ps1                     Bootstrap script for consuming repos (Windows)
   bin/                         Executable scripts
+    init.sh                    Bootstrap script for consuming repos (macOS/Linux)
+    init.ps1                   Bootstrap script for consuming repos (Windows)
     issue-monitor.sh           Local issue monitor daemon (macOS/Linux)
     issue-monitor.ps1          Local issue monitor daemon (Windows)
 
@@ -128,29 +128,47 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
     emissions/                 Panel emission outputs (structured JSON)
     manifests/                 Run manifests (audit trail, append-only)
 
-    docs/                      Architecture and design documents
-      dark-factory-governance-model.md    Governance layers and decision authority
-      artifact-classification.md          Cognitive, Enforcement, Audit artifact types
-      context-management.md               JIT loading and context reset protection
-      runtime-feedback-architecture.md    Drift detection and incident-to-DI generation
-      autonomy-metrics.md                 Autonomy index and weekly reporting
-      ci-gating-blueprint.md              CI checks, branch protection, auto-merge
-      naming-review.md                    Persona/panel naming consistency review
-      repository-configuration.md         Repository settings and CODEOWNERS setup
-      copilot-auto-fix.md                 Copilot auto-fix configuration guide
-      retrospective-aggregation.md        Aggregated retrospective data schema docs
-      threshold-tuning.md                 Auto-tuning mechanism and safety bounds
-      cross-repo-escalation.md            Cross-repo escalation setup and architecture (#184)
-      event-driven-triggers.md            Event-driven governance trigger setup (Phase 5c)
-      mass-parallelization.md             Mass parallelization model architecture (Phase 5e)
-      session-state-persistence.md        Cross-session state storage strategy (Phase 5c)
-      DECISIONS.md                        Architectural decision records (ADR-001 through ADR-011)
-      RESEARCH.md                         51-source research file (consolidation, MCP skills, multi-agent)
-      TECHNIQUE_COMPARE.md                Technique comparison research deliverable
-      onboarding/                         Team onboarding guides (HTML)
+  docs/                        Documentation (architecture, configuration, operations, research)
+    README.md                    Navigation hub and documentation index
+    architecture/                Architecture and design documents
+      governance-model.md        Governance layers and decision authority
+      runtime-feedback.md        Drift detection and incident-to-DI generation
+      context-management.md      JIT loading and context reset protection
+      cross-repo-escalation.md   Cross-repo escalation setup and architecture
+      mass-parallelization.md    Mass parallelization model architecture (Phase 5e)
+      session-state-persistence.md  Cross-session state storage strategy (Phase 5c)
+      event-driven-triggers.md   Event-driven governance trigger setup (Phase 5c)
+      formal-spec.md             Formal specification of governance invariants
+    configuration/               Setup and integration guides
+      repository-setup.md        Repository settings and CODEOWNERS setup
+      ci-gating.md               CI checks, branch protection, auto-merge
+      copilot-integration.md     Copilot auto-fix configuration guide
+    decisions/                   Architectural decision records
+      README.md                  ADR-001 through ADR-011
+    governance/                  Governance processes
+      artifact-classification.md Cognitive, Enforcement, Audit artifact types
+      acceptance-verification.md Acceptance criteria verification
+      naming-review.md           Persona/panel naming consistency review
+    onboarding/                  Team onboarding guides
+      developer-guide.md         Quick-start guide for developers
+      architecture.html          Visual architecture overview (HTML)
+      risks-mitigation.html      Risk assessment and mitigation (HTML)
+      team-starter.html          Team onboarding starter kit (HTML)
+    operations/                  Operational guides and metrics
+      autonomy-metrics.md        Autonomy index and weekly reporting
+      migration-summary.md       Migration steps and deliverable checklist
+      threshold-tuning.md        Auto-tuning mechanism and safety bounds
+      retrospective-aggregation.md  Aggregated retrospective data schema docs
+    research/                    Research and evaluation
+      README.md                  51-source research file (consolidation, MCP skills, multi-agent)
+      technique-comparison.md    Technique comparison research deliverable
+    tutorials/                   End-to-end guides
+      end-to-end-walkthrough.md  Complete walkthrough of the governance pipeline
 
-  .governance/                 Policy engine runtime
-    policy-engine.py           Deterministic evaluation engine (Phase 4b)
+  governance/
+    bin/
+      policy-engine.py         Deterministic evaluation engine (Phase 4b)
+      requirements.txt         Python dependencies for policy engine
 
   .plans/                      Implementation plans (archived to releases after merge)
   .checkpoints/                Context capacity checkpoints (session state)
@@ -242,7 +260,7 @@ The framework uses JIT (Just-In-Time) loading to minimize AI context window usag
 | 2 | Current workflow phase + panel context | ~3,000 tokens | Released per phase |
 | 3 | Policies, schemas, docs | 0 tokens | Queried on-demand |
 
-See `governance/docs/context-management.md` for the full strategy including checkpoint-based reset protection and instruction decomposition.
+See `docs/architecture/context-management.md` for the full strategy including checkpoint-based reset protection and instruction decomposition.
 
 ## Repo Rename Recommendation
 
@@ -284,26 +302,26 @@ Quick navigation to all documentation in this repository.
 
 | Document | Topic |
 |----------|-------|
-| [Governance Model](governance/docs/dark-factory-governance-model.md) | Five governance layers and decision authority |
-| [Artifact Classification](governance/docs/artifact-classification.md) | Cognitive, Enforcement, and Audit artifact types |
-| [Context Management](governance/docs/context-management.md) | JIT loading tiers and checkpoint-based reset protection |
-| [Runtime Feedback](governance/docs/runtime-feedback-architecture.md) | Drift detection and incident-to-DI generation (Phase 4b/5) |
-| [CI Gating Blueprint](governance/docs/ci-gating-blueprint.md) | CI checks, branch protection, and auto-merge |
-| [Repository Configuration](governance/docs/repository-configuration.md) | Settings, CODEOWNERS, and branch protection setup |
+| [Governance Model](docs/architecture/governance-model.md) | Five governance layers and decision authority |
+| [Artifact Classification](docs/governance/artifact-classification.md) | Cognitive, Enforcement, and Audit artifact types |
+| [Context Management](docs/architecture/context-management.md) | JIT loading tiers and checkpoint-based reset protection |
+| [Runtime Feedback](docs/architecture/runtime-feedback.md) | Drift detection and incident-to-DI generation (Phase 4b/5) |
+| [CI Gating Blueprint](docs/configuration/ci-gating.md) | CI checks, branch protection, and auto-merge |
+| [Repository Configuration](docs/configuration/repository-setup.md) | Settings, CODEOWNERS, and branch protection setup |
 
 ### Operational Guides
 
 | Document | Topic |
 |----------|-------|
-| [Autonomy Metrics](governance/docs/autonomy-metrics.md) | Autonomy index, health thresholds, and weekly reporting |
-| [Retrospective Aggregation](governance/docs/retrospective-aggregation.md) | Aggregated retrospective data schema docs |
-| [Threshold Tuning](governance/docs/threshold-tuning.md) | Auto-tuning mechanism and safety bounds |
-| [Copilot Auto-Fix](governance/docs/copilot-auto-fix.md) | Configuring GitHub Copilot auto-fix in governance workflow |
-| [Cross-Repo Escalation](governance/docs/cross-repo-escalation.md) | Cross-repo issue escalation setup and architecture |
-| [Event-Driven Triggers](governance/docs/event-driven-triggers.md) | Event-driven governance session dispatch (Phase 5c) |
-| [Mass Parallelization](governance/docs/mass-parallelization.md) | Multi-agent orchestration with collision domains (Phase 5e) |
-| [Session State Persistence](governance/docs/session-state-persistence.md) | Cross-session governance state storage strategy (Phase 5c) |
-| [Naming Review](governance/docs/naming-review.md) | Persona/panel naming consistency |
+| [Autonomy Metrics](docs/operations/autonomy-metrics.md) | Autonomy index, health thresholds, and weekly reporting |
+| [Retrospective Aggregation](docs/operations/retrospective-aggregation.md) | Aggregated retrospective data schema docs |
+| [Threshold Tuning](docs/operations/threshold-tuning.md) | Auto-tuning mechanism and safety bounds |
+| [Copilot Auto-Fix](docs/configuration/copilot-integration.md) | Configuring GitHub Copilot auto-fix in governance workflow |
+| [Cross-Repo Escalation](docs/architecture/cross-repo-escalation.md) | Cross-repo issue escalation setup and architecture |
+| [Event-Driven Triggers](docs/architecture/event-driven-triggers.md) | Event-driven governance session dispatch (Phase 5c) |
+| [Mass Parallelization](docs/architecture/mass-parallelization.md) | Multi-agent orchestration with collision domains (Phase 5e) |
+| [Session State Persistence](docs/architecture/session-state-persistence.md) | Cross-session governance state storage strategy (Phase 5c) |
+| [Naming Review](docs/governance/naming-review.md) | Persona/panel naming consistency |
 
 ### Agentic Prompts
 
@@ -321,7 +339,7 @@ Quick navigation to all documentation in this repository.
 
 > **Note:** As of Issue #220, personas and panels have been consolidated into self-contained
 > review prompts in `governance/prompts/reviews/`. The individual persona and panel files in
-> `governance/personas/` are deprecated. See `governance/docs/RESEARCH.md` for the research
+> `governance/personas/` are deprecated. See `docs/research/README.md` for the research
 > supporting this decision.
 
 | Resource | Description |
@@ -357,12 +375,12 @@ git commit -m "Add .ai submodule"
 
 **macOS / Linux:**
 ```bash
-bash .ai/init.sh
+bash .ai/bin/init.sh
 ```
 
 **Windows (PowerShell):**
 ```powershell
-powershell -ExecutionPolicy Bypass -File .ai\init.ps1
+powershell -ExecutionPolicy Bypass -File .ai\bin\init.ps1
 ```
 
 The bootstrap script creates symlinks so Claude Code, GitHub Copilot, and Cursor all receive shared instructions. On Windows, if symlinks are unavailable (requires Developer Mode or admin), it falls back to file copies.

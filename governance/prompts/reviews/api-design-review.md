@@ -9,6 +9,7 @@ Evaluate API design from both provider and consumer perspectives. This panel ass
 You are performing an api-design-review. Evaluate the provided API design from multiple perspectives. Each perspective must produce an independent finding assessing the API in its domain. The goal is to catch contract issues, breaking change risks, and usability problems before consumers depend on the interface.
 
 > **Shared perspectives:** API Designer, API Consumer, Security Auditor, Backend Engineer, and Frontend Engineer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`api-design-review.json`](../../emissions/api-design-review.json)
 
 ## Perspectives
 

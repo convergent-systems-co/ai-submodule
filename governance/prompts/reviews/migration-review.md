@@ -9,6 +9,7 @@ Evaluate a migration plan for safety, completeness, and risk mitigation. This pa
 You are performing a migration-review. Evaluate the provided migration plan from multiple perspectives. Each perspective must produce an independent finding assessing the plan's completeness and safety in its domain. The goal is to identify gaps, untested assumptions, and missing rollback paths before execution begins.
 
 > **Shared perspectives:** Data Architect, SRE, Failure Engineer, and Tech Lead are defined in [`shared-perspectives.md`](../shared-perspectives.md). The Migration Specialist perspective is defined inline below.
+> **Baseline emission:** [`migration-review.json`](../../emissions/migration-review.json)
 
 ## Perspectives
 

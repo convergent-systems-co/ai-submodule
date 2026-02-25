@@ -4,7 +4,7 @@
 
 **Schema:** `governance/schemas/runtime-di.schema.json` (v1.0.0)
 **Template:** `governance/prompts/templates/runtime-di-template.md`
-**Architecture Reference:** `governance/docs/runtime-feedback-architecture.md` Section 2
+**Architecture Reference:** `docs/architecture/runtime-feedback.md` Section 2
 
 ---
 
@@ -264,4 +264,4 @@ The generated DI (markdown + structured emission) is:
 | `governance/policy/circuit-breaker.yaml` | Circuit breaker state machine |
 | `governance/policy/rate-limits.yaml` | Rate limiting configuration |
 | `governance/prompts/remediation-workflow.md` | Downstream remediation execution workflow |
-| `governance/docs/runtime-feedback-architecture.md` | Architecture specification (Section 2) |
+| `docs/architecture/runtime-feedback.md` | Architecture specification (Section 2) |

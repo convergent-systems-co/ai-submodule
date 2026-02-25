@@ -6,7 +6,7 @@
 
 | Directory | Purpose | Contents |
 |-----------|---------|----------|
-| `governance/docs/` | Architecture and design documents | 7 governance documents |
+| `docs/` | Architecture and design documents | 7 governance documents |
 | `governance/schemas/` | JSON Schema enforcement artifacts | panel-output, run-manifest schemas |
 | `governance/policy/` | Deterministic policy profiles | default, fin_pii_high, infrastructure_critical |
 | `governance/manifests/` | Append-only audit trail | Run manifests (one per merge decision) |
@@ -18,13 +18,13 @@
 
 | File | Type | Purpose |
 |------|------|---------|
-| `governance/docs/dark-factory-governance-model.md` | Cognitive | 5-layer governance architecture |
-| `governance/docs/artifact-classification.md` | Cognitive | Cognitive/Enforcement/Audit artifact taxonomy |
-| `governance/docs/context-management.md` | Cognitive | JIT loading, context budgets, reset protection |
-| `governance/docs/runtime-feedback-architecture.md` | Cognitive | Phase 5 design: drift detection, incident-to-DI |
-| `governance/docs/autonomy-metrics.md` | Cognitive | Autonomy index, weekly reporting specification |
-| `governance/docs/ci-gating-blueprint.md` | Cognitive | CI checks, branch protection, auto-merge config |
-| `governance/docs/naming-review.md` | Cognitive | Persona/panel naming consistency proposals |
+| `docs/architecture/governance-model.md` | Cognitive | 5-layer governance architecture |
+| `docs/governance/artifact-classification.md` | Cognitive | Cognitive/Enforcement/Audit artifact taxonomy |
+| `docs/architecture/context-management.md` | Cognitive | JIT loading, context budgets, reset protection |
+| `docs/architecture/runtime-feedback.md` | Cognitive | Phase 5 design: drift detection, incident-to-DI |
+| `docs/operations/autonomy-metrics.md` | Cognitive | Autonomy index, weekly reporting specification |
+| `docs/configuration/ci-gating.md` | Cognitive | CI checks, branch protection, auto-merge config |
+| `docs/governance/naming-review.md` | Cognitive | Persona/panel naming consistency proposals |
 | `governance/schemas/panel-output.schema.json` | Enforcement | Structured emission validation schema |
 | `governance/schemas/run-manifest.schema.json` | Enforcement | Merge audit manifest validation schema |
 | `governance/policy/default.yaml` | Enforcement | Baseline policy profile |
@@ -56,10 +56,10 @@
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Context window overflow from loading too many personas | Medium | Context management tiers with JIT loading (governance/docs/context-management.md) |
+| Context window overflow from loading too many personas | Medium | Context management tiers with JIT loading (docs/architecture/context-management.md) |
 | Policy profiles are not yet machine-executable | Medium | Profiles are declarative YAML; a policy engine runtime needs to be built |
 | Structured emissions require panel modification | Medium | Panels continue emitting Markdown; JSON block is appended, not replacing |
-| Naming renames break existing project.yaml references | Low | Renames are proposed only, not executed (governance/docs/naming-review.md) |
+| Naming renames break existing project.yaml references | Low | Renames are proposed only, not executed (docs/governance/naming-review.md) |
 | jm-compliance.yml cannot be modified | Low | New CI workflow runs alongside it, no conflicts |
 | Manifest storage grows unbounded | Low | Retention policy needed; gitignore manifests from submodule, store per-repo |
 | Override procedure requires cultural adoption | Medium | Document and train; start with logging-only mode |
@@ -126,17 +126,17 @@ git commit -m "Update .ai submodule URL after rename"
 
 | # | Deliverable | File | Status |
 |---|-------------|------|--------|
-| 1 | Governance model document | `governance/docs/dark-factory-governance-model.md` | Complete |
-| 2 | Artifact classification | `governance/docs/artifact-classification.md` | Complete |
+| 1 | Governance model document | `docs/architecture/governance-model.md` | Complete |
+| 2 | Artifact classification | `docs/governance/artifact-classification.md` | Complete |
 | 3 | Structured emission schema | `governance/schemas/panel-output.schema.json` | Complete |
 | 4 | Policy framework | `governance/policy/` (3 profiles + README) | Complete |
 | 5 | Copilot panel design | `governance/personas/panels/copilot-review.md` | Complete |
 | 6 | Manifest schema | `governance/schemas/run-manifest.schema.json` | Complete |
-| 7 | CI gating blueprint | `governance/docs/ci-gating-blueprint.md` | Complete |
-| 8 | Runtime feedback architecture | `governance/docs/runtime-feedback-architecture.md` | Complete |
-| 9 | Autonomy metrics specification | `governance/docs/autonomy-metrics.md` | Complete |
-| + | Context management strategy | `governance/docs/context-management.md` | Complete |
-| + | Naming review | `governance/docs/naming-review.md` | Complete |
+| 7 | CI gating blueprint | `docs/configuration/ci-gating.md` | Complete |
+| 8 | Runtime feedback architecture | `docs/architecture/runtime-feedback.md` | Complete |
+| 9 | Autonomy metrics specification | `docs/operations/autonomy-metrics.md` | Complete |
+| + | Context management strategy | `docs/architecture/context-management.md` | Complete |
+| + | Naming review | `docs/governance/naming-review.md` | Complete |
 | + | Plan template | `governance/prompts/templates/plan-template.md` | Complete |
 | + | Code Manager persona | `governance/personas/agentic/code-manager.md` | Complete |
 | + | Coder persona | `governance/personas/agentic/coder.md` | Complete |

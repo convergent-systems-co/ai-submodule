@@ -9,6 +9,7 @@ Evaluate changes to AI governance artifacts for impact on agent behavior, prompt
 You are performing an ai-expert review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** None -- all perspectives in this panel are specialized for AI governance and defined below.
+> **Baseline emission:** [`ai-expert-review.json`](../../emissions/ai-expert-review.json)
 
 ## Scope
 

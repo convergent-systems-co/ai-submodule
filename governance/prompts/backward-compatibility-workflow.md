@@ -21,7 +21,7 @@ This workflow should be invoked by the Code Manager during **Step 6** of the sta
 
 **Skip conditions:**
 - The PR only adds new files (purely additive)
-- The PR only modifies documentation files (`governance/docs/*.md`, `README.md`, `DEVELOPER_GUIDE.md`)
+- The PR only modifies documentation files (`docs/**/*.md`, `README.md`, `DEVELOPER_GUIDE.md`)
 - The PR only modifies `.plans/` files
 - The PR only modifies manifests or emissions (audit artifacts)
 

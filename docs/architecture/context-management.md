@@ -67,7 +67,7 @@ Content accessed via tool calls or file reads, never pre-loaded.
 | Policy profiles | `governance/policy/*.yaml` | Programmatic evaluation |
 | JSON schemas | `governance/schemas/*.schema.json` | Schema validation tool |
 | Run manifests | `governance/manifests/*.json` | File read on-demand |
-| Architecture docs | `governance/docs/*.md` | File read when referenced |
+| Architecture docs | `docs/**/*.md` | File read when referenced |
 | Other personas | `governance/personas/**/*.md` not in active set | File read when invoked |
 
 **Tier 3 budget: 0 tokens (no context cost)**

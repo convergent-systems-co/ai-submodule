@@ -10,6 +10,8 @@ You are performing a **data-governance-review**. Evaluate the provided code chan
 
 **Reference Repository:** [SET-Apps/dach-canonical-models](https://github.com/SET-Apps/dach-canonical-models)
 
+> **Baseline emission:** [`data-governance-review.json`](../../emissions/data-governance-review.json)
+
 ## Perspectives
 
 ### 1. Data Architect

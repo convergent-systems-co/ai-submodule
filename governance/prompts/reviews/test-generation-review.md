@@ -9,6 +9,7 @@ Evaluate test coverage, verification requirements, and proof-of-correctness crit
 You are performing a test-generation-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** Security Auditor is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`test-generation-review.json`](../../emissions/test-generation-review.json)
 
 ## Scope
 

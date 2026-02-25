@@ -67,7 +67,7 @@ This checklist defines the required governance steps for every PR in the Dark Fa
   - `CLAUDE.md` (root and .ai/) — if personas, panels, phases, or conventions changed
   - `README.md` — if bootstrap, architecture, or policy descriptions changed
   - `DEVELOPER_GUIDE.md` — if onboarding information changed
-  - `governance/docs/*.md` — if governance layers, definitions, or logic changed
+  - `docs/**/*.md` — if governance layers, definitions, or logic changed
 - If the change affects user-facing or governance-facing behavior, at least one documentation file should be modified
 - If no documentation is needed, the commit message body should state: `Docs: no documentation updates required — [reason]`
 

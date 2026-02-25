@@ -9,6 +9,7 @@ Analyze a production incident to identify root causes, contributing factors, and
 You are performing an incident-post-mortem review. Evaluate the provided incident data from multiple perspectives. Each perspective must produce an independent finding analyzing what happened, why it happened, and what should change. The goal is blameless analysis that drives systemic improvement.
 
 > **Shared perspectives:** SRE, Systems Architect, Failure Engineer, and Observability Engineer are defined in [`shared-perspectives.md`](../shared-perspectives.md). The Incident Commander perspective is defined inline below.
+> **Baseline emission:** [`incident-post-mortem.json`](../../emissions/incident-post-mortem.json)
 
 ## Perspectives
 

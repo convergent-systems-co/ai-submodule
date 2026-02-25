@@ -9,6 +9,7 @@ Evaluate the cost implications of proposed changes, including estimated implemen
 You are performing a cost-analysis review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** Infrastructure Engineer is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`cost-analysis.json`](../../emissions/cost-analysis.json)
 
 ## Perspectives
 

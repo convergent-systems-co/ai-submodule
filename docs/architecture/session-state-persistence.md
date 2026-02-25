@@ -114,7 +114,7 @@ The schema uses `schema_version` (currently `1.0.0`) for forward compatibility:
 | Minor (1.x.0) | Additive required fields — migration script adds defaults |
 | Major (x.0.0) | Breaking change — migration script transforms the document; old version archived |
 
-Migration scripts (when needed) will be placed in `scripts/migrate-session-state.py` and referenced from `init.sh`. The agent should check `schema_version` on read and warn if it's older than the current schema.
+Migration scripts (when needed) will be placed in `bin/migrate-session-state.py` and referenced from `bin/init.sh`. The agent should check `schema_version` on read and warn if it's older than the current schema.
 
 ## Integration with Existing Systems
 

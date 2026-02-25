@@ -8,6 +8,8 @@ Integrates GitHub Copilot as a formal review panel within the Dark Factory gover
 
 This review panel is unique -- it has a single participant (GitHub Copilot), and it is an external system integration rather than a persona-based review. Copilot comments are fetched from the GitHub API, parsed, classified by severity, and emitted as a structured panel output that the policy engine evaluates alongside all other panels.
 
+> **Baseline emission:** [`copilot-review.json`](../../emissions/copilot-review.json)
+
 ## Role
 
 GitHub Copilot acts as an **automated first-pass reviewer**. It does not have veto authority. Its findings are classified and weighted by the policy engine like any other panel, but Copilot cannot independently block a merge. Critical findings from Copilot escalate to human review rather than issuing a direct block.

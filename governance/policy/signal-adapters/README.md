@@ -6,7 +6,7 @@ Polling adapter configurations for the Runtime Anomaly Input Channel (Phase 5).
 
 This directory contains YAML configuration files for polling adapters — components that periodically query external observability APIs for active alerts, anomalies, or signals. Each adapter configuration defines how to connect to an external system and how to map its response fields to the governance runtime signal schema (`governance/schemas/runtime-signal.schema.json`).
 
-Polling adapters are one of four signal ingestion modes defined in the runtime feedback architecture. See `governance/docs/runtime-feedback-architecture.md`, Section 1 (Runtime Anomaly Input Channel) for the full specification.
+Polling adapters are one of four signal ingestion modes defined in the runtime feedback architecture. See `docs/architecture/runtime-feedback.md`, Section 1 (Runtime Anomaly Input Channel) for the full specification.
 
 ## Adapter Schema
 

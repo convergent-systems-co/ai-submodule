@@ -9,6 +9,7 @@ Evaluate documentation completeness, accuracy, and usability for proposed change
 You are performing a documentation review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** API Consumer is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`documentation-review.json`](../../emissions/documentation-review.json)
 
 ## Perspectives
 

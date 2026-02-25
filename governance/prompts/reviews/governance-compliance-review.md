@@ -8,6 +8,8 @@ Evaluate whether a pull request followed the required governance steps defined i
 
 You are performing a **governance-compliance-review**. Evaluate the provided pull request for adherence to the governance pipeline. Each perspective must produce an independent finding. This review checks process compliance, not code quality — other panels handle technical review.
 
+> **Baseline emission:** [`governance-compliance-review.json`](../../emissions/governance-compliance-review.json)
+
 ## Perspectives
 
 ### 1. Governance Auditor

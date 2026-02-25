@@ -56,10 +56,10 @@ The event-trigger workflow does not evaluate issue actionability itself — it d
 
 ## Adoption in Consuming Repos
 
-The workflow is listed as **optional** in `config.yaml`. Consuming repos receive it when running `bash .ai/init.sh`:
+The workflow is listed as **optional** in `config.yaml`. Consuming repos receive it when running `bash .ai/bin/init.sh`:
 
 ```bash
-bash .ai/init.sh
+bash .ai/bin/init.sh
 ```
 
 The init script symlinks optional workflows from `.ai/.github/workflows/` into the consuming repo's `.github/workflows/` directory.

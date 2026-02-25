@@ -135,14 +135,14 @@ Before scanning issues, verify the repository supports the agentic workflow:
    - Conclusions of `cancelled` or `skipped` are neutral — count only `success` and `failure` for the health assessment.
 
    **3d. Failure handling summary:**
-   - Workflow file missing → suggest `bash .ai/init.sh`
+   - Workflow file missing → suggest `bash .ai/bin/init.sh`
    - Workflow disabled → suggest re-enabling via Actions settings or `gh workflow enable`
    - Workflow consistently failing → suggest investigating failure logs; note that governance decisions on PRs may be unreliable
    - All checks are **non-blocking** — warn and continue. The agent may still do useful work even with degraded governance, but PRs may not receive valid governance reviews.
 
 4. If any check fails:
    - Warn the user: "Repository is not configured for the agentic loop."
-   - Suggest running `bash .ai/init.sh` to apply settings from `config.yaml`
+   - Suggest running `bash .ai/bin/init.sh` to apply settings from `config.yaml`
    - Continue with the startup sequence (non-blocking) but note that PR auto-merge may fail
 
 ### Step 0: Resolve Open PRs
@@ -257,7 +257,7 @@ For the highest-priority actionable issue:
    - **`CLAUDE.md`** (root and `.ai/`) — Update if personas, panels, phases, conventions, architecture descriptions, or counts changed
    - **`README.md`** — Update if bootstrap process, architecture overview, or policy descriptions changed
    - **`DEVELOPER_GUIDE.md`** — Update if onboarding-relevant information, setup steps, or workflow descriptions changed
-   - **`governance/docs/*.md`** — Update architecture docs if governance layers, persona/panel definitions, context management, or policy logic changed
+   - **`docs/**/*.md`** — Update architecture docs if governance layers, persona/panel definitions, context management, or policy logic changed
    - **Schema files** (`governance/schemas/`) — Update if structured emission formats, manifest structures, or panel output contracts changed
    - **Policy files** (`governance/policy/`) — Update if merge decision logic, thresholds, or profile configurations changed
    - **`instructions/*.md`** — Update if code quality, security, testing, or communication guidance changed

@@ -9,6 +9,7 @@ Comprehensive code evaluation from multiple engineering perspectives. This panel
 You are performing a code-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** Security Auditor, Performance Engineer, Test Engineer, Refactor Specialist are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`code-review.json`](../../emissions/code-review.json)
 
 ## Perspectives
 

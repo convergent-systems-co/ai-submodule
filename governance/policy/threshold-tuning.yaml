@@ -5,7 +5,7 @@
 # workflow would recommend adjustments for human approval.
 #
 # Data source: governance/schemas/retrospective-aggregation.schema.json
-# See: governance/docs/threshold-tuning.md
+# See: docs/operations/threshold-tuning.md
 
 threshold_tuning:
   version: "1.0.0"

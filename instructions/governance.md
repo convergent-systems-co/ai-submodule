@@ -28,7 +28,7 @@ When no GitHub remote is available (local-only development):
 - **Plan-first is still mandatory** — Write a plan to `.plans/` before any implementation.
 - **Panel evaluation still applies** — Run the policy engine locally:
   ```bash
-  python .governance/policy-engine.py \
+  python governance/bin/policy-engine.py \
     --emissions-dir governance/emissions/ \
     --profile governance/policy/default.yaml \
     --output manifest.json

@@ -10,7 +10,7 @@ import yaml
 
 # Ensure the policy engine module is importable
 REPO_ROOT = Path(__file__).resolve().parent.parent
-GOVERNANCE_DIR = REPO_ROOT / ".governance"
+GOVERNANCE_DIR = REPO_ROOT / "governance" / "bin"
 sys.path.insert(0, str(GOVERNANCE_DIR))
 
 # Re-export after path setup so tests can import the engine

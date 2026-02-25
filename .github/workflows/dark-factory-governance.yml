@@ -74,10 +74,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r .governance/requirements.txt
+        run: pip install -r governance/bin/requirements.txt
 
       - name: Run tests with coverage
-        run: pytest tests/ -v --cov=.governance --cov-fail-under=80
+        run: pytest tests/ -v --cov=governance/bin --cov-fail-under=80
 
   # -----------------------------------------------------------
   # Job 3: Run policy engine and post review
@@ -106,7 +106,7 @@ jobs:
         env:
           GOV_ROOT: ${{ needs.detect.outputs.gov_root }}
         run: |
-          python "${GOV_ROOT}/.governance/policy-engine.py" \
+          python "${GOV_ROOT}/governance/bin/policy-engine.py" \
             --emissions-dir "${GOV_ROOT}/governance/emissions/" \
             --profile "${GOV_ROOT}/governance/policy/default.yaml" \
             --output manifest.json \
@@ -292,9 +292,9 @@ jobs:
 
           ### Remediation Steps
 
-          1. **Run \`bash .ai/init.sh\`** to ensure the governance workflow and panel infrastructure are set up
+          1. **Run \`bash .ai/bin/init.sh\`** to ensure the governance workflow and panel infrastructure are set up
           2. **Verify panel emissions exist** in \`governance/emissions/\` — each required panel must have a corresponding JSON file
-          3. **If panels are not yet configured**, see \`.ai/governance/docs/repository-configuration.md\` for setup instructions
+          3. **If panels are not yet configured**, see \`.ai/docs/configuration/repository-setup.md\` for setup instructions
           4. **If this repository intentionally opts out**, set \`governance.skip_panel_validation: true\` in \`project.yaml\` (project root)
 
           > **This check blocks the PR.** A human reviewer cannot override this without either providing panel emissions or opting out via \`project.yaml\`."

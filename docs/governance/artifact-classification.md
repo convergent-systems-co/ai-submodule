@@ -29,7 +29,7 @@ All artifacts in the `.ai/` system fall into three categories. Each category has
 | `governance/prompts/workflows/` | Multi-phase orchestration workflows | Load one phase at a time |
 | `governance/templates/` | Language-specific conventions | Load once at session start based on project language |
 | `instructions.md` | Base AI instructions | Always loaded (compact, < 500 tokens) |
-| `governance/docs/` | Architecture and design documents | Reference only, not loaded into agent context |
+| `docs/` | Architecture and design documents | Reference only, not loaded into agent context |
 | `.plans/` | Implementation plans | Load only the active plan for the current task |
 
 **Versioning:** Git commit SHA. Cognitive artifacts evolve with the submodule version.
@@ -119,7 +119,7 @@ To minimize context window usage and prevent instruction loss during context res
 4. **Policy context** (never loaded into AI context): Evaluated programmatically, not by the AI model
 5. **Audit context** (write-only): Generated as output, never loaded as input except for replay
 
-See `governance/docs/context-management.md` for the full JIT loading strategy.
+See `docs/architecture/context-management.md` for the full JIT loading strategy.
 
 ## Summary Matrix
 

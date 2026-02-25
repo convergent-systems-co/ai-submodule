@@ -285,7 +285,7 @@ Define all Phase 5 governance artifacts (schemas, policies, workflows, protocols
 **Date:** 2026-02-25
 **Status:** Active
 **Issue:** #220
-**Research:** `governance/docs/RESEARCH.md` (51 sources), `governance/docs/TECHNIQUE_COMPARE.md`
+**Research:** `docs/research/README.md` (51 sources), `docs/research/technique-comparison.md`
 
 ### Context
 
@@ -469,8 +469,8 @@ The key invariant: `findings[].persona` labels are the inter-agent contract. The
 
 ## References
 
-- `governance/docs/RESEARCH.md` — 51-source research file informing ADR-010
-- `governance/docs/TECHNIQUE_COMPARE.md` — Research deliverable comparing consolidation techniques
+- `docs/research/README.md` — 51-source research file informing ADR-010
+- `docs/research/technique-comparison.md` — Research deliverable comparing consolidation techniques
 - `governance/schemas/panel-output.schema.json` — The inter-agent emission contract
 - `governance/policy/default.yaml` — Required panels and confidence weighting
 - External review report (2026-02-25) — Proposed MCP Skills architecture via awesome-dach-copilot

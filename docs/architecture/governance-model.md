@@ -115,7 +115,7 @@ The governance model operates on the following existing components:
 > **Note:** As of Issue #220, personas and panels have been consolidated into self-contained
 > review prompts in `governance/prompts/reviews/`. The persona files and panel files in
 > `governance/personas/` are deprecated and will be removed in a future release.
-> See `governance/docs/RESEARCH.md` for the research supporting this architectural decision.
+> See `docs/research/README.md` for the research supporting this architectural decision.
 
 **Panels (16 multi-persona panels):**
 
@@ -1606,7 +1606,7 @@ The following invariants must hold at all times:
 
 ---
 
-*This document is a governance artifact subject to Evolution Governance (Layer 5). Changes to this document require a version bump, backward compatibility assessment, and review by the Technical Debt Review panel. The canonical location is `governance/docs/dark-factory-governance-model.md` within the `.ai/` submodule.*
+*This document is a governance artifact subject to Evolution Governance (Layer 5). Changes to this document require a version bump, backward compatibility assessment, and review by the Technical Debt Review panel. The canonical location is `docs/architecture/governance-model.md` within the `.ai/` submodule.*
 
 *Governance Model Version: 1.0.0*
 *Document Classification: Foundational Specification*

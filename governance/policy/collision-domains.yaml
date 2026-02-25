@@ -25,7 +25,7 @@ domains:
     paths:
       - "governance/policy/**"
       - "governance/schemas/**"
-      - ".governance/**"
+      - "governance/bin/**"
     max_concurrent_workers: 1
     risk_level: critical
     rationale: >
@@ -65,7 +65,7 @@ domains:
       Documentation files. Low conflict risk — docs are largely
       independent of each other.
     paths:
-      - "governance/docs/**"
+      - "docs/**"
       - "README.md"
       - "DEVELOPER_GUIDE.md"
       - "GOALS.md"
@@ -116,8 +116,8 @@ domains:
     description: >
       Bootstrap scripts and initialization.
     paths:
-      - "init.sh"
-      - "init.ps1"
+      - "bin/init.sh"
+      - "bin/init.ps1"
       - "instructions.md"
       - "instructions/**"
     max_concurrent_workers: 1

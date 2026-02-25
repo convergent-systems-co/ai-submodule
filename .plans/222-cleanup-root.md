@@ -110,3 +110,4 @@ No breaking changes for consuming repos:
 | 2026-02-25 | Keep init.sh at root | Backward compatibility with consuming repos |
 | 2026-02-25 | Keep convenience entry points (startup.md, init.md) | PR #56 added for discoverability |
 | 2026-02-25 | Create bin/ instead of merging into existing dirs | Clean separation of executables from config |
+| 2026-02-25 | **Reversed:** Move init.sh/init.ps1 to bin/ | Decision reversed in #226 — low adoption makes this the right time for the breaking change. Announced to consumers. |

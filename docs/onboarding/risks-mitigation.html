@@ -154,7 +154,7 @@
 <span class="cmd">Copy-Item</span> <span class="str">CODEOWNERS</span> <span class="str">CODEOWNERS.bak</span>
 
 <span class="cmt"># Step 2 — run init as normal</span>
-<span class="cmd">powershell</span> <span class="flag">-ExecutionPolicy Bypass -File</span> <span class="str">.ai\init.ps1</span> <span class="flag">-InstallDeps</span>
+<span class="cmd">powershell</span> <span class="flag">-ExecutionPolicy Bypass -File</span> <span class="str">.ai\bin\init.ps1</span> <span class="flag">-InstallDeps</span>
 
 <span class="cmt"># Step 3 — merge your rules back (open both files, paste your entries in)</span>
 <span class="cmd">code</span> <span class="str">CODEOWNERS CODEOWNERS.bak</span></code></pre>

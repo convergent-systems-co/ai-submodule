@@ -363,7 +363,7 @@ The research does **not** support building a multi-agent runtime (Part 2) now. I
 
 The strongest argument for action is practical: the current architecture costs 30-42 tool calls per PR review in a system with a 50 tool-call budget. Consolidation makes the governance loop viable within Claude Code's constraints.
 
-> **Note:** This research has been consolidated into `governance/docs/RESEARCH.md`, which
+> **Note:** This research has been consolidated into `docs/research/README.md`, which
 > includes both the technique comparison findings documented here and the MCP skills evaluation.
 > For the canonical, up-to-date version of this research, refer to that file.
 

@@ -603,19 +603,19 @@ jobs:
           node-version: "20"
 
       - name: Install validation dependencies
-        run: npm ci --prefix .governance/tools
+        run: npm ci --prefix governance/bin/tools
 
       - name: Collect panel emissions
         id: collect
         run: |
-          node .governance/tools/collect-emissions.js \
+          node governance/bin/tools/collect-emissions.js \
             --pr-number "${{ github.event.pull_request.number }}" \
             --output emissions.json
 
       - name: Validate emissions against schema
         id: validate
         run: |
-          node .governance/tools/validate-emissions.js \
+          node governance/bin/tools/validate-emissions.js \
             --emissions emissions.json \
             --schema "${{ env.SCHEMAS_DIR }}/panel-output.schema.json" \
             --output validation-result.json
@@ -658,14 +658,14 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm ci --prefix .governance/tools
+        run: npm ci --prefix governance/bin/tools
 
       - name: Fetch Copilot review data
         id: fetch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          node .governance/tools/fetch-copilot-review.js \
+          node governance/bin/tools/fetch-copilot-review.js \
             --repo "${{ github.repository }}" \
             --pr-number "${{ github.event.pull_request.number }}" \
             --output copilot-review.json
@@ -673,7 +673,7 @@ jobs:
       - name: Parse and classify Copilot suggestions
         id: classify
         run: |
-          node .governance/tools/classify-copilot.js \
+          node governance/bin/tools/classify-copilot.js \
             --review copilot-review.json \
             --keywords "${{ env.POLICY_DIR }}/copilot-severity-keywords.yaml" \
             --output copilot-classified.json
@@ -681,7 +681,7 @@ jobs:
       - name: Evaluate Copilot gate
         id: evaluate
         run: |
-          node .governance/tools/evaluate-copilot-gate.js \
+          node governance/bin/tools/evaluate-copilot-gate.js \
             --classified copilot-classified.json \
             --policy-profile "${{ env.POLICY_DIR }}/default.yaml" \
             --schema "${{ env.SCHEMAS_DIR }}/panel-output.schema.json" \
@@ -734,7 +734,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm ci --prefix .governance/tools
+        run: npm ci --prefix governance/bin/tools
 
       - name: Download panel emissions
         uses: actions/download-artifact@v4
@@ -751,7 +751,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          node .governance/tools/query-jm-compliance.js \
+          node governance/bin/tools/query-jm-compliance.js \
             --repo "${{ github.repository }}" \
             --sha "${{ github.event.pull_request.head.sha }}" \
             --output jm-status.json
@@ -759,7 +759,7 @@ jobs:
       - name: Run policy engine
         id: evaluate
         run: |
-          node .governance/tools/policy-engine.js \
+          node governance/bin/tools/policy-engine.js \
             --emissions emissions.json \
             --copilot-emission copilot-emission.json \
             --jm-status jm-status.json \
@@ -806,7 +806,7 @@ jobs:
           node-version: "20"
 
       - name: Install dependencies
-        run: npm ci --prefix .governance/tools
+        run: npm ci --prefix governance/bin/tools
 
       - name: Download all governance artifacts
         uses: actions/download-artifact@v4
@@ -817,7 +817,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          node .governance/tools/check-override.js \
+          node governance/bin/tools/check-override.js \
             --repo "${{ github.repository }}" \
             --pr-number "${{ github.event.pull_request.number }}" \
             --required-approvals 2 \
@@ -867,7 +867,7 @@ jobs:
       - name: Generate run manifest
         if: steps.gate.outputs.gate_result == 'success'
         run: |
-          node .governance/tools/generate-manifest.js \
+          node governance/bin/tools/generate-manifest.js \
             --emissions panel-emissions/emissions.json \
             --copilot-emission copilot-emission/copilot-emission.json \
             --policy-result policy-result/policy-result.json \
@@ -895,7 +895,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          node .governance/tools/post-escalation.js \
+          node governance/bin/tools/post-escalation.js \
             --repo "${{ github.repository }}" \
             --pr-number "${{ github.event.pull_request.number }}" \
             --policy-result policy-result/policy-result.json \
@@ -906,7 +906,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          node .governance/tools/file-override-retrospective.js \
+          node governance/bin/tools/file-override-retrospective.js \
             --repo "${{ github.repository }}" \
             --pr-number "${{ github.event.pull_request.number }}" \
             --override-result override-result.json \
@@ -926,7 +926,7 @@ The following items must be completed to operationalize this blueprint:
   workflows/
     jm-compliance.yml           # LOCKED -- do not modify
     dark-factory-governance.yml # NEW -- governance workflow
-.governance/
+governance/bin/
   tools/
     package.json                # Dependencies for governance tooling
     collect-emissions.js        # Collects panel emissions from PR artifacts
@@ -964,7 +964,7 @@ personas/panels/
 ### 8.3 Operational Readiness
 
 1. All schemas must be committed and validated before the governance workflow is activated.
-2. The governance tooling (`/.governance/tools/`) must have passing unit tests with at least 90% line coverage.
+2. The governance tooling (`/governance/bin/tools/`) must have passing unit tests with at least 90% line coverage.
 3. A dry-run mode must be available via `workflow_dispatch` to test the governance pipeline without gating merges.
 4. The `jm-compliance.yml` workflow must continue to function identically after the governance workflow is added. Verify by running both workflows on a test PR and comparing JM Compliance results against a baseline.
 

@@ -1,6 +1,6 @@
 # Init: Agentic Bootstrap Prompt
 
-Execute this prompt to bootstrap the `.ai` governance submodule in a consuming project. This is the agentic equivalent of `bash .ai/init.sh` — it walks the user through setup interactively, asking about configuration options.
+Execute this prompt to bootstrap the `.ai` governance submodule in a consuming project. This is the agentic equivalent of `bash .ai/bin/init.sh` — it walks the user through setup interactively, asking about configuration options.
 
 **When to use this:** After adding the `.ai` submodule to a project (`git submodule add git@github.com:SET-Apps/ai-submodule.git .ai`), run this prompt to configure the project.
 
@@ -141,7 +141,7 @@ EOF
 )
 ```
 
-If `gh` is not installed or not authenticated, tell the user: "GitHub CLI is not available. Repository settings were saved to `project.yaml` but not applied. Run `bash .ai/init.sh` or configure manually in GitHub Settings > General."
+If `gh` is not installed or not authenticated, tell the user: "GitHub CLI is not available. Repository settings were saved to `project.yaml` but not applied. Run `bash .ai/bin/init.sh` or configure manually in GitHub Settings > General."
 
 ---
 
@@ -207,13 +207,13 @@ python3 -m venv .ai/.venv
 
 # Install dependencies
 .ai/.venv/bin/pip install --quiet --upgrade pip
-.ai/.venv/bin/pip install --quiet -r .ai/.governance/requirements.txt
+.ai/.venv/bin/pip install --quiet -r .ai/governance/bin/requirements.txt
 
 # Verify
 .ai/.venv/bin/python -c "import jsonschema; import yaml; print('OK')"
 ```
 
-If no: "Skipping Python dependencies. You can install later with `bash .ai/init.sh --install-deps`."
+If no: "Skipping Python dependencies. You can install later with `bash .ai/bin/init.sh --install-deps`."
 
 ---
 

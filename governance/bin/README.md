@@ -13,7 +13,7 @@ Evaluates YAML policy profiles against structured panel emissions to produce det
 ### Usage
 
 ```bash
-python .governance/policy-engine.py \
+python governance/bin/policy-engine.py \
     --emissions-dir governance/emissions/ \
     --profile governance/policy/default.yaml \
     --output manifest.json \

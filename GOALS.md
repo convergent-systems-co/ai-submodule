@@ -130,7 +130,7 @@ The following Phase 4b capabilities are designed but not yet implemented:
 
 ## Phase 5 — Dark Factory (Future)
 
-Architecture is documented in `governance/docs/runtime-feedback-architecture.md`.
+Architecture is documented in `docs/architecture/runtime-feedback.md`.
 
 ### Industry Context
 

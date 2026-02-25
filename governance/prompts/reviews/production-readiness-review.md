@@ -9,6 +9,7 @@ Assess whether a system is ready for production deployment. This panel evaluates
 You are performing a production-readiness-review. Evaluate the provided system from multiple operational perspectives. Each perspective must produce an independent finding assessing readiness in its domain. The goal is to identify launch blockers, accepted risks, and post-launch requirements.
 
 > **Shared perspectives:** SRE, Infrastructure Engineer, Observability Engineer, Failure Engineer, and DevOps Engineer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`production-readiness-review.json`](../../emissions/production-readiness-review.json)
 
 ## Perspectives
 

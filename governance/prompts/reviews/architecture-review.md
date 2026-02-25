@@ -9,6 +9,7 @@ Evaluate system design decisions from multiple architectural perspectives. This 
 You are performing an architecture-review. Evaluate the provided design change from multiple perspectives. Each perspective must produce an independent finding based on the design artifacts, constraints, and context provided.
 
 > **Shared perspectives:** Systems Architect, Security Auditor, Failure Engineer, Infrastructure Engineer, and API Designer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`architecture-review.json`](../../emissions/architecture-review.json)
 
 ## Perspectives
 

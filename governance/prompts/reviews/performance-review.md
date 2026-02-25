@@ -9,6 +9,7 @@ Comprehensive performance analysis from multiple perspectives. This panel evalua
 You are performing a performance-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
 > **Shared perspectives:** Performance Engineer, Backend Engineer, Frontend Engineer, Infrastructure Engineer, SRE are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+> **Baseline emission:** [`performance-review.json`](../../emissions/performance-review.json)
 
 ## Perspectives
 

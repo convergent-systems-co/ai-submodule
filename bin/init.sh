@@ -1,19 +1,20 @@
 #!/bin/bash
-# .ai/init.sh — Run once after adding the .ai submodule to a project.
+# .ai/bin/init.sh — Run once after adding the .ai submodule to a project.
 # Creates symlinks, detects platform, and optionally installs all dependencies.
 #
 # Usage:
-#   bash .ai/init.sh                 # Symlinks only (existing behavior)
-#   bash .ai/init.sh --install-deps  # Symlinks + Python venv + dependencies
+#   bash .ai/bin/init.sh                 # Symlinks only (existing behavior)
+#   bash .ai/bin/init.sh --install-deps  # Symlinks + Python venv + dependencies
 #
 # This script is idempotent — safe to run multiple times.
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
-VENV_DIR="$SCRIPT_DIR/.venv"
-REQUIREMENTS="$SCRIPT_DIR/.governance/requirements.txt"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"  # .ai/bin/
+AI_DIR="$(dirname "$SCRIPT_DIR")"                             # .ai/
+PROJECT_ROOT="$(dirname "$AI_DIR")"                           # project root
+VENV_DIR="$AI_DIR/.venv"
+REQUIREMENTS="$AI_DIR/governance/bin/requirements.txt"
 INSTALL_DEPS=false
 PYTHON_MIN_MAJOR=3
 PYTHON_MIN_MINOR=12
@@ -24,7 +25,7 @@ for arg in "$@"; do
   case "$arg" in
     --install-deps) INSTALL_DEPS=true ;;
     --help|-h)
-      echo "Usage: bash .ai/init.sh [--install-deps]"
+      echo "Usage: bash .ai/bin/init.sh [--install-deps]"
       echo ""
       echo "Options:"
       echo "  --install-deps  Install Python virtual environment and dependencies"
@@ -33,7 +34,7 @@ for arg in "$@"; do
       ;;
     *)
       echo "Unknown argument: $arg"
-      echo "Usage: bash .ai/init.sh [--install-deps]"
+      echo "Usage: bash .ai/bin/init.sh [--install-deps]"
       exit 1
       ;;
   esac
@@ -110,19 +111,19 @@ echo ""
 if [ -f "$PROJECT_ROOT/.gitmodules" ] && grep -q '\.ai' "$PROJECT_ROOT/.gitmodules" 2>/dev/null; then
   echo "Checking .ai submodule freshness..."
   # Check for dirty state before attempting update
-  if ! git -C "$SCRIPT_DIR" diff-index --quiet HEAD -- 2>/dev/null; then
+  if ! git -C "$AI_DIR" diff-index --quiet HEAD -- 2>/dev/null; then
     echo "  [WARN] .ai submodule has uncommitted changes; skipping automatic update"
     echo "         Commit, stash, or discard local changes in .ai, then re-run init.sh"
-  elif git -C "$SCRIPT_DIR" fetch origin main --quiet 2>/dev/null; then
-    LOCAL_SHA=$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null)
-    REMOTE_SHA=$(git -C "$SCRIPT_DIR" rev-parse origin/main 2>/dev/null)
+  elif git -C "$AI_DIR" fetch origin main --quiet 2>/dev/null; then
+    LOCAL_SHA=$(git -C "$AI_DIR" rev-parse HEAD 2>/dev/null)
+    REMOTE_SHA=$(git -C "$AI_DIR" rev-parse origin/main 2>/dev/null)
     if [ -n "$LOCAL_SHA" ] && [ -n "$REMOTE_SHA" ]; then
       if [ "$LOCAL_SHA" = "$REMOTE_SHA" ]; then
         echo "  [OK] .ai submodule is up to date (${LOCAL_SHA:0:8})"
       else
         echo "  [UPDATE] .ai submodule is behind (local: ${LOCAL_SHA:0:8}, remote: ${REMOTE_SHA:0:8})"
         if git -C "$PROJECT_ROOT" submodule update --remote .ai 2>/dev/null; then
-          NEW_SHA=$(git -C "$SCRIPT_DIR" rev-parse HEAD 2>/dev/null)
+          NEW_SHA=$(git -C "$AI_DIR" rev-parse HEAD 2>/dev/null)
           echo "  [OK] .ai submodule updated to ${NEW_SHA:0:8}"
           echo "  Run 'git add .ai && git commit -m \"chore: update .ai submodule\"' to save the update"
         else
@@ -200,7 +201,7 @@ if [ -f "$PROJECT_ROOT/.gitmodules" ] && grep -q '\.ai' "$PROJECT_ROOT/.gitmodul
 fi
 
 if [ "$IS_SUBMODULE" = "true" ]; then
-  TEMPLATE_SRC="$SCRIPT_DIR/.github/ISSUE_TEMPLATE"
+  TEMPLATE_SRC="$AI_DIR/.github/ISSUE_TEMPLATE"
   TEMPLATE_DST="$PROJECT_ROOT/.github/ISSUE_TEMPLATE"
   if [ -d "$TEMPLATE_SRC" ]; then
     mkdir -p "$TEMPLATE_DST"
@@ -217,7 +218,7 @@ if [ "$IS_SUBMODULE" = "true" ]; then
   fi
   # Governance workflows — symlink to consuming repo's .github/workflows/
   # Symlinks ensure submodule updates flow automatically without re-running init.sh
-  WORKFLOW_SRC="$SCRIPT_DIR/.github/workflows"
+  WORKFLOW_SRC="$AI_DIR/.github/workflows"
   WORKFLOW_DST="$PROJECT_ROOT/.github/workflows"
   if [ -d "$WORKFLOW_SRC" ]; then
     mkdir -p "$WORKFLOW_DST"
@@ -240,7 +241,7 @@ def deep_merge(base, override):
     return result
 
 config = {}
-for f in ['$SCRIPT_DIR/config.yaml', '$SCRIPT_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -296,7 +297,7 @@ print('OPTIONAL=' + ' '.join(opt))
     done
   fi
   # GOALS.md — create from template if not present in consuming repo
-  GOALS_TEMPLATE="$SCRIPT_DIR/governance/templates/GOALS.md"
+  GOALS_TEMPLATE="$AI_DIR/governance/templates/GOALS.md"
   GOALS_DST="$PROJECT_ROOT/GOALS.md"
   if [ -f "$GOALS_TEMPLATE" ]; then
     if [ -f "$GOALS_DST" ]; then
@@ -312,7 +313,7 @@ print('OPTIONAL=' + ' '.join(opt))
   # Panel emission validation — check required panels have baseline emissions
   echo ""
   echo "Validating panel emissions..."
-  EMISSIONS_DIR="$SCRIPT_DIR/governance/emissions"
+  EMISSIONS_DIR="$AI_DIR/governance/emissions"
   REQUIRED_PANELS="code-review security-review threat-modeling cost-analysis documentation-review data-governance-review"
   MISSING_PANELS=""
   for panel in $REQUIRED_PANELS; do
@@ -337,7 +338,7 @@ print('OPTIONAL=' + ' '.join(opt))
     CONFIG_DIRS=$("$PYTHON_CMD" -c "
 import yaml, os
 config = {}
-for f in ['$SCRIPT_DIR/config.yaml', '$SCRIPT_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -372,7 +373,7 @@ fi
 
 # --- Migration warning: project.yaml location ---
 
-if [ -f "$SCRIPT_DIR/project.yaml" ] && [ ! -f "$PROJECT_ROOT/project.yaml" ]; then
+if [ -f "$AI_DIR/project.yaml" ] && [ ! -f "$PROJECT_ROOT/project.yaml" ]; then
   echo ""
   echo "  [MIGRATE] project.yaml found at .ai/project.yaml (legacy location)"
   echo "            The preferred location is now the project root: ./project.yaml"
@@ -444,8 +445,8 @@ fi
 parse_yaml_field() {
   local field="$1"
   local default_value="$2"
-  local config_file="${3:-$SCRIPT_DIR/config.yaml}"
-  local project_file="$SCRIPT_DIR/project.yaml"
+  local config_file="${3:-$AI_DIR/config.yaml}"
+  local project_file="$AI_DIR/project.yaml"
   local root_project_file="$PROJECT_ROOT/project.yaml"
 
   # Build a Python snippet that reads config.yaml, merges project.yaml overrides,
@@ -522,7 +523,7 @@ def deep_merge(base, override):
     return result
 
 config = {}
-for f in ['$SCRIPT_DIR/config.yaml', '$SCRIPT_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -533,12 +534,12 @@ co = repo.get('codeowners', {})
 if not co.get('enabled', True):
     exit(0)
 
-print('# CODEOWNERS — generated by .ai/init.sh from config.yaml')
+print('# CODEOWNERS — generated by .ai/bin/init.sh from config.yaml')
 print('# Manual edits outside the managed section will be preserved.')
 print('#')
 print('# github-actions[bot] is included so the Dark Factory governance workflow')
 print('# approval can satisfy code owner review requirements.')
-print('# See .ai/governance/docs/repository-configuration.md for details.')
+print('# See .ai/docs/configuration/repository-setup.md for details.')
 print()
 
 default_owner = co.get('default_owner', '')
@@ -675,7 +676,7 @@ def deep_merge(base, override):
     return result
 
 config = {}
-for f in ['$SCRIPT_DIR/config.yaml', '$SCRIPT_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -743,7 +744,7 @@ for pattern, required_owners in required_entries.items():
         if updated_lines and not updated_lines[-1].endswith('\n'):
             updated_lines[-1] += '\n'
         updated_lines.append('\n')
-        updated_lines.append('# Added by .ai/init.sh — governance-required entry\n')
+        updated_lines.append('# Added by .ai/bin/init.sh — governance-required entry\n')
         updated_lines.append(new_line)
         changes_made = True
 
@@ -804,7 +805,7 @@ def deep_merge(base, override):
     return result
 
 config = {}
-for f in ['$SCRIPT_DIR/config.yaml', '$SCRIPT_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
+for f in ['$AI_DIR/config.yaml', '$AI_DIR/project.yaml', '$PROJECT_ROOT/project.yaml']:
     if os.path.exists(f):
         with open(f) as fh:
             data = yaml.safe_load(fh) or {}
@@ -865,7 +866,7 @@ echo "Done."
 echo ""
 echo "Next steps:"
 if [ "$INSTALL_DEPS" = "false" ] && [ ! -d "$VENV_DIR" ]; then
-  echo "  0. Install dependencies:     bash .ai/init.sh --install-deps"
+  echo "  0. Install dependencies:     bash .ai/bin/init.sh --install-deps"
 fi
 echo "  1. Copy a language template:  cp .ai/governance/templates/python/project.yaml project.yaml"
 echo "  2. Customize personas and conventions in project.yaml"
