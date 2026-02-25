@@ -108,10 +108,13 @@ def load_emissions(emissions_dir: str, schema: dict, log: EvaluationLog):
                 "pass",
                 f"Valid emission from {fpath.name}"
             )
-        except (ValidationError, json.JSONDecodeError, Exception) as e:
+        except (ValidationError, json.JSONDecodeError) as e:
             all_valid = False
             err = e.message if hasattr(e, "message") else str(e)
             log.record(f"validate_emission_{fpath.stem}", "fail", f"{fpath.name}: {err}")
+        except OSError as e:
+            all_valid = False
+            log.record(f"validate_emission_{fpath.stem}", "fail", f"{fpath.name}: file access error: {e}")
 
     return emissions, all_valid
 

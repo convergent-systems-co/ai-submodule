@@ -945,3 +945,48 @@ class TestManifest:
         assert manifest["repository"]["name"] == "repo-name"
         assert manifest["repository"]["commit_sha"] == "a" * 40
         assert manifest["repository"]["pr_number"] == 42
+
+
+# ===========================================================================
+# Emission loading exception handling (issue #237)
+# ===========================================================================
+
+
+class TestEmissionLoadingExceptions:
+    """Issue #237: narrow exception handling in load_emissions."""
+
+    def test_permission_error_produces_clear_message(self, tmp_path):
+        """PermissionError should report file access error, not generic validation failure."""
+        log = _log()
+        schema = policy_engine.load_schema("panel-output.schema.json")
+        # Create a file that can't be read
+        bad_file = tmp_path / "unreadable.json"
+        bad_file.write_text('{"valid": true}')
+        bad_file.chmod(0o000)
+        try:
+            emissions, valid = policy_engine.load_emissions(str(tmp_path), schema, log)
+            assert valid is False
+            # Check that the error message mentions file access
+            entries = log.entries
+            fail_entries = [e for e in entries if e["result"] == "fail"]
+            assert any("file access error" in e["detail"] for e in fail_entries)
+        finally:
+            bad_file.chmod(0o644)  # cleanup
+
+    def test_json_decode_error_still_caught(self, tmp_path):
+        """JSONDecodeError should still be caught and reported."""
+        log = _log()
+        schema = policy_engine.load_schema("panel-output.schema.json")
+        bad_file = tmp_path / "bad.json"
+        bad_file.write_text('not json')
+        emissions, valid = policy_engine.load_emissions(str(tmp_path), schema, log)
+        assert valid is False
+
+    def test_validation_error_still_caught(self, tmp_path):
+        """ValidationError should still be caught and reported."""
+        log = _log()
+        schema = policy_engine.load_schema("panel-output.schema.json")
+        bad_file = tmp_path / "invalid.json"
+        bad_file.write_text('{"panel_name": 123}')  # panel_name should be string
+        emissions, valid = policy_engine.load_emissions(str(tmp_path), schema, log)
+        assert valid is False
