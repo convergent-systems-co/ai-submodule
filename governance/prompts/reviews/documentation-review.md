@@ -27,6 +27,7 @@ You are performing a documentation review. Evaluate the provided code change fro
 - Audience appropriateness
 - Outdated information
 - Diagram format compliance (mermaid only)
+- GitHub Pages deployment and documentation site presence
 
 **Principles:**
 - Verify code examples actually work
@@ -130,6 +131,18 @@ You are performing a documentation review. Evaluate the provided code change fro
 
 ---
 
+### GitHub Pages Requirement
+
+Projects should have a documentation site deployed via GitHub Pages. This is an advisory (medium severity) check — projects without a docs site will receive a recommendation, not a blocking finding.
+
+**Review Criteria:**
+- Does the project have a GitHub Pages deployment workflow (`.github/workflows/` with pages deployment)?
+- Is the documentation site URL referenced in README.md?
+- Is the MkDocs (or equivalent static site generator) configuration present?
+- Does the site URL follow the canonical format `https://<org>.github.io/<repo-name>`?
+
+---
+
 ## Process
 
 1. Identify the target audiences for the documentation affected by this change
@@ -138,6 +151,7 @@ You are performing a documentation review. Evaluate the provided code change fro
 4. Identify gaps and inconsistencies between documentation and current code behavior
 5. Prioritize findings by user impact (blocking gaps first, then accuracy, then polish)
 6. Verify all diagrams use mermaid code blocks — flag any ASCII art, box drawing characters (┌─│└├┤┬┴┼═▼), or plain-text flow diagrams as blocking findings
+7. Verify GitHub Pages presence — check for deployment workflow, site URL in README, static site generator config, and canonical URL format (advisory, medium severity)
 
 ## Output Format
 

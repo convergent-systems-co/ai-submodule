@@ -2,7 +2,7 @@
 
 AI governance framework for autonomous software delivery. Provides personas, panels, policy enforcement, structured emissions, and audit manifests — distributed as a git submodule to any repository.
 
-> **[Documentation Site](https://probable-adventure-7e9l4jw.pages.github.io/)** — Full documentation, tutorials, and architecture guides.
+> **[Documentation Site](https://set-apps.github.io/ai-submodule)** — Full documentation, tutorials, and architecture guides.
 
 > **New here?** Start with the [Simple Explainer](docs/onboarding/eli5.md) (plain-language overview) or jump straight to the [Developer Quick Guide](DEVELOPER_GUIDE.md) for a TLDR onboarding.
 
