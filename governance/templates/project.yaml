@@ -6,6 +6,13 @@ name: "my-project"
 language: "typescript"       # Primary language: typescript, python, go, csharp, etc.
 framework: "express"         # Primary framework (optional)
 
+# Governance submodule configuration
+governance:
+  # Pin .ai submodule to a specific SHA or tag. If set, the agentic loop will
+  # NOT auto-update the submodule — it stays at the pinned version.
+  # Remove or set to null to allow auto-updates.
+  # ai_submodule_pin: "abc1234"  # SHA, tag, or branch name
+
 # Which personas are relevant for this project
 personas:
   # List persona files to activate (paths relative to .ai/personas/)

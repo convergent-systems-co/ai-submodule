@@ -99,8 +99,14 @@ Quick reference for all available personas and when to use them.
 
 | Persona | File | Use When |
 |---------|------|----------|
-| Code Manager | `agentic/code-manager.md` | Pipeline orchestration — intent validation, panel coordination, merge decision workflow |
+| DevOps Engineer | `agentic/devops-engineer.md` | Session entry — pre-flight checks, issue triage, routing, session lifecycle management |
+| Code Manager | `agentic/code-manager.md` | Pipeline orchestration — intent validation, panel selection, review coordination, merge decisions |
 | Coder | `agentic/coder.md` | Code execution — branch creation, plan writing, implementation, test authoring |
+| Tester | `agentic/tester.md` | Independent evaluation — test coverage gate, documentation verification, structured feedback |
+
+### Agent Protocol
+
+Inter-agent communication follows `governance/prompts/agent-protocol.md` — a structured message protocol with typed messages (ASSIGN, STATUS, RESULT, FEEDBACK, ESCALATE, APPROVE, BLOCK). The DevOps Engineer routes to Code Manager, which orchestrates Coder and Tester.
 
 ## Panels
 

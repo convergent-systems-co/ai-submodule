@@ -28,6 +28,17 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) a
   - `docs/onboarding/` HTML guides moved under `docs/onboarding/`
   - `TECHNIQUE_COMPARE.md` moved to `docs/research/technique-comparison.md`
 
+- **Multi-agent prompt-chained architecture** (#228)
+  - New agentic personas: DevOps Engineer (session entry/routing) and Tester (independent evaluation)
+  - New inter-agent communication protocol (`governance/prompts/agent-protocol.md`) with typed messages
+  - `startup.md` rewritten as 5-phase prompt-chained orchestrator (577→404 lines)
+  - Code Manager updated: Orchestrator-Workers pattern, Tester approval gate, dynamic panel selection, security review gate
+  - Coder updated: structured RESULT output, cannot-self-approve constraint
+  - Security review is now a mandatory gate after Tester approval, always producing a JSON report
+  - Code Manager dynamically selects context-appropriate review panels (docs, API, infrastructure, etc.)
+  - All ASCII art diagrams converted to Mermaid
+  - If a needed panel/persona is missing, Code Manager creates an issue in ai-submodule
+
 - **Persona consolidation** (#220)
   - 19 consolidated review prompts added to `governance/prompts/reviews/`
   - Individual persona files in `governance/personas/` and panel files in `governance/personas/panels/` are now deprecated

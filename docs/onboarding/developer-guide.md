@@ -42,10 +42,11 @@ git add .ai && git commit -m "Update .ai submodule"
 
 ## Common Operations
 
-**Start the agentic loop** — The Code Manager scans issues, plans, implements, reviews, and merges autonomously:
+**Start the agentic loop** — Four personas chain through five phases (pre-flight → plan → implement → evaluate → merge):
 ```
 /startup
 ```
+The pipeline: DevOps Engineer (triage) → Code Manager (orchestrate) → Coder (implement) → Tester (evaluate) → merge. See `governance/prompts/startup.md`.
 
 **Write a plan before coding** — Every non-trivial change needs a plan:
 ```bash
