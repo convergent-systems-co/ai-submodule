@@ -101,17 +101,17 @@ All panel output must include JSON between `<!-- STRUCTURED_EMISSION_START -->` 
 
 ## Agentic Startup Sequence
 
-When operating autonomously (via `governance/prompts/startup.md`), the pipeline chains four personas through five phases:
+When operating autonomously (via `governance/prompts/startup.md`), the pipeline chains four personas through five phases with **parallel Coder dispatch**:
 
 | Phase | Persona | What Happens |
 |-------|---------|-------------|
 | 1 | DevOps Engineer | Pre-flight (submodule, repo config — respects `project.yaml` pin), resolve open PRs, triage and route issues |
-| 2 | Code Manager | Validate intent, select context-appropriate review panels, create plan |
-| 3 | Coder | Implement plan, write tests, update documentation |
-| 4 | Code Manager + Tester | Tester evaluates → Security review → Context-specific reviews → PR monitoring loop |
-| 5 | Code Manager + DevOps Engineer | Merge, retrospective, mandatory checkpoint |
+| 2 | Code Manager | Validate intent, select review panels, and create plans for **all issues** (up to 5) |
+| 3 | Code Manager | **Parallel dispatch**: spawn up to 5 Coder agents via `Task` tool with `isolation: "worktree"` |
+| 4 | Code Manager + Tester | Collect results as each Coder finishes → Tester evaluates → Security review → PR monitoring |
+| 5 | Code Manager + DevOps Engineer | Merge all PRs, retrospective, mandatory checkpoint |
 
-Max 3 issues per session; **hard stop at 80% context capacity** — executes shutdown protocol (clean git, write checkpoint, request `/clear`)
+Max 5 issues per session (parallel execution is context-efficient — Coder subagents use their own context windows); **hard stop at 80% context capacity** — executes shutdown protocol (clean git, write checkpoint, request `/clear`)
 
 ## Symlink Configuration
 

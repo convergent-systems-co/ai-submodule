@@ -14,14 +14,14 @@ Watch for these signals that context is filling up:
 
 1. **Token count warnings** — Claude Code shows token usage in verbose mode (right side). Copilot surfaces similar warnings. When total tokens exceed 80% of the model's context window, stop immediately.
 2. **System warnings** — The runtime emits warnings when approaching context limits. These are non-negotiable stop signals.
-3. **Conversation length heuristic** — If you have completed 3 issues, or made more than 50 tool calls, or the conversation exceeds ~100 exchanges, assume you are at or near 80% regardless of other signals.
+3. **Conversation length heuristic** — If you have completed 5 issues, or made more than 80 tool calls, or the conversation exceeds ~150 exchanges, assume you are at or near 80% regardless of other signals.
 4. **Degraded recall** — If you find yourself re-reading files you already read, forgetting earlier decisions, or producing inconsistent output, context pressure is likely the cause.
 
 ### Hard Limits
 
-- **Maximum 3 issues per session** — non-negotiable safety net
-- **Mandatory checkpoint after every issue** — before starting the next issue, always write a checkpoint (see Phase 5 below)
-- **Two-tier capacity threshold**: at ~70%, do not start a new issue (finish the current one, checkpoint, request `/clear`); at ~80%, stop immediately and execute the full shutdown protocol regardless of current step
+- **Maximum 5 issues per session** — parallel dispatch means Coder subagents use their own context, not the main session's
+- **Mandatory checkpoint after completing all parallel work** — write a single checkpoint covering all issues before requesting `/clear`
+- **Two-tier capacity threshold**: at ~70%, do not dispatch new Coder agents (wait for in-flight ones to complete, merge, checkpoint, request `/clear`); at ~80%, stop immediately and execute the full shutdown protocol regardless of current step
 
 ### When Triggered
 
@@ -62,22 +62,26 @@ Closed issues represent a user decision. Continuing work on them wastes compute 
 
 ```mermaid
 flowchart TD
-    P1[Phase 1: Pre-flight & Triage] -->|ASSIGN| P2[Phase 2: Intent & Planning]
-    P2 -->|ASSIGN| P3[Phase 3: Implementation]
-    P3 -->|RESULT| P4[Phase 4: Evaluation & Review]
+    P1[Phase 1: Pre-flight & Triage] -->|ASSIGN batch| P2[Phase 2: Parallel Planning]
+    P2 -->|ASSIGN per issue| P3[Phase 3: Parallel Dispatch]
+    P3 -->|Task tool + worktree| C1[Coder Agent 1]
+    P3 -->|Task tool + worktree| C2[Coder Agent 2]
+    P3 -->|Task tool + worktree| C3[Coder Agent N]
+    C1 -->|RESULT| P4[Phase 4: Collect & Review]
+    C2 -->|RESULT| P4
+    C3 -->|RESULT| P4
     P4 -->|APPROVE| P5[Phase 5: Merge & Checkpoint]
     P4 -->|FEEDBACK| P3
-    P5 -->|More issues?| P1
     P5 -->|Session cap or context pressure| STOP[Shutdown Protocol]
 ```
 
 | Phase | Persona | Pattern | Responsibility |
 |-------|---------|---------|---------------|
 | 1 | DevOps Engineer | Routing | Pre-flight, triage, issue routing |
-| 2 | Code Manager | Orchestrator | Intent validation, plan approval, panel selection |
-| 3 | Coder | Worker | Implementation, tests, documentation |
-| 4 | Code Manager + Tester | Evaluator-Optimizer | Evaluation, security review, context-specific reviews, PR monitoring |
-| 5 | Code Manager + DevOps Engineer | — | Merge, retrospective, checkpoint |
+| 2 | Code Manager | Orchestrator | Validate intent and create plans for **all** selected issues |
+| 3 | Code Manager | Parallelization | Spawn up to 5 Coder agents via `Task` tool with `isolation: "worktree"` |
+| 4 | Code Manager + Tester | Evaluator-Optimizer | Collect results as each Coder finishes; evaluate, push PR, monitor CI |
+| 5 | Code Manager + DevOps Engineer | — | Merge all PRs, retrospective, checkpoint |
 
 ---
 
@@ -158,13 +162,15 @@ An issue is **actionable** if:
 
 ### 1e: Route to Code Manager
 
-Emit an ASSIGN message per `governance/prompts/agent-protocol.md` for the highest-priority issue. If no actionable issues remain, fall back to GOALS.md (see Phase 5 fallback).
+Emit an ASSIGN message per `governance/prompts/agent-protocol.md` for **all actionable issues up to the session cap** (max 5). If no actionable issues remain, fall back to GOALS.md (see Phase 5 fallback).
 
 ---
 
-## Phase 2: Intent & Planning
+## Phase 2: Parallel Planning
 
 **Persona:** Code Manager (`governance/personas/agentic/code-manager.md`)
+
+The Code Manager receives the full batch of prioritized issues and plans **all of them** before any implementation begins. This front-loads the planning work in the main context window (where the Code Manager has full codebase visibility) before dispatching to parallel Coder agents.
 
 ### 2a: Ensure `project.yaml`
 
@@ -203,24 +209,73 @@ Analyze the codebase and change type to determine which reviews to invoke:
 
 If a needed review panel or persona does not exist, create a GitHub issue in the ai-submodule repository describing the gap, using `governance/prompts/cross-repo-escalation-workflow.md`.
 
-### 2d: Create Plan
+### 2d: Create Plans (for all issues)
+
+**Repeat for each issue in the batch:**
 
 1. Create branch: `itsfwcp/{type}/{number}/{name}`
 2. Write plan using `governance/prompts/templates/plan-template.md`
 3. Save to `.plans/{number}-{description}.md`
-4. Low risk → proceed to Phase 3. High risk → comment plan on issue, wait for approval.
+4. High risk → comment plan on issue, wait for approval before dispatching
 
-Emit ASSIGN to Coder with plan reference, scope constraints, and acceptance criteria.
+After all plans are written, proceed to Phase 3 (Parallel Dispatch).
 
 ---
 
-## Phase 3: Implementation
+## Phase 3: Parallel Dispatch
+
+**Persona:** Code Manager (`governance/personas/agentic/code-manager.md`)
+
+The Code Manager spawns **parallel Coder agents** using the `Task` tool with `isolation: "worktree"`. Each Coder runs in its own git worktree with its own context window, working on a single issue independently.
+
+### 3a: Spawn Coder Agents
+
+For each planned issue, spawn a background Task agent:
+
+```
+Task(
+  subagent_type: "general-purpose",
+  isolation: "worktree",
+  run_in_background: true,
+  prompt: <full Coder prompt with plan, acceptance criteria, and constraints>
+)
+```
+
+**The Coder prompt must include:**
+1. The full Coder persona instructions (from `governance/personas/agentic/coder.md`)
+2. The plan content (from `.plans/{number}-{description}.md`)
+3. The issue body and acceptance criteria
+4. Branch name to use
+5. Instructions to commit, run tests, and report results — but NOT push (the Code Manager pushes)
+
+**Dispatch rules:**
+- Spawn up to 5 Coder agents concurrently
+- All independent issues are dispatched in a **single message** with multiple Task tool calls
+- Each agent gets `run_in_background: true` so they execute concurrently
+- The Code Manager continues to the next phase without waiting
+
+### 3b: Monitor Progress
+
+After dispatching, the Code Manager is notified as each Coder agent completes. As each result arrives, the Code Manager immediately enters Phase 4 for that issue. There is no need to wait for all Coders to finish — results are processed as they arrive.
+
+If a Coder agent fails or times out:
+- Log the failure
+- Create a follow-up issue or retry in the next session
+- Continue processing other completed agents
+
+### 3c: Sequential Fallback
+
+If the `Task` tool with `isolation: "worktree"` is unavailable (e.g., not in a git repo, worktree creation fails), fall back to sequential execution: process one issue at a time through Phases 3-5 before starting the next.
+
+---
+
+## Phase 3-Sequential: Implementation (Fallback)
 
 **Persona:** Coder (`governance/personas/agentic/coder.md`)
 
-The Coder receives an ASSIGN message from the Code Manager and executes the approved plan.
+Used only when parallel dispatch is unavailable. The Coder receives an ASSIGN message from the Code Manager and executes the approved plan in the main session.
 
-### 3a: Implement
+### 3s-a: Implement
 
 1. Implement the plan following project conventions
 2. Write tests meeting coverage targets
@@ -230,22 +285,31 @@ The Coder receives an ASSIGN message from the Code Manager and executes the appr
    - If no docs affected, note in commit message: `Docs: no updates required — [reason]`
 4. Commit with conventional commit messages (Git Commit Isolation)
 
-### 3b: Test Coverage Gate
+### 3s-b: Test Coverage Gate
 
 **Run before every push.** Execute `governance/prompts/test-coverage-gate.md`:
 - All tests must pass
 - Coverage must meet 80% minimum
 - If gate blocks after 3 attempts, ESCALATE to Code Manager
 
-### 3c: Emit RESULT
+### 3s-c: Emit RESULT
 
 Return a structured RESULT to Code Manager with summary, artifacts, test results, and documentation updates per the agent protocol.
 
 ---
 
-## Phase 4: Evaluation & Review
+## Phase 4: Collect, Evaluate & Review
 
 **Personas:** Code Manager (orchestrator), Tester (`governance/personas/agentic/tester.md`)
+
+The Code Manager processes Coder results **as they arrive** from background agents. For each completed Coder:
+
+1. Read the worktree result (branch name, changes made)
+2. Cherry-pick or merge the Coder's commits onto the correct branch in the main repo
+3. Run the evaluation pipeline (4a-4f below)
+4. Push PR and enter monitoring loop
+
+Multiple PRs can be in-flight simultaneously. The Code Manager tracks each one independently.
 
 ### 4a: Tester Evaluation
 
@@ -341,13 +405,13 @@ Per `governance/prompts/retrospective.md`:
 
 ### 5c: Mandatory Checkpoint
 
-**Not optional. Execute after every issue.**
+**Not optional. Execute after all parallel work completes.**
 
-1. Write checkpoint to `.checkpoints/{timestamp}-{branch}.json`
-2. Record completed issue in `issues_completed` array
-3. **If 3 issues completed**: execute Shutdown Protocol. Do not start a 4th.
+1. Write checkpoint to `.checkpoints/{timestamp}-session.json`
+2. Record all completed issues in `issues_completed` array
+3. **If 5 issues completed**: execute Shutdown Protocol.
 4. **If context pressure**: execute Shutdown Protocol regardless of count.
-5. **Otherwise**: return to Phase 1 for the next issue.
+5. **Otherwise**: return to Phase 1 for the next batch.
 
 ### 5d: GOALS.md Fallback
 
@@ -365,16 +429,17 @@ If no actionable issues remain after Phase 1d:
 ## Constraints
 
 - **Resolve all open PRs before new issues** — Phase 1c is mandatory
-- Sequential execution — one issue at a time
-- **Plan before code** — always
+- **Parallel execution by default** — spawn up to 5 Coder agents concurrently via `Task` tool with `isolation: "worktree"`. Fall back to sequential only if worktree creation fails.
+- **Plan before code** — always (plans are written by Code Manager in main session before dispatch)
 - **Documentation with every change** — mandatory
 - **Issue for every work item** — issues are the audit trail
-- **Maximum 3 issues per session** — resolved PRs count toward cap
+- **Maximum 5 issues per session** — parallel execution is more context-efficient since Coder subagents have their own context windows
 - **Maximum 3 review cycles per PR** — then escalate
-- **Mandatory checkpoint after every issue** — never skipped
+- **Mandatory checkpoint after all issues complete** — write one checkpoint covering all parallel work
 - **Context capacity is a hard constraint** — shutdown immediately on any signal
 - **Security review always produces a report** — even when no findings exist
 - **Context-specific reviews based on codebase** — Code Manager selects panels dynamically
+- **Coder agents do not push** — they commit to their worktree branch; the Code Manager pushes after evaluation
 
 ## Context Capacity Shutdown Protocol
 
@@ -383,8 +448,8 @@ If no actionable issues remain after Phase 1d:
 **Trigger conditions** (any one is sufficient):
 - Token count at or above 80% of context window
 - System warning about context limits
-- 3 issues completed this session
-- Conversation exceeds ~100 exchanges or ~50 tool calls
+- 5 issues completed this session
+- Conversation exceeds ~150 exchanges or ~80 tool calls
 - Degraded recall or inconsistent output
 
 When triggered:
@@ -418,6 +483,6 @@ When triggered:
 
 Stop the loop when:
 - No open PRs **and** no actionable issues **and** no GOALS.md items can be converted to issues
-- **3 issues/PRs completed** — shutdown protocol, checkpoint, request `/clear`
+- **5 issues/PRs completed** — shutdown protocol, checkpoint, request `/clear`
 - **Any context pressure signal** — shutdown protocol immediately
 - A human sends a message (human input takes priority)

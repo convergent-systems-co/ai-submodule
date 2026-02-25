@@ -159,6 +159,37 @@ These markers serve as structured logging — they document the handoff between 
 3. Checkpoint files can capture the last message for session resumption
 4. Future multi-session transport can replay the message log
 
+### Phase A+: Parallel Single-Session (Current — Claude Code Task Tool)
+
+The Code Manager spawns multiple Coder agents using the `Task` tool with `isolation: "worktree"`. Each Coder runs in its own git worktree and context window, working on a single issue. The Code Manager remains in the main session and collects results as they arrive.
+
+**Dispatch pattern:**
+```
+Task(
+  subagent_type: "general-purpose",
+  isolation: "worktree",
+  run_in_background: true,
+  prompt: "<Coder persona> + <plan content> + <issue details>"
+)
+```
+
+**Key properties:**
+- Each Coder agent gets its own git worktree (isolated copy of repo)
+- Up to 5 Coder agents run concurrently in a single dispatching message
+- The Code Manager is notified when each agent completes
+- Worktrees are automatically cleaned up if no changes were made
+- If changes were made, the worktree path and branch are returned in the result
+
+**Message flow:**
+- Code Manager → Coder: ASSIGN via `Task` tool prompt (contains full context)
+- Coder → Code Manager: RESULT via `Task` tool return value (contains summary, branch, changes)
+- No inline markers needed — the Task tool handles transport
+
+**Conflict avoidance:**
+- Each Coder works on a separate branch in a separate worktree
+- The Code Manager creates branches before dispatching (in the main repo)
+- Coders commit to their worktree branch; the Code Manager pushes from the main repo after evaluation
+
 ### Phase B: Multi-Session (Future — Phase 5d Runtime)
 
 When a multi-agent orchestrator exists, messages are written to `.governance-state/agent-messages/`:
@@ -173,14 +204,14 @@ Each file contains the full message schema as JSON. The orchestrator reads the d
 
 ## Graceful Degradation
 
-The protocol is designed for single-session sequential execution (today) while being ready for multi-agent parallelism (future):
+The protocol supports three execution modes with identical semantics:
 
-| Capability | Single-Session | Multi-Session |
-|------------|---------------|---------------|
-| Message logging | Inline markers | File-based |
-| Agent switching | Persona load within same context | Separate agent processes |
-| Parallelism | Sequential (Coder then Tester) | Concurrent where non-conflicting |
-| State sharing | Shared context window | `.governance-state/` directory |
-| Failure recovery | Checkpoint + resume | Orchestrator retry with message replay |
+| Capability | Sequential (Fallback) | Parallel Single-Session (Default) | Multi-Session (Future) |
+|------------|----------------------|----------------------------------|----------------------|
+| Message logging | Inline markers | Task tool dispatch/return | File-based |
+| Agent switching | Persona load within same context | Task tool with worktree isolation | Separate agent processes |
+| Parallelism | Sequential (one issue at a time) | Up to 5 concurrent Coders | Fully concurrent |
+| State sharing | Shared context window | Code Manager in main, Coders in worktrees | `.governance-state/` directory |
+| Failure recovery | Checkpoint + resume | Code Manager retries or skips failed agents | Orchestrator retry with message replay |
 
-The structured message format is identical in both modes — only the transport changes.
+The structured message format is identical in all modes — only the transport changes.
