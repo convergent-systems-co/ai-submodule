@@ -384,29 +384,14 @@ The fingerprint intentionally excludes `timestamp` and `signal_id` so that ident
 
 #### Deduplication Window
 
-```
-+-------------------------------------------------------------------+
-|                    DEDUPLICATION STATE MACHINE                     |
-|                                                                   |
-|    [New Signal] --> fingerprint match in window?                  |
-|                        |                |                         |
-|                       YES              NO                         |
-|                        |                |                         |
-|                        v                v                         |
-|              [Increment Counter]   [Create Entry]                |
-|              [Update last_seen]    [Set window_start]            |
-|              [Suppress]            [Forward to Classifier]       |
-|                        |                                          |
-|                        v                                          |
-|              Counter > escalation_threshold?                     |
-|                   |            |                                  |
-|                  YES          NO                                  |
-|                   |            |                                  |
-|                   v            v                                  |
-|          [Forward with       [Remain Suppressed]                 |
-|           escalated          [Log suppression]                   |
-|           severity]                                               |
-+-------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    A["New Signal"] --> B{"Fingerprint match\nin window?"}
+    B -->|YES| C["Increment Counter\nUpdate last_seen\nSuppress"]
+    B -->|NO| D["Create Entry\nSet window_start\nForward to Classifier"]
+    C --> E{"Counter >\nescalation_threshold?"}
+    E -->|YES| F["Forward with\nescalated severity"]
+    E -->|NO| G["Remain Suppressed\nLog suppression"]
 ```
 
 **Deduplication parameters** (configurable in `governance/policy/deduplication.yaml`):

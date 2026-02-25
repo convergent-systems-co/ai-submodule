@@ -247,44 +247,14 @@ Project-level configuration can define additional intent validation rules, such 
 
 ### 5.6 Validation Process
 
-```
-                                 +------------------+
-                                 |   Raw Request    |
-                                 | (DI/Issue/Spec)  |
-                                 +--------+---------+
-                                          |
-                                          v
-                              +-----------+-----------+
-                              |   Schema Validation   |
-                              |   (required fields,   |
-                              |    format checks)     |
-                              +-----------+-----------+
-                                          |
-                                   pass?  |  fail?
-                                  +-------+-------+
-                                  |               |
-                                  v               v
-                          +-------+------+  +-----+--------+
-                          |  Semantic    |  |  Rejection   |
-                          |  Validation  |  |  Feedback    |
-                          |  (Code Mgr)  |  |  (L1-F00x)   |
-                          +-------+------+  +--------------+
-                                  |
-                           pass?  |  fail?
-                          +-------+-------+
-                          |               |
-                          v               v
-                  +-------+------+  +-----+--------+
-                  | Risk         |  | Clarification|
-                  | Assessment   |  | Request      |
-                  +-------+------+  +--------------+
-                          |
-                          v
-                +---------+----------+
-                | Validated Intent   |
-                | Package            |
-                | (-> Layer 2)       |
-                +--------------------+
+```mermaid
+flowchart TD
+    A["Raw Request\n(DI/Issue/Spec)"] --> B["Schema Validation\n(required fields, format checks)"]
+    B -->|pass| C["Semantic Validation\n(Code Mgr)"]
+    B -->|fail| D["Rejection Feedback\n(L1-F00x)"]
+    C -->|pass| E["Risk Assessment"]
+    C -->|fail| F["Clarification Request"]
+    E --> G["Validated Intent Package\n(-> Layer 2)"]
 ```
 
 ---
@@ -923,16 +893,13 @@ The Technical Debt Review panel (Refactor Specialist, Systems Architect, Test En
 
 The five governance layers form a pipeline where the output of each layer becomes the input to the next. The primary flow for a standard unit of work is:
 
-```
-+=========+     +===========+     +===========+     +===========+     +============+
-| LAYER 1 |     | LAYER 2   |     | LAYER 3   |     | LAYER 4   |     | LAYER 5    |
-| Intent  |---->| Cognitive |---->| Execution |---->| Runtime   |---->| Evolution  |
-| Gov.    |     | Gov.      |     | Gov.      |     | Gov.      |     | Gov.       |
-+=========+     +===========+     +===========+     +===========+     +============+
-     ^                                                    |
-     |                                                    |
-     +----------------------------------------------------+
-                    Feedback Loop (DI Generation)
+```mermaid
+flowchart LR
+    L1["Layer 1\nIntent Gov."] --> L2["Layer 2\nCognitive Gov."]
+    L2 --> L3["Layer 3\nExecution Gov."]
+    L3 --> L4["Layer 4\nRuntime Gov."]
+    L4 --> L5["Layer 5\nEvolution Gov."]
+    L4 -->|"Feedback Loop\n(DI Generation)"| L1
 ```
 
 ### 10.2 Data Flow Matrix

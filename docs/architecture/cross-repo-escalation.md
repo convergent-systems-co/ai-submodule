@@ -4,15 +4,14 @@ This document describes the cross-repository issue escalation system — a mecha
 
 ## Architecture Overview
 
-```
-Consuming Repo (agent detects framework issue)
-  │
-  ├─ 1. Detect: Match against detection criteria
-  ├─ 2. Classify: Assign severity
-  ├─ 3. Dedup: Compute hash, search upstream for existing issue
-  ├─ 4. Escalate: Create issue on upstream repo (if no duplicate)
-  ├─ 5. Link: Comment on local issue with upstream reference
-  └─ 6. Record: Write escalation record (schema-validated JSON)
+```mermaid
+flowchart TD
+    A["Consuming Repo\n(agent detects framework issue)"] --> B["1. Detect\nMatch against detection criteria"]
+    B --> C["2. Classify\nAssign severity"]
+    C --> D["3. Dedup\nCompute hash, search upstream\nfor existing issue"]
+    D --> E["4. Escalate\nCreate issue on upstream repo\n(if no duplicate)"]
+    E --> F["5. Link\nComment on local issue\nwith upstream reference"]
+    F --> G["6. Record\nWrite escalation record\n(schema-validated JSON)"]
 ```
 
 The escalation flow runs inline during the agentic startup loop — it is not a separate process. When the agent encounters a framework-level error, it runs the escalation flow and then continues normal operation. Escalation failures are non-blocking.

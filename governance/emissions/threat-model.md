@@ -15,38 +15,24 @@
 
 **Trust boundaries:**
 
-```
-┌─────────────────────────────────────────────┐
-│  ai-submodule repository (governance repo)  │
-│                                             │
-│  ┌──────────────────────┐                   │
-│  │  governance/          │                   │
-│  │  ├── templates/  ←NEW│  Language files    │
-│  │  ├── prompts/         │  Cognitive files  │
-│  │  ├── policy/          │  Enforcement      │
-│  │  └── schemas/         │  Enforcement      │
-│  └──────────────────────┘                   │
-│                                             │
-│  init.sh / init.ps1  (bootstrap scripts)    │
-│       │                                     │
-│       │ copies GOALS.md template            │
-│       │ prints help text with paths         │
-│       ▼                                     │
-│  ════════════════════════════════════════    │
-│  TRUST BOUNDARY: submodule ↔ consuming repo │
-│  ════════════════════════════════════════    │
-│                                             │
-└─────────────────────────────────────────────┘
-         │
-         ▼  (git submodule update)
-┌─────────────────────────────────────────────┐
-│  Consuming repository                       │
-│                                             │
-│  .ai/ (pinned submodule)                    │
-│  project.yaml (copied from template)        │
-│  GOALS.md (copied from template)            │
-│                                             │
-└─────────────────────────────────────────────┘
+```mermaid
+graph TD
+    subgraph REPO["ai-submodule repository (governance repo)"]
+        subgraph GOV["governance/"]
+            T["templates/ (NEW) — Language files"]
+            PR["prompts/ — Cognitive files"]
+            PO["policy/ — Enforcement"]
+            S["schemas/ — Enforcement"]
+        end
+        INIT["init.sh / init.ps1\n(bootstrap scripts)"]
+        INIT -->|"copies GOALS.md template\nprints help text with paths"| TB["TRUST BOUNDARY:\nsubmodule <-> consuming repo"]
+    end
+    TB -->|"git submodule update"| CONSUMING
+    subgraph CONSUMING["Consuming repository"]
+        AI[".ai/ (pinned submodule)"]
+        PY["project.yaml (copied from template)"]
+        GM["GOALS.md (copied from template)"]
+    end
 ```
 
 **Data flows affected:**

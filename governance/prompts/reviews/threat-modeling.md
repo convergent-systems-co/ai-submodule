@@ -181,22 +181,11 @@ Your output **MUST** follow this exact template structure. Use `N/A — [reason]
 ### Trust Boundary Diagram
 [ASCII diagram showing components, trust boundaries, and data flows]
 
-```
-┌─────────────────────────────────────────────┐
-│                  Internet                    │
-└──────────────────┬──────────────────────────┘
-                   │ HTTPS
-         ┌─────────▼─────────┐
-         │   Load Balancer   │ ◄── Trust Boundary 1
-         └─────────┬─────────┘
-                   │
-         ┌─────────▼─────────┐
-         │   Application     │ ◄── Trust Boundary 2
-         └─────────┬─────────┘
-                   │
-         ┌─────────▼─────────┐
-         │   Database        │ ◄── Trust Boundary 3
-         └───────────────────┘
+```mermaid
+graph TD
+    A["Internet"] -->|HTTPS| B["Load Balancer\n(Trust Boundary 1)"]
+    B --> C["Application\n(Trust Boundary 2)"]
+    C --> D["Database\n(Trust Boundary 3)"]
 ```
 
 ### Data Flows Affected

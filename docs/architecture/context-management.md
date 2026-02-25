@@ -139,17 +139,18 @@ No shared mutable state between agents. Results are aggregated by the Code Manag
 
 Panels can execute personas in parallel:
 
-```
-Code Review Panel
-  |
-  +---> [Agent 1] Code Reviewer (Tier 0 + persona context)
-  +---> [Agent 2] Security Auditor (Tier 0 + persona context)
-  +---> [Agent 3] Performance Engineer (Tier 0 + persona context)
-  +---> [Agent 4] Test Engineer (Tier 0 + persona context)
-  +---> [Agent 5] Refactor Specialist (Tier 0 + persona context)
-  |
-  v
-Moderator aggregates findings into structured emission
+```mermaid
+graph TD
+    P["Code Review Panel"] --> A1["Agent 1: Code Reviewer\n(Tier 0 + persona context)"]
+    P --> A2["Agent 2: Security Auditor\n(Tier 0 + persona context)"]
+    P --> A3["Agent 3: Performance Engineer\n(Tier 0 + persona context)"]
+    P --> A4["Agent 4: Test Engineer\n(Tier 0 + persona context)"]
+    P --> A5["Agent 5: Refactor Specialist\n(Tier 0 + persona context)"]
+    A1 --> M["Moderator aggregates findings\ninto structured emission"]
+    A2 --> M
+    A3 --> M
+    A4 --> M
+    A5 --> M
 ```
 
 Each persona agent:
@@ -162,16 +163,14 @@ Each persona agent:
 
 Independent workflow phases can execute in parallel:
 
-```
-Feature Implementation
-  |
-  Phase 1: Requirements  -----> Phase 2: Design (depends on Phase 1)
-                                    |
-                                    +---> Phase 3a: Implementation (parallel)
-                                    +---> Phase 3b: Test Planning (parallel)
-                                    |
-                                    v
-                                Phase 4: Review (depends on 3a + 3b)
+```mermaid
+flowchart TD
+    FI["Feature Implementation"] --> P1["Phase 1: Requirements"]
+    P1 --> P2["Phase 2: Design"]
+    P2 --> P3a["Phase 3a: Implementation"]
+    P2 --> P3b["Phase 3b: Test Planning"]
+    P3a --> P4["Phase 4: Review"]
+    P3b --> P4
 ```
 
 ## Context Reset Protection

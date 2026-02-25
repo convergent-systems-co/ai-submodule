@@ -6,18 +6,18 @@ The Dark Factory Mass Parallelization Model enables multiple AI agent sessions t
 
 ## Architecture
 
-```
-Orchestrator (Singleton Brain)
-├── Worker S1 (Context A — Issue #42)
-├── Worker S2 (Context B — Issue #43)
-├── Worker S3 (Context C — Issue #44)
-└── ... up to N workers
-        ↓
-DevOps Integration Agent (merge authority)
-        ↓
-Governance CI Gate (deterministic enforcement)
-        ↓
-Main Branch
+```mermaid
+graph TD
+    O["Orchestrator (Singleton Brain)"] --> W1["Worker S1\n(Context A -- Issue #42)"]
+    O --> W2["Worker S2\n(Context B -- Issue #43)"]
+    O --> W3["Worker S3\n(Context C -- Issue #44)"]
+    O --> WN["... up to N workers"]
+    W1 --> D["DevOps Integration Agent\n(merge authority)"]
+    W2 --> D
+    W3 --> D
+    WN --> D
+    D --> G["Governance CI Gate\n(deterministic enforcement)"]
+    G --> M["Main Branch"]
 ```
 
 **Key principle:** Context is isolated for cognition, shared only via structured artifacts. No giant agent handling multiple tasks in a shared context.
@@ -91,15 +91,11 @@ Collision domains group related paths to reduce merge risk. Workers in the same 
 
 Three-stage integration reduces conflict risk:
 
-```
-Stage 1: Worker PRs → Domain Branch (integrate/<domain>)
-         - Squash merge, governance checks required
-
-Stage 2: Domain Branches → Release Train (release/train-YYYYMMDD)
-         - Cross-domain conflict validation
-
-Stage 3: Release Train → Main
-         - Integration manifest required, full governance gate
+```mermaid
+flowchart LR
+    S1["Stage 1\nWorker PRs"] -->|"Squash merge\ngovernance checks"| DB["Domain Branch\n(integrate/&lt;domain&gt;)"]
+    DB -->|"Cross-domain\nconflict validation"| RT["Stage 2\nRelease Train\n(release/train-YYYYMMDD)"]
+    RT -->|"Integration manifest\nfull governance gate"| M["Stage 3\nMain"]
 ```
 
 **Configuration:** [`governance/policy/integration-strategy.yaml`](../../governance/policy/integration-strategy.yaml)
