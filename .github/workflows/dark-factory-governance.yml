@@ -122,25 +122,6 @@ jobs:
           RISK=$(python3 -c "import json; print(json.load(open('manifest.json'))['risk_level'])")
           RATIONALE=$(python3 -c "import json; print(json.load(open('manifest.json'))['decision']['rationale'])")
 
-          # Phase 4b transition: if block is only due to missing required panels
-          # and all present panels approve with high confidence, downgrade to approve
-          if [ "$DECISION" = "block" ]; then
-            IS_MISSING_ONLY=$(python3 -c "
-          import json
-          m = json.load(open('manifest.json'))
-          rationale = m['decision']['rationale']
-          panels = m.get('panels_executed', [])
-          all_approve = all(p['verdict'] == 'approve' for p in panels)
-          confidence = m['aggregate_confidence']
-          missing_only = 'missing' in rationale.lower() and all_approve and confidence >= 0.70
-          print('true' if missing_only else 'false')
-          ")
-            if [ "$IS_MISSING_ONLY" = "true" ]; then
-              echo "::warning::Block due to missing required panels only. All present panels approve. Downgrading to approve (Phase 4b transition)."
-              DECISION="approve"
-            fi
-          fi
-
           echo "decision=${DECISION}" >> "$GITHUB_OUTPUT"
           echo "confidence=${CONFIDENCE}" >> "$GITHUB_OUTPUT"
           echo "risk=${RISK}" >> "$GITHUB_OUTPUT"
@@ -181,12 +162,6 @@ jobs:
 
       - name: Approve PR
         if: steps.evaluate.outputs.decision == 'auto_merge'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review "${{ github.event.pull_request.number }}" --approve --body-file review-body.md
-
-      - name: Approve PR (policy approve)
-        if: steps.evaluate.outputs.decision != 'auto_merge' && steps.evaluate.outputs.decision != 'human_review_required' && steps.evaluate.outputs.decision != 'block' && steps.evaluate.outputs.decision != 'auto_remediate'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr review "${{ github.event.pull_request.number }}" --approve --body-file review-body.md

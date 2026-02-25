@@ -45,8 +45,9 @@ class TestDefaultProfileIntegration:
         assert exit_code == 0
         assert manifest["decision"]["action"] == "auto_merge"
 
-    def test_block_missing_panel(self, tmp_path):
-        # Only 5 of 6 required panels
+    def test_missing_panel_phase_4b_transition(self, tmp_path):
+        """Missing panel with high confidence + all approve → Phase 4b transition, no block."""
+        # Only 5 of 6 required panels, but high confidence + all approve
         emissions = all_required_emissions(confidence=0.92)
         emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
         _write_emissions(str(tmp_path), emissions)
@@ -54,7 +55,20 @@ class TestDefaultProfileIntegration:
             str(tmp_path), _profile_path("default"),
             ci_passed=True, log_stream=io.StringIO(),
         )
-        # Missing required panel triggers block
+        # Phase 4b transition: missing panel downgraded → proceeds to auto_merge
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+
+    def test_block_missing_panel_low_confidence(self, tmp_path):
+        """Missing panel with low confidence → Phase 4b NOT triggered, still blocks."""
+        emissions = all_required_emissions(confidence=0.50)
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Low confidence → Phase 4b not triggered → block for missing panel
         assert exit_code == 1
         assert manifest["decision"]["action"] == "block"
 
@@ -233,6 +247,99 @@ class TestReducedTouchpointIntegration:
 # ===========================================================================
 # Compound block condition integration tests (issue #230)
 # ===========================================================================
+
+
+# ===========================================================================
+# Phase 4b transition integration tests (issue #233)
+# ===========================================================================
+
+
+class TestPhase4bTransitionIntegration:
+    """Integration tests verifying Phase 4b transition through the full evaluate() pipeline."""
+
+    def test_missing_panel_high_confidence_all_approve_not_blocked(self, tmp_path):
+        """Missing required panel + all approve + high confidence → Phase 4b transition.
+
+        The engine should NOT block when the only issue is missing panels,
+        all present panels approve, and confidence is above threshold.
+        """
+        # Only 5 of 6 required panels — data-governance-review missing
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        log_stream = io.StringIO()
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=log_stream,
+        )
+        # Phase 4b should downgrade the missing-panel block
+        assert manifest["decision"]["action"] != "block"
+        # Should proceed to auto_merge (all other conditions met)
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+        # Verify Phase 4b is recorded in audit log
+        log_output = log_stream.getvalue()
+        assert "phase_4b_transition" in log_output.lower() or "Phase 4b" in log_output
+
+    def test_missing_panel_low_confidence_still_blocks(self, tmp_path):
+        """Missing required panel + low confidence → Phase 4b NOT triggered, still blocks."""
+        emissions = all_required_emissions(confidence=0.50, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Low confidence → Phase 4b not triggered → block for missing panel
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_missing_panel_non_approve_verdict_still_blocks(self, tmp_path):
+        """Missing required panel + one panel request_changes → still blocks."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        emissions[0]["aggregate_verdict"] = "request_changes"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Not all approve → Phase 4b not triggered → block for missing panel
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_fin_pii_high_missing_panel_always_blocks(self, tmp_path):
+        """fin_pii_high: missing_panel_behavior=block → Phase 4b never applies."""
+        panels = [
+            "code-review", "security-review", "data-design-review",
+            "testing-review", "threat-modeling", "cost-analysis",
+            "data-governance-review",
+            # Missing documentation-review
+        ]
+        emissions = all_required_emissions(confidence=0.95, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("fin_pii_high"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # fin_pii_high uses missing_panel_behavior=block → hard block, no Phase 4b
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_phase_4b_recorded_in_manifest_audit_log(self, tmp_path):
+        """Phase 4b transition must be recorded in the manifest's policy_rules_evaluated."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Check that the manifest audit log contains Phase 4b transition entry
+        rules = manifest["decision"]["policy_rules_evaluated"]
+        phase_4b_rules = [r for r in rules if "phase_4b" in r.get("rule_id", "")]
+        assert len(phase_4b_rules) > 0
+        assert phase_4b_rules[0]["result"] == "pass"
 
 
 class TestCompoundBlockIntegration:

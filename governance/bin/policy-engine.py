@@ -880,6 +880,32 @@ def evaluate(emissions_dir, profile_path, ci_passed=True, commit_sha=None, pr_nu
     log._stream.write("\n--- Step 5: Compute aggregate risk ---\n")
     aggregate_risk = compute_aggregate_risk(emissions, profile, log)
 
+    # Step 6b: Phase 4b transition — downgrade missing-panel block when all
+    # present panels approve with sufficient confidence.  This keeps the
+    # decision inside the engine rather than in the CI workflow.
+    if missing_required and missing_behavior != "block":
+        all_approve = all(
+            e.get("aggregate_verdict") == "approve" for e in emissions
+        )
+        phase_4b_threshold = 0.70
+        if all_approve and aggregate_confidence >= phase_4b_threshold:
+            log.record(
+                "phase_4b_transition", "pass",
+                f"Missing panels [{', '.join(missing_required)}] downgraded — "
+                f"all present panels approve, confidence={aggregate_confidence:.4f} >= {phase_4b_threshold}"
+            )
+            missing_required = []  # allow evaluation to continue
+        else:
+            reasons = []
+            if not all_approve:
+                reasons.append("not all present panels approve")
+            if aggregate_confidence < phase_4b_threshold:
+                reasons.append(f"confidence {aggregate_confidence:.4f} < {phase_4b_threshold}")
+            log.record(
+                "phase_4b_transition", "skip",
+                f"Phase 4b transition not applicable: {'; '.join(reasons)}"
+            )
+
     # Step 7: Collect policy flags
     log._stream.write("\n--- Step 6: Collect policy flags ---\n")
     policy_flags = collect_policy_flags(emissions)

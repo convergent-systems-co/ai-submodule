@@ -638,6 +638,66 @@ class TestEscalationRules:
 # ===========================================================================
 
 
+# ===========================================================================
+# Phase 4b transition (issue #233)
+# ===========================================================================
+
+
+class TestPhase4bTransition:
+    """Phase 4b: missing panels downgraded when all present panels approve with high confidence."""
+
+    def test_phase_4b_clears_missing_panels(self):
+        """Missing required panel + all approve + high confidence → no block."""
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", confidence_score=0.90),
+            make_emission(panel_name="security-review", confidence_score=0.90),
+            make_emission(panel_name="threat-modeling", confidence_score=0.90),
+            make_emission(panel_name="cost-analysis", confidence_score=0.90),
+            make_emission(panel_name="documentation-review", confidence_score=0.90),
+            # data-governance-review missing
+        ]
+        profile = make_profile()
+        # Compute confidence with redistribution
+        aggregate_confidence = policy_engine.compute_weighted_confidence(emissions, profile, log)
+
+        # Simulate missing panel check
+        missing_required = policy_engine.check_required_panels(emissions, profile, log)
+        assert missing_required == ["data-governance-review"]
+
+        # Phase 4b: all present panels approve + high confidence → clear missing
+        all_approve = all(e.get("aggregate_verdict") == "approve" for e in emissions)
+        assert all_approve is True
+        assert aggregate_confidence >= 0.70
+
+    def test_phase_4b_not_triggered_low_confidence(self):
+        """Missing panel + low confidence → still blocks."""
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", confidence_score=0.50),
+            make_emission(panel_name="security-review", confidence_score=0.50),
+            make_emission(panel_name="threat-modeling", confidence_score=0.50),
+            make_emission(panel_name="cost-analysis", confidence_score=0.50),
+            make_emission(panel_name="documentation-review", confidence_score=0.50),
+        ]
+        profile = make_profile()
+        aggregate_confidence = policy_engine.compute_weighted_confidence(emissions, profile, log)
+        assert aggregate_confidence < 0.70  # Too low for Phase 4b
+
+    def test_phase_4b_not_triggered_non_approve_verdict(self):
+        """Missing panel + one panel request_changes → still blocks."""
+        log = _log()
+        emissions = [
+            make_emission(panel_name="code-review", confidence_score=0.90, aggregate_verdict="request_changes"),
+            make_emission(panel_name="security-review", confidence_score=0.90),
+            make_emission(panel_name="threat-modeling", confidence_score=0.90),
+            make_emission(panel_name="cost-analysis", confidence_score=0.90),
+            make_emission(panel_name="documentation-review", confidence_score=0.90),
+        ]
+        all_approve = all(e.get("aggregate_verdict") == "approve" for e in emissions)
+        assert all_approve is False  # Phase 4b should not trigger
+
+
 class TestAutoMerge:
     def test_all_pass(self):
         log = _log()
