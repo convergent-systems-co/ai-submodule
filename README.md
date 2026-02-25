@@ -2,7 +2,7 @@
 
 AI governance framework for autonomous software delivery. Provides personas, panels, policy enforcement, structured emissions, and audit manifests — distributed as a git submodule to any repository.
 
-> **New here?** See the [Developer Quick Guide](DEVELOPER_GUIDE.md) for a TLDR onboarding.
+> **New here?** Start with the [Simple Explainer](docs/onboarding/eli5.md) (plain-language overview) or jump straight to the [Developer Quick Guide](DEVELOPER_GUIDE.md) for a TLDR onboarding.
 
 ## Goals
 
@@ -320,6 +320,7 @@ Quick navigation to all documentation in this repository.
 | Document | Purpose |
 |----------|---------|
 | [README.md](README.md) | This file — architecture, setup, and full reference |
+| [Simple Explainer](docs/onboarding/eli5.md) | Plain-language overview — what this is and why it exists |
 | [GOALS.md](GOALS.md) | Phase tracking, completed work, and open enhancements |
 | [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | Quick-start onboarding for developers |
 | [CLAUDE.md](CLAUDE.md) | AI tool instructions (Claude Code, Copilot, Cursor) |
