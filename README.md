@@ -211,45 +211,24 @@ Inter-agent communication uses typed messages (`ASSIGN`, `STATUS`, `RESULT`, `FE
 
 ### Governance Layers (Phase 4a)
 
-```
-Issue / Design Intent
-        |
-        v
-Code Manager validates intent (Layer 1: Intent Governance)
-        |
-        v
-Panel graph activated (Layer 2: Cognitive Governance)
-  - Code Manager selects panels based on codebase type and change
-  - Panels execute in parallel where possible
-        |
-        v
-Panels emit structured JSON (Layer 3: Execution Governance)
-  - Confidence scores, risk levels, policy flags
-  - Validated against governance/schemas/panel-output.schema.json
-        |
-        v
-Policy engine evaluates (deterministic, no prose)
-  - Reads active policy profile (default, fin_pii_high, infrastructure_critical, reduced_touchpoint)
-  - Produces decision: auto_merge | auto_remediate | human_review_required | block
-        |
-        v
-Run manifest logged (governance/schemas/run-manifest.schema.json)
-  - Complete audit trail for replay and compliance
+```mermaid
+flowchart TD
+    ISSUE[Issue / Design Intent]
+    ISSUE --> VALIDATE["Code Manager validates intent\n(Layer 1: Intent Governance)"]
+    VALIDATE --> PANELS["Panel graph activated\n(Layer 2: Cognitive Governance)\n- Code Manager selects panels based on codebase type and change\n- Panels execute in parallel where possible"]
+    PANELS --> EMIT["Panels emit structured JSON\n(Layer 3: Execution Governance)\n- Confidence scores, risk levels, policy flags\n- Validated against panel-output.schema.json"]
+    EMIT --> ENGINE["Policy engine evaluates — deterministic, no prose\n- Reads active policy profile\n- Produces decision: auto_merge | auto_remediate |\nhuman_review_required | block"]
+    ENGINE --> MANIFEST["Run manifest logged\n(run-manifest.schema.json)\n- Complete audit trail for replay and compliance"]
 ```
 
 ### For Runtime Feedback (Phase 5 — Designed)
 
-```
-Runtime anomaly detected
-        |
-        v
-Signal classified and deduplicated
-        |
-        v
-Design Intent generated automatically
-        |
-        v
-Feeds back into Layer 1 (closes the autonomous loop)
+```mermaid
+flowchart TD
+    ANOMALY[Runtime anomaly detected]
+    ANOMALY --> CLASSIFY[Signal classified and deduplicated]
+    CLASSIFY --> GENERATE[Design Intent generated automatically]
+    GENERATE --> FEEDBACK[Feeds back into Layer 1\n- closes the autonomous loop -]
 ```
 
 ## Compliance and Security

@@ -699,53 +699,29 @@ The Incident Commander persona is activated for critical severity incidents and 
 
 ### 8.6 Runtime Feedback Loop
 
-```
-    +-------------------+
-    | Production        |
-    | Environment       |
-    +--------+----------+
-             |
-     +-------+-------+-------+-------+
-     |       |       |       |       |
-     v       v       v       v       v
-  +--+--+ +--+--+ +--+--+ +--+--+ +--+--+
-  |Metr.| |Logs | |Trace| |Alert| |CVE  |
-  +--+--+ +--+--+ +--+--+ +--+--+ +--+--+
-     |       |       |       |       |
-     +-------+-------+-------+-------+
-             |
-             v
-    +--------+----------+
-    | Drift / Anomaly   |
-    | Detection Engine   |
-    +--------+----------+
-             |
-      +------+------+
-      |             |
-   normal       anomaly
-      |             |
-      v             v
-   +--+---+   +----+------+
-   | Log  |   | Severity  |
-   | Only |   | Mapping   |
-   +------+   +----+------+
-                   |
-           +-------+-------+
-           |               |
-        critical        standard
-           |               |
-           v               v
-    +------+------+  +-----+------+
-    | Incident    |  | Generate   |
-    | Commander   |  | Remed. DI  |
-    | Activation  |  +-----+------+
-    +------+------+        |
-           |               v
-           v         +-----+------+
-    +------+------+  | Feed to    |
-    | INC Workflow |  | Layer 1    |
-    | (immediate) |  +------------+
-    +-------------+
+```mermaid
+flowchart TD
+    PROD[Production Environment]
+    PROD --> METRICS[Metrics]
+    PROD --> LOGS[Logs]
+    PROD --> TRACES[Traces]
+    PROD --> ALERTS[Alerts]
+    PROD --> CVE[CVE]
+
+    METRICS --> DETECT[Drift / Anomaly\nDetection Engine]
+    LOGS --> DETECT
+    TRACES --> DETECT
+    ALERTS --> DETECT
+    CVE --> DETECT
+
+    DETECT -->|normal| LOG_ONLY[Log Only]
+    DETECT -->|anomaly| SEVERITY[Severity Mapping]
+
+    SEVERITY -->|critical| INCIDENT[Incident Commander\nActivation]
+    SEVERITY -->|standard| REMED[Generate Remed. DI]
+
+    INCIDENT --> INC_WF[INC Workflow\n- immediate -]
+    REMED --> FEED[Feed to Layer 1]
 ```
 
 ---
@@ -833,56 +809,21 @@ The Technical Debt Review panel (Refactor Specialist, Systems Architect, Test En
 
 ### 9.6 Evolution Process
 
-```
-    +---------------------+
-    | Proposed Change      |
-    | (persona/policy/     |
-    |  schema/workflow/    |
-    |  governance)         |
-    +----------+----------+
-               |
-               v
-    +----------+----------+
-    | Backward            |
-    | Compatibility       |
-    | Check               |
-    +----------+----------+
-               |
-       +-------+-------+
-       |               |
-   compatible     breaking
-       |               |
-       v               v
-    +--+--------+  +---+-----------+
-    | Version   |  | Migration     |
-    | Bump      |  | Plan Required |
-    | (minor/   |  +---+-----------+
-    |  patch)   |      |
-    +--+--------+      v
-       |          +----+-----------+
-       |          | Technical Debt |
-       |          | Review Panel   |
-       |          +----+-----------+
-       |               |
-       +-------+-------+
-               |
-               v
-    +----------+----------+
-    | Updated Governance   |
-    | Manifest             |
-    +----------+----------+
-               |
-               v
-    +----------+----------+
-    | Submodule Commit     |
-    | + Version Tag        |
-    +----------+----------+
-               |
-               v
-    +----------+----------+
-    | Consuming Repos      |
-    | Update Submodule Pin |
-    +---------------------+
+```mermaid
+flowchart TD
+    CHANGE[Proposed Change\n- persona / policy /\nschema / workflow /\ngovernance -]
+    CHANGE --> COMPAT[Backward\nCompatibility Check]
+
+    COMPAT -->|compatible| BUMP[Version Bump\n- minor / patch -]
+    COMPAT -->|breaking| MIGRATE[Migration Plan Required]
+
+    MIGRATE --> REVIEW[Technical Debt\nReview Panel]
+
+    BUMP --> MANIFEST[Updated Governance\nManifest]
+    REVIEW --> MANIFEST
+
+    MANIFEST --> COMMIT[Submodule Commit\n+ Version Tag]
+    COMMIT --> REPOS[Consuming Repos\nUpdate Submodule Pin]
 ```
 
 ---

@@ -36,72 +36,55 @@ This document specifies the architecture for that feedback mechanism. It is desi
 
 ### System Context Diagram
 
-```
-+----------------------------------------------------------------------+
-|                        PRODUCTION ENVIRONMENT                        |
-|                                                                      |
-|  [Services] --> [Metrics] --> [Logs] --> [Traces] --> [Alerts]       |
-+-----------|-----|-------------|---------|-------------|---------------+
-            |     |             |         |             |
-            v     v             v         v             v
-+----------------------------------------------------------------------+
-|                   RUNTIME ANOMALY INPUT CHANNEL                      |
-|                                                                      |
-|  +------------+  +-------------+  +-----------+  +----------------+  |
-|  | Webhook    |  | Polling     |  | Event Bus |  | Manual         |  |
-|  | Receiver   |  | Adapter     |  | Consumer  |  | Submission     |  |
-|  +-----+------+  +------+------+  +-----+-----+  +-------+--------+  |
-|        |                |               |                 |          |
-|        +--------+-------+-------+-------+---------+-------+          |
-|                 |               |                 |                   |
-|                 v               v                 v                   |
-|          [Signal Normalizer] --> [Deduplicator] --> [Classifier]     |
-|                                                          |           |
-+----------------------------------------------------------|----------+
-                                                           |
-                                                           v
-+----------------------------------------------------------------------+
-|                  INCIDENT-TO-DI GENERATOR                            |
-|                                                                      |
-|  [Signal] --> [Correlation Engine] --> [DI Template Hydrator]        |
-|                                              |                       |
-|                                              v                       |
-|                                   [Priority Calculator]              |
-|                                              |                       |
-|                                              v                       |
-|                                     [Design Intent]                  |
-+----------------------------------------------|----------------------+
-                                                |
-                                                v
-+----------------------------------------------------------------------+
-|                  AUTOMATIC PANEL RE-EXECUTION                        |
-|                                                                      |
-|  [DI] --> [Panel Selector] --> [Diff Analyzer] --> [Panel Runner]   |
-|                                                         |            |
-|                                                         v            |
-|                                              [Structured Emissions]  |
-|                                                         |            |
-|                +--------------------+-------------------+            |
-|                |                    |                                 |
-|                v                    v                                 |
-|        [Policy Engine]     [Circuit Breaker]                         |
-|              |                     |                                  |
-|              v                     v                                  |
-|     [Merge Decision]      [Rate Limiter]                             |
-+----------------------------------------------------------------------+
-                                                |
-                                                v
-+----------------------------------------------------------------------+
-|                     DRIFT DETECTION MODEL                            |
-|                                                                      |
-|  [Baseline Store] <--> [Drift Comparator] <--> [Runtime Snapshot]   |
-|                              |                                       |
-|                              v                                       |
-|                    [Drift Classification]                            |
-|                        |            |                                 |
-|                        v            v                                 |
-|                [Auto-Remediate] [Escalate]                           |
-+----------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    subgraph PROD[Production Environment]
+        SERVICES[Services] --> METRICS[Metrics] --> LOGS_P[Logs] --> TRACES[Traces] --> ALERTS_P[Alerts]
+    end
+
+    subgraph INPUT[Runtime Anomaly Input Channel]
+        WEBHOOK[Webhook\nReceiver]
+        POLLING[Polling\nAdapter]
+        EVENTBUS[Event Bus\nConsumer]
+        MANUAL[Manual\nSubmission]
+        WEBHOOK --> NORMALIZER[Signal Normalizer]
+        POLLING --> NORMALIZER
+        EVENTBUS --> NORMALIZER
+        MANUAL --> NORMALIZER
+        NORMALIZER --> DEDUP[Deduplicator]
+        DEDUP --> CLASSIFIER[Classifier]
+    end
+
+    subgraph GENERATOR[Incident-to-DI Generator]
+        SIGNAL[Signal] --> CORRELATION[Correlation Engine]
+        CORRELATION --> HYDRATOR[DI Template Hydrator]
+        HYDRATOR --> PRIORITY[Priority Calculator]
+        PRIORITY --> DI_OUT[Design Intent]
+    end
+
+    subgraph PANEL_EXEC[Automatic Panel Re-Execution]
+        DI_IN[DI] --> SELECTOR[Panel Selector]
+        SELECTOR --> DIFF[Diff Analyzer]
+        DIFF --> RUNNER[Panel Runner]
+        RUNNER --> EMISSIONS[Structured Emissions]
+        EMISSIONS --> POLICY[Policy Engine]
+        EMISSIONS --> CIRCUIT[Circuit Breaker]
+        POLICY --> MERGE[Merge Decision]
+        CIRCUIT --> RATE[Rate Limiter]
+    end
+
+    subgraph DRIFT[Drift Detection Model]
+        BASELINE[Baseline Store] <--> COMPARATOR[Drift Comparator]
+        COMPARATOR <--> SNAPSHOT[Runtime Snapshot]
+        COMPARATOR --> CLASSIFICATION[Drift Classification]
+        CLASSIFICATION --> AUTO_REM[Auto-Remediate]
+        CLASSIFICATION --> ESCALATE[Escalate]
+    end
+
+    PROD --> INPUT
+    CLASSIFIER --> GENERATOR
+    DI_OUT --> PANEL_EXEC
+    PANEL_EXEC --> DRIFT
 ```
 
 ---
@@ -116,25 +99,17 @@ Provide a single, normalized ingestion path for all runtime signals that may req
 
 The channel accepts signals from four ingestion modes. Each mode serves a different integration pattern; all converge on the same internal representation.
 
-```
-                    INGESTION MODES
-                    ===============
+```mermaid
+flowchart TD
+    WEBHOOK["Webhook Receiver\n(POST /api/signals/ingest)"]
+    POLLING["Polling Adapter\n(cron-based pull from metric APIs)"]
+    EVENTBUS["Event Bus Consumer\n(pub/sub topic subscription)"]
+    MANUAL["Manual Submit\n(CLI or API call)"]
 
-  +-------------+    +-------------+    +-------------+    +-----------+
-  |  Webhook    |    |  Polling    |    |  Event Bus  |    |  Manual   |
-  |  Receiver   |    |  Adapter    |    |  Consumer   |    |  Submit   |
-  |             |    |             |    |             |    |           |
-  | POST /api/  |    | cron-based  |    | pub/sub     |    | CLI or    |
-  | signals/    |    | pull from   |    | topic       |    | API call  |
-  | ingest      |    | metric APIs |    | subscription|    |           |
-  +------+------+    +------+------+    +------+------+    +-----+-----+
-         |                  |                  |                 |
-         +------------------+------------------+-----------------+
-                            |
-                            v
-                  +-------------------+
-                  | Signal Normalizer |
-                  +-------------------+
+    WEBHOOK --> NORMALIZER[Signal Normalizer]
+    POLLING --> NORMALIZER
+    EVENTBUS --> NORMALIZER
+    MANUAL --> NORMALIZER
 ```
 
 #### 1. Webhook Receiver
