@@ -239,6 +239,27 @@ The checkpoint-to-resume handoff differs by platform:
 
 The Shutdown Protocol (Phase 5c / end of this file) tells the user exactly what to do, including the platform-specific reset instruction.
 
+### 0f: Generate Session ID and Agent Log File
+
+Generate a unique session identifier for the agent audit log. This ID is used by all agents throughout the session to write persistent log entries (see `governance/prompts/agent-protocol.md` — Persistent Logging).
+
+1. **Generate session ID** in `YYYYMMDD-session-N` format, where N increments based on existing log files for today's date:
+
+   ```bash
+   TODAY=$(date +%Y%m%d)
+   EXISTING=$(ls .governance/state/agent-log/${TODAY}-session-*.jsonl 2>/dev/null | wc -l | tr -d ' ')
+   SESSION_ID="${TODAY}-session-$((EXISTING + 1))"
+   ```
+
+2. **Create the log directory and file:**
+
+   ```bash
+   mkdir -p .governance/state/agent-log
+   touch ".governance/state/agent-log/${SESSION_ID}.jsonl"
+   ```
+
+3. **Carry the `SESSION_ID` forward** — all subsequent phases reference this value when logging agent protocol messages. Pass it to dispatched Coder agents in their Task prompt so they can log to the same session file.
+
 ---
 
 ## Phase 1: Pre-flight & Triage
@@ -631,6 +652,14 @@ Per `governance/prompts/retrospective.md`:
 2. **Verify documentation completeness** — check `GOALS.md`, `README.md`, `DEVELOPER_GUIDE.md`, `CLAUDE.md` for consistency. If gaps found, create a follow-up `docs` issue.
 3. Post findings on closed issue
 4. Update plan status to `completed`
+5. **Commit the agent audit log** — ensure the session log file (`.governance/state/agent-log/{session-id}.jsonl`) is committed. Include it in the PR commit or as a separate commit on the branch before merge:
+
+   ```bash
+   git add .governance/state/agent-log/
+   git commit -m "audit: add agent session log for ${SESSION_ID}" --allow-empty
+   ```
+
+   If multiple PRs were created this session, commit the log file with the final PR. The log is append-only and captures the full session's agent protocol messages.
 
 ### 5c: Loop or Shutdown
 
@@ -669,6 +698,7 @@ If no actionable issues remain after Phase 1d:
 - **Security review always produces a report** — even when no findings exist
 - **Context-specific reviews based on codebase** — Code Manager selects panels dynamically
 - **Coder agents do not push** — they commit to their worktree branch; the Code Manager pushes after evaluation
+- **Agent audit log is mandatory** — every agent protocol message must be logged to `.governance/state/agent-log/{session-id}.jsonl` per `governance/prompts/agent-protocol.md` (Persistent Logging). The log file is committed before merge.
 
 ## Context Capacity Shutdown Protocol
 

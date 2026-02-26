@@ -285,3 +285,39 @@ The protocol supports three execution modes with identical semantics:
 | Failure recovery | Checkpoint + resume | Code Manager retries or skips failed agents | Orchestrator retry with message replay |
 
 The structured message format is identical in all modes — only the transport changes.
+
+## Persistent Logging
+
+Every agent protocol message must be durably logged to provide an audit trail that survives context window compaction. This logging is **in addition to** the inline markers or Task tool transport — it creates a persistent record on disk.
+
+### Log Location
+
+Agent messages are logged as JSONL (one JSON object per line) to:
+
+```
+.governance/state/agent-log/{session-id}.jsonl
+```
+
+The `session-id` is generated at the start of each agentic session (see `governance/prompts/startup.md` Phase 0). The file is **append-only** — never overwrite or truncate existing entries.
+
+### Log Entry Format
+
+After emitting each agent protocol message (ASSIGN, STATUS, RESULT, FEEDBACK, ESCALATE, APPROVE, BLOCK, CANCEL), append a single JSON line to the session log file:
+
+```json
+{"timestamp": "2026-02-26T14:30:00Z", "session_id": "20260226-session-1", "message_type": "APPROVE", "source_agent": "tester", "target_agent": "code-manager", "correlation_id": "issue-42", "summary": "All acceptance criteria met. Test coverage 94%."}
+```
+
+**Required fields:** `timestamp` (ISO 8601), `session_id`, `message_type`, `source_agent`, `target_agent`, `correlation_id`
+
+**Optional field:** `summary` (max 500 characters) — a truncated description of the payload capturing the essential decision or action. Do not reproduce the full payload.
+
+Each entry must conform to `governance/schemas/agent-log-entry.schema.json`.
+
+### Logging Rules
+
+1. **Every message gets logged.** No exceptions — ASSIGN, STATUS, RESULT, FEEDBACK, ESCALATE, APPROVE, BLOCK, and CANCEL all produce a log entry.
+2. **Log immediately after emission.** The log entry is appended right after the inline marker or Task tool dispatch, before any further processing.
+3. **Append-only.** Never modify or delete existing entries in the log file. Each entry is an immutable audit record.
+4. **One file per session.** All agents in the same session write to the same `{session-id}.jsonl` file.
+5. **Commit with PR.** The session log file is committed as part of the PR or merge commit (see `governance/prompts/startup.md` Phase 5).

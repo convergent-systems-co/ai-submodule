@@ -39,6 +39,8 @@ project_directories:
     description: "Context capacity checkpoints (session state)"
   - path: .governance/state
     description: "Cross-session governance state persistence (accumulated)"
+  - path: .governance/state/agent-log
+    description: "Persistent agent protocol message audit log (JSONL, append-only, per session)"
 
 # Gitignore patterns for .ai/
 gitignore:
