@@ -19,7 +19,7 @@ This panel triggers on changes to:
 - `governance/prompts/` -- Review prompts, workflow prompts, templates
 - `governance/policy/` -- Policy profiles and evaluation rules
 - `governance/schemas/` -- Structured emission schemas and validation rules
-- `instructions/` -- Agent instruction files (CLAUDE.md, .cursorrules, copilot-instructions.md)
+- `instructions/` -- Agent instruction files (CLAUDE.md, copilot-instructions.md)
 
 Changes outside these paths do not require this panel unless they modify agent behavior indirectly (e.g., CI workflows that invoke governance tooling).
 

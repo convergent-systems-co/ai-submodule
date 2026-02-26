@@ -310,7 +310,7 @@ Quick navigation to all documentation in this repository.
 | [Simple Explainer](docs/onboarding/eli5.md) | Plain-language overview — what this is and why it exists |
 | [GOALS.md](GOALS.md) | Phase tracking, completed work, and open enhancements |
 | [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | Quick-start onboarding for developers |
-| [CLAUDE.md](CLAUDE.md) | AI tool instructions (Claude Code, Copilot, Cursor) |
+| [CLAUDE.md](CLAUDE.md) | AI tool instructions (Claude Code, GitHub Copilot) |
 
 ### Architecture & Design
 
@@ -399,7 +399,7 @@ bash .ai/bin/init.sh
 powershell -ExecutionPolicy Bypass -File .ai\bin\init.ps1
 ```
 
-The bootstrap script creates symlinks so Claude Code, GitHub Copilot, and Cursor all receive shared instructions. On Windows, if symlinks are unavailable (requires Developer Mode or admin), it falls back to file copies.
+The bootstrap script creates symlinks so Claude Code and GitHub Copilot receive shared instructions. On Windows, if symlinks are unavailable (requires Developer Mode or admin), it falls back to file copies.
 
 **Windows prerequisites:**
 - **Python 3.12+** — required for the governance policy engine. Install from [python.org](https://www.python.org/downloads/) and ensure it's in your PATH.

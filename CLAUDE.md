@@ -17,7 +17,7 @@ There is no build system or linter. The policy engine has a pytest test suite in
 bash .ai/bin/init.sh                    # Symlinks only
 bash .ai/bin/init.sh --install-deps     # Symlinks + Python venv + dependencies
 ```
-Checks `.ai` submodule freshness (auto-updates if behind), creates symlinks for CLAUDE.md, .cursorrules, and .github/copilot-instructions.md, creates `.governance/plans/`, `.governance/panels/`, `.governance/checkpoints/`, and `.governance/state/` directories (with migration from legacy paths), generates GOALS.md from template, and validates required panel emissions.
+Checks `.ai` submodule freshness (auto-updates if behind), creates symlinks for CLAUDE.md and .github/copilot-instructions.md, creates `.governance/plans/`, `.governance/panels/`, `.governance/checkpoints/`, and `.governance/state/` directories (with migration from legacy paths), generates GOALS.md from template, and validates required panel emissions.
 
 **Agentic bootstrap (interactive):**
 Tell your AI assistant to read and execute `governance/prompts/init.md`. This walks through setup interactively — choosing a language template, configuring repository settings, and installing dependencies — with the agent asking about each option.
@@ -118,9 +118,9 @@ Max N issues per session where N = `governance.parallel_coders` (default 5; para
 ## Symlink Configuration
 
 `config.yaml` defines symlinks created by `init.sh` for consuming repos:
-- `instructions.md` → `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`
+- `instructions.md` → `CLAUDE.md`, `.github/copilot-instructions.md`
 
-This ensures Claude Code, GitHub Copilot, and Cursor all receive the same base instructions in consuming projects.
+This ensures Claude Code and GitHub Copilot receive the same base instructions in consuming projects.
 
 ## Project Directories
 

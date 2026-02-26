@@ -26,7 +26,6 @@ Before starting, verify the environment:
 2. **Check if already initialized** (symlinks exist):
    ```bash
    test -L CLAUDE.md && echo "CLAUDE.md symlink exists" || echo "Not initialized"
-   test -L .cursorrules && echo ".cursorrules symlink exists" || echo "Not initialized"
    test -L .github/copilot-instructions.md && echo "copilot-instructions symlink exists" || echo "Not initialized"
    ```
    If all symlinks exist, skip to Step 3 (Repository Configuration) — the project may already be initialized but need configuration updates.
@@ -75,9 +74,6 @@ Create the symlinks that connect the `.ai` submodule's instructions to each AI t
 # CLAUDE.md -> .ai/instructions.md (Claude Code)
 ln -sf .ai/instructions.md CLAUDE.md
 
-# .cursorrules -> .ai/instructions.md (Cursor)
-ln -sf .ai/instructions.md .cursorrules
-
 # .github/copilot-instructions.md -> .ai/instructions.md (GitHub Copilot)
 mkdir -p .github
 ln -sf ../.ai/instructions.md .github/copilot-instructions.md
@@ -85,7 +81,7 @@ ln -sf ../.ai/instructions.md .github/copilot-instructions.md
 
 Verify each symlink was created:
 ```bash
-ls -la CLAUDE.md .cursorrules .github/copilot-instructions.md
+ls -la CLAUDE.md .github/copilot-instructions.md
 ```
 
 ---
@@ -224,7 +220,7 @@ Run a final verification:
 ```bash
 echo "=== Verification ==="
 echo "Symlinks:"
-ls -la CLAUDE.md .cursorrules .github/copilot-instructions.md 2>/dev/null
+ls -la CLAUDE.md .github/copilot-instructions.md 2>/dev/null
 echo ""
 echo "Project config:"
 test -f project.yaml && echo "project.yaml: OK" || echo "project.yaml: not configured"
@@ -242,7 +238,7 @@ Present a summary to the user:
 Setup complete. Here's what was configured:
 
 - [x/skip] Language template: {selection}
-- [x/skip] Symlinks: CLAUDE.md, .cursorrules, copilot-instructions.md
+- [x/skip] Symlinks: CLAUDE.md, copilot-instructions.md
 - [x/skip] Repository settings: auto_merge={value}, delete_branch={value}
 - [x/skip] Issue templates copied
 - [x/skip] CODEOWNERS generated

@@ -288,8 +288,8 @@ Write-Host "Initializing .ai submodule configuration..." -ForegroundColor Cyan
 
 $InstructionsSource = Join-Path $AiDir "instructions.md"
 
-# instructions.md -> CLAUDE.md, .cursorrules
-foreach ($target in @("CLAUDE.md", ".cursorrules")) {
+# instructions.md -> CLAUDE.md
+foreach ($target in @("CLAUDE.md")) {
     New-LinkOrCopy `
         -LinkPath (Join-Path $ProjectRoot $target) `
         -TargetRelative ".ai\instructions.md" `

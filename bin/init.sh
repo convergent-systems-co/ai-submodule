@@ -180,8 +180,8 @@ fi
 
 echo "Initializing .ai submodule symlinks..."
 
-# instructions.md -> CLAUDE.md, copilot-instructions, .cursorrules
-for target in "CLAUDE.md" ".cursorrules"; do
+# instructions.md -> CLAUDE.md, copilot-instructions
+for target in "CLAUDE.md"; do
   if [ ! -L "$PROJECT_ROOT/$target" ] || [ "$(readlink "$PROJECT_ROOT/$target")" != ".ai/instructions.md" ]; then
     ln -sf .ai/instructions.md "$PROJECT_ROOT/$target"
     echo "  Linked $target -> .ai/instructions.md"

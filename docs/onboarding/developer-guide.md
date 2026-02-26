@@ -12,7 +12,7 @@ A git submodule (`.ai/`) that gives your repository AI-powered governance: autom
 
 ```bash
 git submodule add git@github.com:SET-Apps/ai-submodule.git .ai
-bash .ai/bin/init.sh   # macOS/Linux — creates symlinks for Claude Code, Copilot, and Cursor
+bash .ai/bin/init.sh   # macOS/Linux — creates symlinks for Claude Code and GitHub Copilot
 git commit -m "Add .ai governance submodule"
 ```
 
@@ -43,7 +43,7 @@ git add .ai && git commit -m "Update .ai submodule"
 
 ## Starting the Agentic Loop
 
-Run `/startup` in your AI tool (Claude Code, Copilot, Cursor). This activates the 5-agent pipeline:
+Run `/startup` in your AI tool (Claude Code or GitHub Copilot). This activates the 5-agent pipeline:
 
 ```
 /startup

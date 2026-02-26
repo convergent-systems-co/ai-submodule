@@ -198,28 +198,7 @@ YAML
 
   # Second run should succeed and link should still be correct
   [ -L "$PROJECT_ROOT/CLAUDE.md" ]
-  [ -L "$PROJECT_ROOT/.cursorrules" ]
   [[ "$output" == *"already linked"* ]]
-}
-
-@test "symlink creation creates .cursorrules link" {
-  mkdir -p "$PROJECT_ROOT/.ai/bin"
-  cp "$INIT_SH" "$PROJECT_ROOT/.ai/bin/init.sh"
-  echo "# Instructions" > "$PROJECT_ROOT/.ai/instructions.md"
-  cat > "$PROJECT_ROOT/.ai/config.yaml" <<'YAML'
-version: "1.0.0"
-workflows:
-  required: []
-  optional: []
-project_directories:
-  - path: .plans
-YAML
-
-  bash "$PROJECT_ROOT/.ai/bin/init.sh" 2>&1 || true
-  [ -L "$PROJECT_ROOT/.cursorrules" ]
-  local target
-  target="$(readlink "$PROJECT_ROOT/.cursorrules")"
-  [ "$target" = ".ai/instructions.md" ]
 }
 
 @test "symlink creation creates copilot-instructions link" {

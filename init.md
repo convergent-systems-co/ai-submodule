@@ -20,13 +20,12 @@ bash .ai/bin/init.sh
 
 This creates symlinks in your project root:
 - `CLAUDE.md` → `.ai/instructions.md` (Claude Code instructions)
-- `.cursorrules` → `.ai/instructions.md` (Cursor instructions)
 - `.github/copilot-instructions.md` → `.ai/instructions.md` (GitHub Copilot instructions)
 
 ### 3. Commit the Submodule
 
 ```bash
-git add .ai .gitmodules CLAUDE.md .cursorrules .github/copilot-instructions.md
+git add .ai .gitmodules CLAUDE.md .github/copilot-instructions.md
 git commit -m "chore: add Dark Factory governance submodule"
 ```
 

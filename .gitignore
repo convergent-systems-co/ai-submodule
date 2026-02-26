@@ -19,7 +19,6 @@ __pycache__/
 venv/
 
 # IDE
-.cursor/
 .vscode/
 
 # Checkpoints (runtime state, not committed — but keep the directory)

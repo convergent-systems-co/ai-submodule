@@ -25,11 +25,11 @@ Get your first AI-governed project running in under 10 minutes. No prior experie
 |-------------|---------|
 | **Python 3.12+** | Required for the governance policy engine. [Download from python.org](https://www.python.org/downloads/) and make sure it's in your PATH. Verify: `python --version` |
 | **Git** | Standard git installation. Verify: `git --version` |
-| **AI Tool** | GitHub Copilot CLI, Claude Code, or Cursor. The framework works with all three. Instructions are shared automatically via symlinks. |
+| **AI Tool** | Claude Code or GitHub Copilot. The framework works with both. Instructions are shared automatically via symlinks. |
 | **GitHub access** | Needed to clone the submodule. Use SSH: `git@github.com:SET-Apps/ai-submodule.git` |
 
 !!! warning "Windows Symlink Tip"
-    For symlinks to work (so `.github/copilot-instructions.md`, `CLAUDE.md`, and `.cursorrules` stay in sync automatically), enable **Developer Mode**: Settings → System → For developers → Developer Mode → On. Otherwise the script falls back to file copies — everything still works, but you'll need to re-run `init.ps1` after submodule updates.
+    For symlinks to work (so `.github/copilot-instructions.md` and `CLAUDE.md` stay in sync automatically), enable **Developer Mode**: Settings → System → For developers → Developer Mode → On. Otherwise the script falls back to file copies — everything still works, but you'll need to re-run `init.ps1` after submodule updates.
 
 ---
 
@@ -83,7 +83,7 @@ git commit -m "chore: add .ai governance submodule"
 
 ### Step 6 — Start the agentic loop
 
-Open your AI tool (Copilot CLI, Claude Code, or Cursor) in this folder and type:
+Open your AI tool (Claude Code or GitHub Copilot) in this folder and type:
 
 ```
 /startup
@@ -99,7 +99,7 @@ Open your AI tool (Copilot CLI, Claude Code, or Cursor) in this folder and type:
 | What's Added | Impact | Concern |
 |-------------|--------|---------|
 | `.ai/` | Submodule — git tracks it as **one commit pointer**. Won't clutter `git status` or diffs. | **Low** |
-| `CLAUDE.md` / `.cursorrules` | Symlinks at root (or file copies on Windows without Developer Mode). Visible but inert. | **Low** |
+| `CLAUDE.md` | Symlink at root (or file copy on Windows without Developer Mode). Visible but inert. | **Low** |
 | `project.yaml` | Single config file you own. Name your project, set policy profile. | **Low** |
 | `.governance/plans/` / `.governance/checkpoints/` | New folders for audit trail and session state. | **Low** |
 | `.github/workflows/` (5 new YAMLs) | Governance CI runs on every PR. Won't break existing workflows but **adds CI time**. | **Medium** |

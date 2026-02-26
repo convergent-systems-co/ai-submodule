@@ -235,8 +235,8 @@
       </li>
       <li>
         <span class="icon">🤖</span>
-        <div><strong>AI Tool (one of):</strong> GitHub Copilot CLI, Claude Code, or Cursor.<br>
-        The framework works with all three. Instructions are shared automatically via symlinks.</div>
+        <div><strong>AI Tool (one of):</strong> Claude Code or GitHub Copilot.<br>
+        The framework works with both. Instructions are shared automatically via symlinks.</div>
       </li>
       <li>
         <span class="icon">🔑</span>
@@ -245,7 +245,7 @@
       </li>
     </ul>
     <div class="callout warn" style="margin-top:16px">
-      <strong>Windows tip:</strong> For symlinks to work (so <code>.github/copilot-instructions.md</code>, <code>CLAUDE.md</code>, and <code>.cursorrules</code> stay in sync automatically), enable <strong>Developer Mode</strong>: Settings → System → For developers → Developer Mode → On. Otherwise the script falls back to file copies — everything still works, but you'll need to re-run <code>init.ps1</code> after submodule updates.
+      <strong>Windows tip:</strong> For symlinks to work (so <code>.github/copilot-instructions.md</code> and <code>CLAUDE.md</code> stay in sync automatically), enable <strong>Developer Mode</strong>: Settings → System → For developers → Developer Mode → On. Otherwise the script falls back to file copies — everything still works, but you'll need to re-run <code>init.ps1</code> after submodule updates.
     </div>
   </div>
 
@@ -309,7 +309,7 @@
         <div class="step-num">6</div>
         <div class="step-body">
           <div class="step-title">Start the agentic loop</div>
-          <div class="step-desc">Open your AI tool (Copilot CLI, Claude Code, or Cursor) in this folder and type:</div>
+          <div class="step-desc">Open your AI tool (Claude Code or GitHub Copilot) in this folder and type:</div>
           <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code>/startup</code></pre></div>
           <div class="step-note">🤖 Four AI personas activate: DevOps Engineer (triage) → Code Manager (plan) → Coder (implement) → Tester (evaluate). If no <code>project.yaml</code> exists, the Code Manager creates one first.</div>
         </div>
@@ -349,7 +349,6 @@
             <li class="indent new">.ai/  <span class="comment">&nbsp;← 1 git pointer, ~200 files inside</span></li>
             <li class="indent new">.gitmodules</li>
             <li class="indent new">CLAUDE.md  <span class="comment">&nbsp;← symlink</span></li>
-            <li class="indent new">.cursorrules  <span class="comment">&nbsp;← symlink</span></li>
             <li class="indent new">project.yaml  <span class="comment">&nbsp;← you configure this</span></li>
             <li class="indent new">.governance/  <span class="comment">&nbsp;← plans, panels, checkpoints, state</span></li>
             <li class="indent warn">CODEOWNERS  <span class="comment">&nbsp;← generated, check for conflicts</span></li>
@@ -378,8 +377,8 @@
         <td><span class="impact-low">Low</span></td>
       </tr>
       <tr>
-        <td>CLAUDE.md<br>.cursorrules</td>
-        <td>Symlinks at root (or file copies on Windows without Developer Mode). Visible but inert.</td>
+        <td>CLAUDE.md</td>
+        <td>Symlink at root (or file copy on Windows without Developer Mode). Visible but inert.</td>
         <td><span class="impact-low">Low</span></td>
       </tr>
       <tr>

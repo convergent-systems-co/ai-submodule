@@ -80,24 +80,6 @@ Read .ai/governance/prompts/init.md and execute the interactive setup
 
 ---
 
-## Cursor
-
-Open the consuming repo in Cursor, then use the chat panel:
-
-```
-Read the file .ai/governance/prompts/init.md and execute the interactive
-bootstrap setup for this repository.
-```
-
-!!! note "Submodule first"
-    Cursor may not be able to add git submodules directly. If so, add it manually first:
-    ```bash
-    git submodule add git@github.com:SET-Apps/ai-submodule.git .ai
-    ```
-    Then ask Cursor to read and execute `init.md`.
-
----
-
 ## What the Interactive Setup Does
 
 The `init.md` prompt walks through these steps:

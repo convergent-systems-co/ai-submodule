@@ -59,7 +59,7 @@ bash .ai/bin/init.sh --install-deps
 | 2 | Checks Python availability | Verifies Python 3.12+ for policy engine |
 | 3 | Checks submodule freshness | Auto-updates `.ai` if behind `origin/main` |
 | 4 | Converts SSH to HTTPS URLs | Ensures CI compatibility with `GITHUB_TOKEN` |
-| 5 | Creates AI tool symlinks | `CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md` → `instructions.md` |
+| 5 | Creates AI tool symlinks | `CLAUDE.md`, `.github/copilot-instructions.md` → `instructions.md` |
 | 6 | Copies issue templates | Bug report and feature request templates to `.github/ISSUE_TEMPLATE/` |
 | 7 | Links governance workflows | `dark-factory-governance.yml` and optional workflows to `.github/workflows/` |
 | 8 | Creates GOALS.md | Copies template if file does not exist |
@@ -75,7 +75,6 @@ bash .ai/bin/init.sh --install-deps
 [INFO] Python found: python3 (3.12.x)
 [INFO] .ai submodule is up to date
 [INFO] Creating symlink: CLAUDE.md -> .ai/instructions.md
-[INFO] Creating symlink: .cursorrules -> .ai/instructions.md
 [INFO] Creating symlink: .github/copilot-instructions.md -> .ai/instructions.md
 [INFO] Copying issue templates...
 [INFO] Linking governance workflows...
@@ -120,7 +119,6 @@ your-repo/
 │   ├── plans/                        # Implementation plans (accumulated)
 │   └── panels/                       # Panel review reports (latest per type)
 ├── CLAUDE.md                         # Symlink → .ai/instructions.md
-├── .cursorrules                      # Symlink → .ai/instructions.md
 ├── GOALS.md                          # Project tracking and maturity status
 └── CODEOWNERS                        # Code ownership rules
 ```

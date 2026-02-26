@@ -418,7 +418,7 @@ Key directories for contributors:
 This repository uses the agentic pipeline for development. You can invoke it with:
 
 ```bash
-# In Claude Code, Copilot, or Cursor:
+# In Claude Code or GitHub Copilot:
 /startup
 ```
 
