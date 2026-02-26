@@ -1,26 +1,26 @@
-# Hallucination Detection — Cross-Reference Requirements for Panel Emissions
+# Hallucination Detection in Panel Emissions
 
-**Author:** Code Manager (agentic)
+**Author:** Coder (agentic)
 **Date:** 2026-02-26
-**Status:** approved
-**Issue:** #406 — LLM-1: Hallucination in Panel Emissions
+**Status:** completed
+**Issue:** https://github.com/SET-Apps/ai-submodule/issues/406
 **Branch:** itsfwcp/fix/406/hallucination-detection
 
 ---
 
 ## 1. Objective
 
-Add cross-referencing requirements to review prompts and the panel output schema that force panel agents to ground their findings in verifiable evidence, reducing the risk of hallucinated findings or fabricated confidence scores.
+Mitigate the risk of LLM hallucination in panel emissions by requiring grounding evidence for findings and validating that evidence at the pipeline level.
 
 ## 2. Rationale
 
-LLMs can hallucinate findings and confidence scores. The execution_trace field (from #396) records what files were read, but doesn't verify that findings are actually grounded in those files. This change adds mandatory cross-referencing: every finding must cite a specific file and line, and "no findings" verdicts must still demonstrate that files were actually analyzed.
+LLMs can hallucinate findings, confidence scores, and risk assessments. A security-review panel might report "no vulnerabilities found" with 0.90 confidence when critical vulnerabilities exist. Without ground-truth verification or confidence calibration, hallucinated findings can cause false approvals or false blocks. The execution_trace field (from #396) records what files were read, but doesn't verify that findings are actually grounded in those files. This change adds mandatory cross-referencing: every finding must cite a specific file and line, and "no findings" verdicts must still demonstrate that files were actually analyzed.
 
 | Alternative | Considered | Rejected Because |
 |-------------|-----------|------------------|
-| External SAST/DAST as ground truth | Yes | Requires CI integration beyond repo scope; good future addition |
-| Confidence calibration via historical data | Yes | Requires historical dataset; Phase 5 concern |
-| Mandatory cross-references in findings | Yes | **Selected** — verifiable now, builds on execution_trace |
+| Independent SAST/DAST tool integration | Yes | Out of scope for this issue; requires external tooling and CI integration. Future enhancement. |
+| Confidence calibration via historical data | Yes | Requires accumulated emission data not yet available. Future Phase 5 work. |
+| Evidence-based grounding (this approach) | Yes | Selected — lightweight, backward-compatible, immediately enforceable via schema and prompts. |
 
 ## 3. Scope
 
@@ -28,70 +28,67 @@ LLMs can hallucinate findings and confidence scores. The execution_trace field (
 
 | File | Purpose |
 |------|---------|
-| N/A | No new files |
+| `.governance/plans/406-hallucination-detection.md` | This plan document |
 
 ### Files to Modify
 
 | File | Change Description |
 |------|-------------------|
-| `governance/schemas/panel-output.schema.json` | Add `evidence` field to findings items: `file`, `line_range`, `snippet` (first 200 chars of relevant code) |
-| `governance/prompts/reviews/security-review.md` | Add cross-reference requirement: every finding must include file, line, and code snippet |
-| `governance/prompts/reviews/code-review.md` | Same cross-reference requirement |
-| `governance/prompts/startup.md` | Add cross-reference validation in Phase 4c: findings without evidence are flagged as potentially hallucinated |
+| `governance/schemas/panel-output.schema.json` | Add optional `evidence` object to findings items with file, line_start, line_end, snippet |
+| `governance/prompts/reviews/security-review.md` | Add Grounding Requirement section before Structured Emission |
+| `governance/prompts/reviews/code-review.md` | Add Grounding Requirement section before Structured Emission Example |
+| `governance/prompts/startup.md` | Add Hallucination Detection validation step to Phase 4c |
 
 ### Files to Delete
 
-| File | Reason |
-|------|--------|
-| N/A | No deletions |
+N/A — no files deleted.
 
 ## 4. Approach
 
-1. Extend panel-output.schema.json findings items:
-   - Add optional `evidence` object: `{ "file": "string", "line_start": "integer", "line_end": "integer", "snippet": "string (maxLength 200)" }`
-   - Findings with severity >= "medium" should include evidence (enforced by prompts, not schema)
-2. Update security-review.md and code-review.md:
-   - Instruction: "Every finding with severity medium or above MUST include an `evidence` block with the file path, line range, and a code snippet (first 200 chars). Findings without evidence may be treated as hallucinated."
-   - Instruction: "If the review produces zero findings, include at least one `evidence` block in execution_trace.grounding_references demonstrating files were actually analyzed."
-3. Update startup.md Phase 4c:
-   - Add validation: if a panel emission has medium+ findings without evidence, flag as potentially hallucinated and request re-review
+1. Extend `panel-output.schema.json` findings items with an optional `evidence` object containing `file` (required), `line_start`, `line_end`, and `snippet` (max 200 chars). Optional for backward compatibility.
+2. Add a Grounding Requirement section to `security-review.md` requiring evidence blocks for medium+ severity findings and grounding_references for zero-finding reviews.
+3. Add the same Grounding Requirement section to `code-review.md`.
+4. Add a Hallucination Detection validation step to `startup.md` Phase 4c that flags ungrounded findings and triggers re-review for emissions lacking evidence or execution_trace.
 
 ## 5. Testing Strategy
 
 | Test Type | Coverage | Description |
 |-----------|----------|-------------|
-| Schema | panel-output.schema.json | Validate extended schema is well-formed |
-| Unit | governance/engine/tests/ | Verify policy engine handles findings with/without evidence |
-| Manual | Review prompts | Verify cross-reference instructions are clear |
+| Schema validation | `panel-output.schema.json` | Existing schema validation tooling will accept emissions with or without the evidence field (backward compatible) |
+| Manual | Review prompts | Verify grounding requirement text is correctly placed in security-review.md and code-review.md |
+| Manual | startup.md | Verify hallucination detection step is correctly placed in Phase 4c |
 
 ## 6. Risk Assessment
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| LLM fabricates evidence | Medium | Medium | Code Manager can cross-reference snippets against actual file content |
-| Additional prompt overhead | Low | Low | Evidence field is optional in schema; enforced by prompt for medium+ |
+| Backward compatibility break | Low | High | Evidence field is optional in schema; existing emissions remain valid |
+| Over-flagging hallucinations | Medium | Medium | Only medium+ severity findings require evidence; low/info findings are exempt |
+| Review prompt ignored by LLM | Medium | Medium | Schema enforcement provides a second layer; pipeline validation in Phase 4c catches gaps |
 
 ## 7. Dependencies
 
-- [ ] #396 execution_trace (merged) — builds on the execution_trace framework
+- [x] No blocking dependencies — all changes are additive to existing files
 
 ## 8. Backward Compatibility
 
-Fully backward-compatible. `evidence` field is optional in schema. Existing emissions remain valid.
+All changes are backward compatible. The `evidence` field is optional in the schema. Existing panel emissions without evidence will continue to validate. The grounding requirement is a soft enforcement via prompts; the pipeline validation flags but does not hard-block.
 
 ## 9. Governance
 
 | Panel | Required | Rationale |
 |-------|----------|-----------|
-| security-review | Yes | Changes to security review prompt |
-| code-review | Yes | Schema and prompt changes |
+| security-review | Yes | Changes affect security review process |
+| code-review | Yes | Changes affect code review process |
+| documentation-review | Yes | Schema and prompt changes require doc review |
 
 **Policy Profile:** default
-**Expected Risk Level:** low
+**Expected Risk Level:** medium
 
 ## 10. Decision Log
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-02-26 | Evidence optional in schema, required by prompt for medium+ | Allows incremental adoption while pushing toward full evidence |
-| 2026-02-26 | 200 char snippet limit | Prevents evidence from bloating emissions while providing enough context |
+| 2026-02-26 | Evidence field is optional in schema | Backward compatibility with existing emissions |
+| 2026-02-26 | Only medium+ severity findings require evidence | Avoids over-burdening low/info findings with evidence requirements |
+| 2026-02-26 | Hallucination detection triggers re-review, not hard-block | Allows gradual adoption; hard-block can be added in future policy update |

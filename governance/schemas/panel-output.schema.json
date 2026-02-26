@@ -121,6 +121,17 @@
               "info": { "type": "integer", "minimum": 0 }
             },
             "additionalProperties": false
+          },
+          "evidence": {
+            "type": "object",
+            "description": "Grounding evidence linking this finding to a specific code location. Findings with severity 'medium' or above that lack evidence may be treated as hallucinated and discarded.",
+            "properties": {
+              "file": { "type": "string", "description": "File path where the finding was identified" },
+              "line_start": { "type": "integer", "minimum": 1, "description": "Start line of relevant code" },
+              "line_end": { "type": "integer", "minimum": 1, "description": "End line of relevant code" },
+              "snippet": { "type": "string", "maxLength": 200, "description": "Code snippet (first 200 chars)" }
+            },
+            "required": ["file"]
           }
         },
         "additionalProperties": false

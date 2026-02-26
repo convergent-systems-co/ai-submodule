@@ -641,6 +641,8 @@ The Code Manager invokes the panels selected in Phase 2c. Each review:
 
 If any plausibility check fails, set `requires_human_review: true` on the emission and do not auto-merge. See `plausibility_checks` in `governance/policy/default.yaml` for the enforced thresholds.
 
+**Hallucination Detection**: After collecting panel emissions, validate grounding: (1) Any finding with severity 'medium' or above that lacks an `evidence` block is flagged as potentially hallucinated. The Code Manager should request re-review for ungrounded findings. (2) Emissions with zero findings that also lack `execution_trace` are treated as no-analysis and trigger re-review.
+
 ### 4d: Push PR & Monitoring Loop
 
 1. Push the branch
