@@ -14,7 +14,7 @@ Watch for these signals that context is filling up:
 
 1. **Token count warnings** — Claude Code shows token usage in verbose mode (right side). Copilot surfaces similar warnings. When total tokens exceed 80% of the model's context window, stop immediately.
 2. **System warnings** — The runtime emits warnings when approaching context limits. These are non-negotiable stop signals.
-3. **Conversation length heuristic** — If you have completed N issues (where N = `governance.parallel_coders`), or made more than 80 tool calls, or the conversation exceeds ~150 exchanges, assume you are at or near 80% regardless of other signals.
+3. **Conversation length heuristic** — If you have completed N issues (where N = `governance.parallel_coders`; ignored when N = -1), or made more than 80 tool calls, or the conversation exceeds ~150 exchanges, assume you are at or near 80% regardless of other signals. When N = -1 (unlimited), the "issues completed" signal is not applicable; context pressure from the remaining signals is the sole hard stop.
 4. **Degraded recall** — If you find yourself re-reading files you already read, forgetting earlier decisions, or producing inconsistent output, context pressure is likely the cause.
 
 ### Capacity Tiers
@@ -34,7 +34,7 @@ The pipeline uses a four-tier capacity model. Tier boundaries are evaluated at e
 |--------|---------------|-----------------|-----------------|---------------|
 | Tool calls in session | < 40 | 40-55 | 55-80 | > 80 |
 | Chat turns (exchanges) | < 60 | 60-100 | 100-150 | > 150 |
-| Issues completed | < N-2 | N-2 | N-1 | N (cap) |
+| Issues completed (N/A when N = -1) | < N-2 | N-2 | N-1 | N (cap) |
 | Claude Code token counter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
 | Copilot context meter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
 | Copilot character count | < 150K chars | 150-200K chars | 200-250K chars | > 250K chars |
@@ -44,7 +44,7 @@ The pipeline uses a four-tier capacity model. Tier boundaries are evaluated at e
 
 ### Hard Limits
 
-- **Maximum N issues per session** (where N = `governance.parallel_coders` from `project.yaml`, default 5) — parallel dispatch means Coder subagents use their own context, not the main session's
+- **Maximum N issues per session** (where N = `governance.parallel_coders` from `project.yaml`, default 5) — parallel dispatch means Coder subagents use their own context, not the main session's. When `governance.parallel_coders` is -1 (unlimited), the issue count cap is disabled. The four-tier capacity model (Green/Yellow/Orange/Red) is the sole mechanism for session termination.
 - **Checkpoint only on hard-stop** — checkpoints are written only when a session cap or context pressure triggers the Shutdown Protocol (Orange or Red tier), not between batches
 - **Four-tier capacity enforcement**: Green = normal, Yellow = no new dispatches, Orange = stop after current PR and checkpoint, Red = stop immediately and emergency checkpoint
 
@@ -108,7 +108,7 @@ flowchart TD
 | 0 | DevOps Engineer | Recovery | Auto-detect checkpoint, validate issues, resume or proceed to Phase 1 |
 | 1 | DevOps Engineer | Routing | Pre-flight, triage, issue routing |
 | 2 | Code Manager | Orchestrator | Validate intent and create plans for **all** selected issues |
-| 3 | Code Manager | Parallelization | Spawn up to N worker agents (Coder/IaC Engineer) via `Task` tool with `isolation: "worktree"` (N = `governance.parallel_coders`, default 5) |
+| 3 | Code Manager | Parallelization | Spawn up to N worker agents (Coder/IaC Engineer) via `Task` tool with `isolation: "worktree"` (N = `governance.parallel_coders`, default 5; all planned issues when N = -1) |
 | 4 | Code Manager + Tester | Evaluator-Optimizer | Collect results as each Coder finishes; evaluate, push PR, monitor CI |
 | 5 | Code Manager + DevOps Engineer | — | Merge all PRs, retrospective, loop or shutdown |
 
@@ -320,7 +320,7 @@ An issue is **actionable** if:
 
 ### 1e: Route to Code Manager
 
-Emit an ASSIGN message per `governance/prompts/agent-protocol.md` for **all actionable issues up to the session cap** (max N, where N = `governance.parallel_coders`). If no actionable issues remain, fall back to GOALS.md (see Phase 5 fallback).
+Emit an ASSIGN message per `governance/prompts/agent-protocol.md` for **all actionable issues up to the session cap** (max N, where N = `governance.parallel_coders`; all actionable issues when N = -1). If no actionable issues remain, fall back to GOALS.md (see Phase 5 fallback).
 
 ---
 
@@ -392,7 +392,7 @@ The Code Manager spawns **parallel worker agents** (Coder or IaC Engineer) using
 
 ### 3a: Spawn Worker Agents
 
-Read `governance.parallel_coders` from `project.yaml` (default: 5) to determine the maximum number of concurrent worker agents.
+Read `governance.parallel_coders` from `project.yaml` (default: 5) to determine the maximum number of concurrent worker agents. If the value is -1 (unlimited), spawn agents for all planned issues — the context gate remains the sole dispatch constraint.
 
 For each planned issue, determine the appropriate worker persona:
 - **IaC Engineer** (`governance/personas/agentic/iac-engineer.md`) — when the issue involves infrastructure: Bicep, Terraform, ARM templates, cloud resource provisioning, networking, or identity configuration
@@ -417,7 +417,7 @@ Task(
 5. Instructions to commit, run tests/validation, and report results — but NOT push (the Code Manager pushes)
 
 **Dispatch rules:**
-- Spawn up to N Coder agents concurrently (N = `governance.parallel_coders` from `project.yaml`, default 5)
+- Spawn up to N Coder agents concurrently (N = `governance.parallel_coders` from `project.yaml`, default 5; all planned issues when N = -1)
 - All independent issues are dispatched in a **single message** with multiple Task tool calls
 - Each agent gets `run_in_background: true` so they execute concurrently
 - The Code Manager continues to the next phase without waiting
@@ -582,7 +582,7 @@ Per `governance/prompts/retrospective.md`:
 After all parallel work from this batch is merged, decide whether to **continue** or **stop**:
 
 1. **Check hard-stop conditions** (any one triggers Shutdown Protocol):
-   - N or more issues/PRs completed this session (cumulative across all batches), where N = `governance.parallel_coders`
+   - N or more issues/PRs completed this session (cumulative across all batches), where N = `governance.parallel_coders` (ignored when N = -1)
    - Any context pressure signal (see Detection Signals above)
 2. **If a hard-stop condition is met**: execute the Shutdown Protocol — checkpoint, clean git, report, and tell the user to run `/clear`. The next `/startup` will auto-restore from the checkpoint. Do not ask the user to "restart the loop" or take any other action beyond `/clear`.
 3. **If NO hard-stop condition is met**: **return to Phase 1 immediately**. Do not write a checkpoint. Do not request `/clear`. Do not pause for user input. Do not summarize or ask permission to continue. Just loop — the agent keeps working autonomously until a hard-stop condition or exit condition is reached.
@@ -603,11 +603,11 @@ If no actionable issues remain after Phase 1d:
 ## Constraints
 
 - **Resolve all open PRs before new issues** — Phase 1c is mandatory
-- **Parallel execution by default** — spawn up to N Coder agents concurrently (N = `governance.parallel_coders`, default 5) via `Task` tool with `isolation: "worktree"`. Fall back to sequential only if worktree creation fails.
+- **Parallel execution by default** — spawn up to N Coder agents concurrently (N = `governance.parallel_coders`, default 5; all planned issues when N = -1) via `Task` tool with `isolation: "worktree"`. Fall back to sequential only if worktree creation fails.
 - **Plan before code** — always (plans are written by Code Manager in main session before dispatch)
 - **Documentation with every change** — mandatory
 - **Issue for every work item** — issues are the audit trail
-- **Maximum N issues per session** (where N = `governance.parallel_coders`, default 5) — parallel execution is more context-efficient since Coder subagents have their own context windows
+- **Maximum N issues per session** (where N = `governance.parallel_coders`, default 5; disabled when N = -1) — parallel execution is more context-efficient since Coder subagents have their own context windows. When N = -1, context pressure is the sole session limiter.
 - **Maximum 3 review cycles per PR** — then escalate
 - **Checkpoint only on hard-stop** — checkpoints are written only when a session cap or context pressure triggers the Shutdown Protocol, not between batches
 - **Context capacity is a hard constraint** — four-tier model (Green/Yellow/Orange/Red) governs all phase transitions; shutdown on Orange or Red
@@ -622,7 +622,7 @@ If no actionable issues remain after Phase 1d:
 **Trigger conditions** (any one is sufficient):
 - Token count at or above 80% of context window
 - System warning about context limits
-- N issues completed this session (where N = `governance.parallel_coders`)
+- N issues completed this session (where N = `governance.parallel_coders`; ignored when N = -1)
 - Conversation exceeds ~150 exchanges or ~80 tool calls
 - Degraded recall or inconsistent output
 
@@ -671,6 +671,6 @@ When triggered:
 
 Stop the loop when:
 - No open PRs **and** no actionable issues **and** no GOALS.md items can be converted to issues
-- **N issues/PRs completed** (where N = `governance.parallel_coders`) — shutdown protocol, checkpoint, request `/clear`
+- **N issues/PRs completed** (where N = `governance.parallel_coders`; not applicable when N = -1) — shutdown protocol, checkpoint, request `/clear`
 - **Orange or Red capacity tier** — shutdown protocol immediately (see Capacity Tiers)
 - A human sends a message (human input takes priority)

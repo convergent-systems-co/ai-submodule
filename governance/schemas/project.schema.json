@@ -42,10 +42,10 @@
         },
         "parallel_coders": {
           "type": "integer",
-          "minimum": 1,
+          "minimum": -1,
           "maximum": 10,
           "default": 5,
-          "description": "Maximum number of concurrent Coder agents spawned during parallel dispatch. Default is 5."
+          "description": "Maximum number of concurrent Coder agents spawned during parallel dispatch. Default is 5. Set to -1 for unlimited (context-monitored) — the pipeline processes issues until context pressure triggers the shutdown protocol and checkpoint."
         }
       },
       "additionalProperties": false

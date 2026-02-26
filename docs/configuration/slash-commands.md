@@ -32,8 +32,8 @@ The `/startup` command begins the autonomous improvement loop, executing the ful
     The agent will:
     - Read and execute `governance/prompts/startup.md`
     - Follow the Code Manager persona orchestration
-    - Dispatch parallel Coder agents (up to N = `governance.parallel_coders`, default 5)
-    - Process up to 5 issues per session
+    - Dispatch parallel Coder agents (up to N = `governance.parallel_coders`, default 5; all issues when N = -1)
+    - Process up to N issues per session (unlimited when N = -1)
     - Execute shutdown protocol at 80% context capacity
 
 === "GitHub Copilot"
@@ -45,12 +45,12 @@ The `/startup` command begins the autonomous improvement loop, executing the ful
     The agent will:
     - Read and execute `.ai/governance/prompts/startup.md`
     - Follow sequential Coder execution (Copilot does not support parallel Task dispatch)
-    - Process up to 5 issues per session
+    - Process up to N issues per session (N = `parallel_coders`, default 5; unlimited when N = -1)
     - Prompt for new chat thread at context capacity threshold
 
 ### Constraints
 
-- Maximum 5 issues per session
+- Maximum N issues per session (N = `parallel_coders`, default 5; unlimited when N = -1)
 - Maximum 3 review cycles per PR before escalation
 - Plans required before implementation
 - Documentation updates mandatory with every change
@@ -62,7 +62,7 @@ The number of parallel Coder agents can be configured in `project.yaml`:
 
 ```yaml
 governance:
-  parallel_coders: 5  # Default: 5, Range: 1-10
+  parallel_coders: 5  # Default: 5, Range: 1-10 or -1 (unlimited, context-monitored)
 ```
 
 ## `/checkpoint` - Context Capacity Shutdown

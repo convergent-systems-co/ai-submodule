@@ -856,7 +856,7 @@ This persona implements Anthropic's **Routing** pattern — classifying incoming
 
 | Responsibility | Description |
 |----------------|-------------|
-| Session Lifecycle | Context capacity enforcement, 5-issue session cap, checkpoint on hard-stop, shutdown protocol |
+| Session Lifecycle | Context capacity enforcement, N-issue session cap (N = `parallel_coders`, default 5; disabled when N = -1), checkpoint on hard-stop, shutdown protocol |
 | Pre-flight Checks | Submodule freshness (with pin support), repo configuration, workflow health |
 | Issue Triage | Scan, filter, prioritize open issues; re-evaluate `refine` labels |
 | PR Resolution | Resolve open PRs before scanning new issues |

@@ -222,7 +222,7 @@ Each signal maps independently to a tier. The agent's current tier is the **maxi
 |--------|---------------|-----------------|-----------------|---------------|
 | Tool calls in session | < 40 | 40-55 | 55-80 | > 80 |
 | Chat turns (exchanges) | < 60 | 60-100 | 100-150 | > 150 |
-| Issues completed (N = `parallel_coders`) | < N-2 | N-2 | N-1 | N (cap reached) |
+| Issues completed (N = `parallel_coders`; N/A when N = -1) | < N-2 | N-2 | N-1 | N (cap reached) |
 | Claude Code token counter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
 | Copilot context meter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
 | Copilot character count | < 150K chars | 150-200K chars | 200-250K chars | > 250K chars |
@@ -237,6 +237,55 @@ Each signal maps independently to a tier. The agent's current tier is the **maxi
 - Tiers only escalate upward during a session (Green -> Yellow -> Orange -> Red). Context capacity does not recover within a session.
 - The agent must re-evaluate tier classification at every phase boundary via the Context Gate protocol.
 - A single signal reaching a higher tier is sufficient to escalate. The agent does not wait for multiple signals to agree.
+
+### Unlimited Mode (parallel_coders = -1)
+
+When `governance.parallel_coders` is set to -1 in `project.yaml`, the pipeline operates in **unlimited mode**:
+
+- The "Issues completed" signal row in the Signal-to-Tier Mapping table is ignored entirely. It does not contribute to tier classification.
+- There is no issue count cap. The pipeline processes all actionable issues across as many loop iterations as needed.
+- The four-tier capacity model (Green/Yellow/Orange/Red) is the **sole mechanism** for session termination. Tool call count, turn count, token counters, degraded recall, and system warnings remain active and authoritative.
+- Parallel dispatch spawns agents for all planned issues (still subject to the context gate at Phase 3 entry).
+
+**When to use unlimited mode:** Projects with many small, independent issues benefit from unlimited mode because Coder subagents run in their own context windows and do not consume the main session's budget. The main session's context pressure comes from orchestration overhead (planning, evaluation, PR monitoring), not from Coder execution.
+
+**Concurrency note:** Unlimited mode removes the *session-level* issue count cap, not the *simultaneous* concurrency limit. The number of worktrees spawned per batch is still bounded by available actionable issues and the context gate at Phase 3 entry. In practice, most sessions process 5-15 issues before context pressure from orchestration overhead (planning, evaluation, PR monitoring) triggers a checkpoint. Each worktree consumes disk space (~1x repo size) and a subprocess, so very large batches on resource-constrained machines may hit system limits before context limits.
+
+**Risk mitigation:** Unlimited mode does not disable safety mechanisms. The four-tier capacity model, mandatory context gates at every phase boundary, and the shutdown protocol all remain fully enforced. The only change is that issue count alone cannot trigger a shutdown.
+
+### Auto-Clear for Continuous Operation
+
+Full auto-clear (automatic context resets without human intervention) requires external tooling because current AI platforms do not support programmatic self-initiated context resets. The pipeline's checkpoint and Phase 0 recovery handle the agent-side logic; the reset trigger must come from outside the session.
+
+**Claude Code:** Use a shell wrapper to restart the agent after each session exit:
+
+```bash
+MAX_RETRIES=50
+RETRY_COUNT=0
+while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
+  START_TIME=$(date +%s)
+  claude --prompt "/startup"
+  EXIT_CODE=$?
+  ELAPSED=$(( $(date +%s) - START_TIME ))
+
+  # If session ran for less than 30 seconds, it likely errored — back off
+  if [ "$ELAPSED" -lt 30 ]; then
+    RETRY_COUNT=$((RETRY_COUNT + 1))
+    echo "Session exited quickly (${ELAPSED}s, exit $EXIT_CODE). Backing off (attempt $RETRY_COUNT/$MAX_RETRIES)..."
+    sleep $((RETRY_COUNT * 5))
+  else
+    RETRY_COUNT=0  # Reset on successful session
+    echo "Session ended normally. Restarting..."
+  fi
+done
+echo "Max retries reached. Exiting wrapper."
+```
+
+Each invocation starts a fresh context window. Phase 0 auto-detects the checkpoint written by the previous session's shutdown protocol and resumes where it left off. The shell wrapper provides the external restart trigger that the agent cannot provide for itself. The backoff logic prevents tight spin loops if the agent exits immediately (e.g., auth failure, rate limit).
+
+**GitHub Copilot:** Auto-clear is not programmatically available. When the agent's shutdown protocol triggers, the user must manually start a new chat thread and paste the checkpoint path. Document this process in team onboarding materials. Future Copilot API extensions may enable programmatic thread creation.
+
+**General principle:** The agent writes checkpoints and requests a reset. An external mechanism (shell loop, CI workflow, or human) performs the reset. Phase 0 recovery bridges the gap. This separation ensures the agent never operates in a degraded context state.
 
 ## Phase Boundary Gate Protocol
 
@@ -408,7 +457,7 @@ Copilot-specific adaptations:
 3. **Proactive summarization** (between 60-70%): Create rolling summaries of completed work and drop older raw turns. This extends the useful working window. VS Code auto-summarization also helps, but the agent should summarize proactively rather than waiting for the system to do it.
 
 #### Universal Heuristics (All Platforms)
-- **Issue count**: After 3 completed issues, stop regardless of token count.
+- **Issue count**: After N completed issues (N = `governance.parallel_coders`, default 5), stop regardless of token count. When N = -1, this heuristic is disabled — context pressure from the remaining signals governs session termination.
 - **Tool call count**: After ~50 tool calls in a session, assume 70%+ capacity.
 - **Conversation exchanges**: After ~100 back-and-forth exchanges, assume 70%+ capacity.
 - **Self-detection**: If the agent re-reads files it already read, forgets earlier decisions, or produces contradictory output, context pressure is the likely cause.

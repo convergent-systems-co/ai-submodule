@@ -108,12 +108,12 @@ When operating autonomously (via `governance/prompts/startup.md`), the pipeline 
 | Phase | Persona | What Happens |
 |-------|---------|-------------|
 | 1 | DevOps Engineer | Pre-flight (submodule, repo config — respects `project.yaml` pin), resolve open PRs, triage and route issues |
-| 2 | Code Manager | Validate intent, select review panels, and create plans for **all issues** (up to N = `governance.parallel_coders`) |
-| 3 | Code Manager | **Parallel dispatch**: spawn up to N Coder agents via `Task` tool with `isolation: "worktree"` (N = `governance.parallel_coders`, default 5). IaC Engineer dispatched for infrastructure changes (conditional — infrastructure changes only) |
+| 2 | Code Manager | Validate intent, select review panels, and create plans for **all issues** (up to N = `governance.parallel_coders`; all actionable issues when N = -1) |
+| 3 | Code Manager | **Parallel dispatch**: spawn up to N Coder agents via `Task` tool with `isolation: "worktree"` (N = `governance.parallel_coders`, default 5; all planned issues when N = -1). IaC Engineer dispatched for infrastructure changes (conditional — infrastructure changes only) |
 | 4 | Code Manager + Tester | Collect results as each Coder/IaC Engineer finishes → Tester evaluates → Security review → PR monitoring |
 | 5 | Code Manager + DevOps Engineer | Merge all PRs, retrospective, loop or shutdown |
 
-Max N issues per session where N = `governance.parallel_coders` (default 5; parallel execution is context-efficient — Coder subagents use their own context windows); **hard stop at 80% context capacity** — executes shutdown protocol (clean git, write checkpoint, request `/clear`)
+Max N issues per session where N = `governance.parallel_coders` (default 5; set to -1 for unlimited — context pressure becomes the sole session limiter; parallel execution is context-efficient — Coder subagents use their own context windows); **hard stop at 80% context capacity** — executes shutdown protocol (clean git, write checkpoint, request `/clear`)
 
 ## Symlink Configuration
 

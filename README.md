@@ -209,7 +209,7 @@ flowchart TD
     P5 -->|Session cap or context pressure| STOP[Shutdown Protocol]
 ```
 
-Inter-agent communication uses typed messages (`ASSIGN`, `STATUS`, `RESULT`, `FEEDBACK`, `ESCALATE`, `APPROVE`, `BLOCK`, `CANCEL`) per the [Agent Protocol](governance/prompts/agent-protocol.md). Up to N Coder agents run concurrently (N = `governance.parallel_coders` from `project.yaml`, default 5).
+Inter-agent communication uses typed messages (`ASSIGN`, `STATUS`, `RESULT`, `FEEDBACK`, `ESCALATE`, `APPROVE`, `BLOCK`, `CANCEL`) per the [Agent Protocol](governance/prompts/agent-protocol.md). Up to N Coder agents run concurrently (N = `governance.parallel_coders` from `project.yaml`, default 5; set to -1 for unlimited context-monitored mode).
 
 ### Governance Layers (Phase 4a)
 
@@ -262,7 +262,7 @@ The framework uses JIT (Just-In-Time) loading to minimize AI context window usag
 | 2 | Current workflow phase + panel context | ~3,000 tokens | Released per phase |
 | 3 | Policies, schemas, docs | 0 tokens | Queried on-demand |
 
-**Parallel dispatch model:** Coder agents spawned via `Task` tool with `isolation: "worktree"` get their own context windows — they don't consume the main session's context. This allows the Code Manager to dispatch up to N concurrent workers while staying within budget.
+**Parallel dispatch model:** Coder agents spawned via `Task` tool with `isolation: "worktree"` get their own context windows — they don't consume the main session's context. This allows the Code Manager to dispatch up to N concurrent workers while staying within budget. When N = -1 (unlimited), the pipeline processes all actionable issues and relies solely on context pressure for session termination.
 
 **Hard stop at 80% context capacity.** When approaching this limit:
 

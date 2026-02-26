@@ -147,7 +147,7 @@ Concrete thresholds that trigger CANCEL propagation:
 |--------|-----------|--------|
 | Tool calls in session | > 80 | DevOps Engineer emits CANCEL to Code Manager |
 | Chat turns (exchanges) | > 50 | DevOps Engineer emits CANCEL to Code Manager |
-| Issues completed | >= N (`parallel_coders`) | DevOps Engineer emits CANCEL to Code Manager |
+| Issues completed | >= N (`parallel_coders`; ignored when N = -1) | DevOps Engineer emits CANCEL to Code Manager |
 | User interrupt | Immediate | DevOps Engineer emits CANCEL with `graceful: false` |
 
 ## Message Guarantees
