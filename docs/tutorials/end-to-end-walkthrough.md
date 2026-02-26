@@ -191,6 +191,7 @@ The policy engine evaluates panel emissions deterministically using YAML profile
 | `default.yaml` | Standard projects | Enabled (with conditions) | ≥85% confidence, low risk, all panels approve |
 | `fin_pii_high.yaml` | Financial/PII data | Disabled | 3-approver override, SOC2/PCI-DSS/HIPAA/GDPR |
 | `infrastructure_critical.yaml` | Infrastructure | Disabled | Mandatory architecture and SRE review |
+| `reduced_touchpoint.yaml` | Near-full autonomy | Enabled (with conditions) | Human approval only for policy overrides and dismissed security-critical findings |
 
 **Decision outcomes:**
 

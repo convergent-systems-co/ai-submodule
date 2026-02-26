@@ -19,6 +19,8 @@ New to the platform? Start here:
 3. **[Repository Setup](configuration/repository-setup.md)** -- Configure your project
 4. **[End-to-End Walkthrough](tutorials/end-to-end-walkthrough.md)** -- Complete pipeline walkthrough
 
+See the [Project Structure](onboarding/project-structure.md) guide for a detailed breakdown of the repository layout.
+
 ## Five Governance Layers
 
 Every code change flows through these layers in order:

@@ -26,7 +26,7 @@
 13. [Rationale Capture Requirements](#13-rationale-capture-requirements)
 14. [Failure Taxonomy](#14-failure-taxonomy)
 15. [Backward Compatibility](#15-backward-compatibility)
-16. [Appendix A: ASCII Architecture Diagrams](#appendix-a-ascii-architecture-diagrams)
+16. [Appendix A: Architecture Diagrams](#appendix-a-architecture-diagrams)
 17. [Appendix B: Artifact Type Reference](#appendix-b-artifact-type-reference)
 18. [Appendix C: Governance Layer Interaction Matrix](#appendix-c-governance-layer-interaction-matrix)
 
