@@ -34,6 +34,9 @@ conventions:
       standard: "{prefix}-{bu}-{stage}-{appName}-{appId}"
       mini: "{prefix}{bu}{stage}{product}"
       small: "{prefix}-{bu}-{stage}-{product}"
+    # CLI tool for generating Azure-compliant resource names
+    # Usage: python .ai/bin/generate-name.py --resource-type ... --lob ... --stage ...
+    cli_path: "bin/generate-name.py"
   registry:
     # Azure Container Registry for Bicep modules
     # Uses the SET-Apps production Bicep registry for shared modules

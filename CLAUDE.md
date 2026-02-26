@@ -24,6 +24,17 @@ Checks `.ai` submodule freshness (auto-updates if behind), creates symlinks for 
 **Agentic bootstrap (interactive):**
 Tell your AI assistant to read and execute `governance/prompts/init.md`. This walks through setup interactively — choosing a language template, configuring repository settings, and installing dependencies — with the agent asking about each option.
 
+**Azure resource naming (generate compliant names):**
+```bash
+python bin/generate-name.py \
+    --resource-type Microsoft.KeyVault/vaults \
+    --lob set --stage dev --app-name myapp --app-id a
+python bin/generate-name.py --list-types                    # List supported resource types
+python bin/generate-name.py --validate-only "kvsetdevmyapp" \
+    --resource-type Microsoft.KeyVault/vaults               # Validate an existing name
+```
+See `docs/guides/naming-cli-usage.md` for full usage documentation.
+
 **Submodule operations (from consuming repo):**
 ```bash
 git submodule add git@github.com:SET-Apps/ai-submodule.git .ai
