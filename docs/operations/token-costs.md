@@ -1,5 +1,7 @@
 # Per-PR Token Costs and Cost Estimation
 
+This document covers **LLM token costs for AI-assisted governance** -- the tokens consumed by Claude models during panel reviews, implementation, and evaluation. For GitHub Actions minutes and infrastructure costs, see [Infrastructure Costs](infrastructure-costs.md).
+
 Estimated token consumption and cost for each governance phase during a single PR lifecycle.
 
 ## Token Budget by Phase

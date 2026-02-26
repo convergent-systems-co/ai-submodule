@@ -89,6 +89,7 @@ nav:
     - Naming Review: governance/naming-review.md
   - Operations:
     - Autonomy Metrics: operations/autonomy-metrics.md
+    - Infrastructure Costs: operations/infrastructure-costs.md
     - Migration Summary: operations/migration-summary.md
     - Retrospective Aggregation: operations/retrospective-aggregation.md
     - Threshold Tuning: operations/threshold-tuning.md

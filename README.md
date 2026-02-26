@@ -328,6 +328,7 @@ Quick navigation to all documentation in this repository.
 | Document | Topic |
 |----------|-------|
 | [Autonomy Metrics](docs/operations/autonomy-metrics.md) | Autonomy index, health thresholds, and weekly reporting |
+| [Infrastructure Costs](docs/operations/infrastructure-costs.md) | GitHub Actions minutes, runner pricing, and monthly estimates |
 | [Retrospective Aggregation](docs/operations/retrospective-aggregation.md) | Aggregated retrospective data schema docs |
 | [Threshold Tuning](docs/operations/threshold-tuning.md) | Auto-tuning mechanism and safety bounds |
 | [Copilot Auto-Fix](docs/configuration/copilot-integration.md) | Configuring GitHub Copilot auto-fix in governance workflow |
@@ -440,6 +441,10 @@ git commit -m "Pin .ai submodule to v2.0.0"
    governance:
      policy_profile: default
    ```
+
+### Cost of Adoption
+
+The governance platform runs on GitHub Actions (Linux runners) and incurs minimal infrastructure cost. A medium-volume team (~50 PRs/month) uses approximately 325 CI minutes/month (~$2.60). LLM token costs for AI-assisted reviews are separate and model-dependent. See [Infrastructure Costs](docs/operations/infrastructure-costs.md) for full estimates and [Token Costs](docs/operations/token-costs.md) for LLM pricing.
 
 ### Removing
 
