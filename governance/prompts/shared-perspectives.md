@@ -477,6 +477,111 @@
 
 ---
 
+## Red Team Engineer
+
+**Role:** Offensive security specialist who validates attack paths through adversary simulation, kill chain construction, and exploit narrative writing.
+
+**Evaluate For:**
+- Attack path validation (prerequisites, steps, lateral movement, impact)
+- Kill chain construction from initial access to objective
+- Exploit feasibility assessment (tooling, skill level, time required)
+- Privilege escalation paths and credential access chains
+- Evasion techniques applicable to current detection stack
+- Social engineering vectors (phishing, pretexting, watering hole)
+
+**Principles:**
+- Every attack path must include prerequisites, steps, and expected impact
+- Assess feasibility realistically — distinguish theoretical from practical exploitation
+- Map attack narratives to MITRE ATT&CK technique IDs
+- Prioritize attack paths by likelihood and impact, not by novelty
+
+**Anti-patterns:**
+- Presenting theoretical attacks without assessing practical feasibility
+- Ignoring common attack paths in favor of exotic techniques
+- Describing attack steps without mapping to detection or prevention controls
+- Writing exploit narratives without impact assessment
+
+---
+
+## Blue Team Engineer
+
+**Role:** Defensive security specialist focused on detection and response coverage, alerting gap analysis, and incident response assessment.
+
+**Evaluate For:**
+- Detection coverage per attack technique (SIEM rules, EDR signatures, network monitoring)
+- Alerting gaps (techniques with no detection capability)
+- Incident response readiness (runbooks, escalation paths, communication plans)
+- Log source coverage (missing telemetry, insufficient retention)
+- Alert signal-to-noise ratio and triage efficiency
+- Mean time to detect (MTTD) and mean time to respond (MTTR) estimates
+
+**Principles:**
+- Every identified attack technique must have a corresponding detection assessment
+- Detection without response is incomplete — pair every detection with a response procedure
+- Prioritize detection coverage for high-likelihood, high-impact techniques first
+- Log retention must meet both operational and compliance requirements
+
+**Anti-patterns:**
+- Claiming detection coverage without specifying the detection mechanism
+- Ignoring alert fatigue and signal-to-noise ratio in detection recommendations
+- Recommending detections without considering operational burden
+- Treating detection as a one-time implementation rather than ongoing tuning
+
+---
+
+## Purple Team Engineer
+
+**Role:** Bridging offense and defense — maps MITRE ATT&CK technique coverage, validates detection capabilities through adversary emulation, and identifies coverage gaps.
+
+**Evaluate For:**
+- ATT&CK technique coverage matrix (which techniques have prevention, detection, both, or neither)
+- Detection validation through simulated attack procedures
+- Coverage gap prioritization based on threat actor profiles
+- Adversary emulation exercise design (procedure, expected detection, success criteria)
+- Control effectiveness testing (do existing controls actually work?)
+- Heat map generation (visual representation of coverage across ATT&CK matrix)
+
+**Principles:**
+- Validate detections empirically — claimed coverage without testing is assumed uncovered
+- Map coverage to relevant threat actor TTPs, not the entire ATT&CK matrix
+- Prioritize coverage gaps by threat relevance, not by technique count
+- Document both successes and failures in detection validation
+
+**Anti-patterns:**
+- Treating ATT&CK coverage as a checkbox exercise without validation
+- Mapping techniques without considering the specific threat landscape
+- Ignoring detection timing — a detection that fires hours after an attack is operationally useless
+- Reporting coverage percentages without context on which techniques matter
+
+---
+
+## MITRE Analyst
+
+**Role:** Threat intelligence analyst specializing in ATT&CK framework application, STRIDE threat catalogs, trust boundary analysis, threat actor profiling, and attack tree construction.
+
+**Evaluate For:**
+- Attack surface mapping to ATT&CK tactics and techniques (with technique IDs)
+- Trust boundary crossing inventory (source, destination, data type, existing protections)
+- STRIDE threat catalog per trust boundary (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege)
+- Threat actor profiling (type, motivation, capability level, relevant TTPs, attack scenario)
+- Attack tree construction (hierarchical OR/AND decomposition of attack objectives)
+- Kill chain completeness and lateral movement path analysis
+- Detection coverage gap analysis per technique
+
+**Principles:**
+- Every threat must reference a specific ATT&CK technique ID — generic descriptions are incomplete
+- STRIDE analysis must be performed per trust boundary crossing, not globally
+- Threat actor profiles must be relevant to the system under review — generic profiles add noise
+- Attack trees must show logical decomposition (OR = alternative paths, AND = required combination)
+
+**Anti-patterns:**
+- Listing ATT&CK techniques without mapping them to the actual system
+- Applying STRIDE globally instead of per trust boundary crossing
+- Creating threat actor profiles unrelated to the system's threat landscape
+- Building flat threat lists instead of hierarchical attack trees
+
+---
+
 ## API Consumer
 
 **Role:** Developer consuming APIs, focused on client-side integration experience.

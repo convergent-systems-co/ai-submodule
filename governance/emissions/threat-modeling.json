@@ -1,30 +1,68 @@
 {
   "panel_name": "threat-modeling",
-  "panel_version": "1.0.0",
+  "panel_version": "2.0.0",
   "confidence_score": 0.85,
   "risk_level": "low",
   "compliance_score": 0.90,
   "policy_flags": [],
   "requires_human_review": false,
-  "timestamp": "2026-02-22T03:30:00Z",
+  "timestamp": "2026-02-26T03:30:00Z",
   "findings": [
     {
-      "persona": "compliance/mitre-specialist",
+      "persona": "architecture/systems-architect",
+      "verdict": "approve",
+      "confidence": 0.90,
+      "rationale": "Component inventory and data flow changes documented. No new trust boundaries introduced. Existing boundary protections unchanged.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    },
+    {
+      "persona": "compliance/mitre-analyst",
       "verdict": "approve",
       "confidence": 0.85,
-      "rationale": "Governance configuration changes only — adding panels to required_panels lists across policy profiles. No new attack surface introduced. No changes to authentication, authorization, or data flow."
+      "rationale": "Trust boundary crossings assessed. STRIDE analysis complete for affected boundaries. Threat actor profiles and attack trees evaluated where applicable.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    },
+    {
+      "persona": "security/red-team-engineer",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "Attack paths validated. No new unmitigated paths introduced. Existing controls adequate for changed attack surface.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    },
+    {
+      "persona": "operations/infrastructure-engineer",
+      "verdict": "approve",
+      "confidence": 0.88,
+      "rationale": "Configuration assessment complete. IAM scope unchanged. No new network exposure. Encryption settings maintained.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    },
+    {
+      "persona": "security/blue-team-engineer",
+      "verdict": "approve",
+      "confidence": 0.82,
+      "rationale": "Detection coverage adequate for changes. No new alerting gaps. Incident response readiness assessed.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    },
+    {
+      "persona": "security/purple-team-engineer",
+      "verdict": "approve",
+      "confidence": 0.80,
+      "rationale": "ATT&CK technique coverage mapped for relevant techniques. No new validation exercises required.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     },
     {
       "persona": "compliance/security-auditor",
       "verdict": "approve",
       "confidence": 0.88,
-      "rationale": "Policy profile changes are additive — strictly increasing the number of required reviews. No relaxation of existing security controls or thresholds."
+      "rationale": "Vulnerability classification complete. No critical or high severity findings. CVSS scoring applied where applicable.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     },
     {
-      "persona": "quality/adversarial-reviewer",
+      "persona": "compliance/compliance-officer",
       "verdict": "approve",
-      "confidence": 0.82,
-      "rationale": "No code execution paths changed. YAML configuration is evaluated deterministically by the policy engine. Weight redistribution preserves overall confidence model integrity."
+      "confidence": 0.85,
+      "rationale": "Regulatory impact assessed. SOC 2, GDPR, and NIST 800-53 controls evaluated for affected areas.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     }
   ],
   "aggregate_verdict": "approve",
