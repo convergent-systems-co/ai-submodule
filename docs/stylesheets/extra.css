@@ -137,6 +137,22 @@
   color: #8FBCBB;
 }
 
+/* Header layout — hamburger far-left, logo to its right */
+[data-md-color-scheme="nord"] .md-header__inner {
+  display: flex;
+  align-items: center;
+}
+
+[data-md-color-scheme="nord"] .md-header__button[for="__drawer"] {
+  order: -2;
+  margin-left: 0;
+  padding-left: 0.4rem;
+}
+
+[data-md-color-scheme="nord"] .md-header__button.md-logo {
+  order: -1;
+}
+
 /* Hamburger drawer — always show the toggle, sidebar is a drawer on all screens */
 @media screen and (min-width: 76.25em) {
   [data-md-color-scheme="nord"] .md-header__button[for="__drawer"] {
