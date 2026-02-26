@@ -23,7 +23,7 @@ GitHub Issue (free text)
 Formal Spec (structured, machine-readable)
     |
     v
-Plan (governance/plans/ — implementation strategy)
+Plan (.governance/plans/ in consuming repos, governance/plans/ in ai-submodule — implementation strategy)
     |
     v
 Implementation + Tests
@@ -119,7 +119,7 @@ Pre-classifies the change to route it to the correct policy profile and panels:
 Formal specs can be stored:
 - Inline in issue bodies (as JSON code blocks)
 - As files in `.specs/` (consuming repo directory, not yet created by init.sh)
-- As attachments to plans in `governance/plans/`
+- As attachments to plans in `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule)
 
 ## Future Integration
 

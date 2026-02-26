@@ -996,7 +996,7 @@ The Coder is the primary execution agent. It operates under the direction of the
 |----------------|-------------|
 | Branch Management | Creates and manages branches for assigned work items |
 | Implementation | Writes code following repository standards and the cognitive execution plan |
-| Plan Documentation | Produces implementation plans saved to `governance/plans/` for review |
+| Plan Documentation | Produces implementation plans saved to `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) for review |
 | Standard Adherence | Follows language-specific templates and project conventions |
 | Test Execution | Runs tests and ensures pass criteria are met |
 | Artifact Production | Generates workflow artifacts (FEAT-N, BUG-N, etc.) at each phase |
@@ -1433,7 +1433,7 @@ flowchart TD
 | `governance/policy/` | Enforcement | Policy profiles (YAML) |
 | `governance/manifests/` | Audit | Run manifests and governance version manifests |
 | `docs/` | Cognitive | Architecture and specification documents |
-| `governance/plans/` | Cognitive | Implementation plans |
+| `governance/plans/` (ai-submodule) / `.governance/plans/` (consuming repos) | Cognitive | Implementation plans |
 
 ### B.3 Required Emission Fields by Panel Type
 

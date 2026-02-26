@@ -30,7 +30,7 @@ All artifacts in the `.ai/` system fall into three categories. Each category has
 | `governance/templates/` | Language-specific conventions | Load once at session start based on project language |
 | `instructions.md` | Base AI instructions | Always loaded (compact, < 500 tokens) |
 | `docs/` | Architecture and design documents | Reference only, not loaded into agent context |
-| `governance/plans/` | Implementation plans | Load only the active plan for the current task |
+| `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) | Implementation plans | Load only the active plan for the current task |
 
 **Versioning:** Git commit SHA. Cognitive artifacts evolve with the submodule version.
 
@@ -82,7 +82,7 @@ For detailed retention policy, immutability enforcement mechanisms, and panel na
 |-----------|----------|-----------|
 | `governance/manifests/` | Run manifests (JSON per `run-manifest.schema.json`) | Permanent — required for audit replay |
 | Panel outputs | Structured emissions (JSON per `panel-output.schema.json`) | Retained with the PR/merge they belong to |
-| `governance/plans/` | Implementation plans (Markdown) | Retained with the branch/PR lifecycle |
+| `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) | Implementation plans (Markdown) | Retained with the branch/PR lifecycle |
 
 **Versioning:** Each audit artifact has a unique `manifest_id` or timestamp. They are append-only.
 

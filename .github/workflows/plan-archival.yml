@@ -31,7 +31,7 @@ jobs:
         run: |
           set -e
           # Get files changed in the merged PR
-          PLANS=$(gh pr diff "$PR_NUMBER" --name-only | grep '^governance/plans/' || true)
+          PLANS=$(gh pr diff "$PR_NUMBER" --name-only | grep -E '^(governance/plans/|\.governance/plans/)' || true)
           if [ -z "$PLANS" ]; then
             echo "has_plans=false" >> "$GITHUB_OUTPUT"
             echo "No plan files found in PR"
