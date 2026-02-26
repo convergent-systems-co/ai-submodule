@@ -68,6 +68,16 @@ When operating without a GitHub remote (no issues, PRs, or CI):
 - Commit messages must still use conventional commit format.
 - Skip only GitHub-specific steps (issue comments, PR creation, Copilot polling).
 
+### PR Approval Is Automated
+
+**Never manually approve PRs or seek manual approval.** The `dark-factory-governance.yml` workflow evaluates panel emissions and approves via `github-actions[bot]`, which is listed as a CODEOWNER. After creating a PR:
+
+1. Wait for the governance workflow to complete
+2. Verify `github-actions[bot]` has approved (check reviews)
+3. Merge the PR
+
+The only exception is when the policy engine decision is `human_review_required` — in that case, escalate to the user. Do not attempt to find or use other accounts to approve PRs.
+
 ### Missing Panels
 
 If required panel emissions are not present in `governance/emissions/`:
