@@ -17,7 +17,9 @@ from dataclasses import dataclass
 from typing import Any
 
 from governance.engine.naming_data import (
+    LOB_CODES,
     RESOURCE_TYPES,
+    STAGE_CODES,
     VALID_LOBS,
     VALID_STAGES,
     ResourceTypeInfo,
@@ -67,8 +69,7 @@ class NamingInput:
             )
         if not _validate_app_id(self.app_id):
             errors.append(
-                f"Invalid app_id '{self.app_id}'. Must be a single letter (a-z), "
-                "optionally followed by '-si' for shared infrastructure."
+                f"Invalid app_id '{self.app_id}'. Must be a single lowercase letter (a-z)."
             )
         if not self.app_name:
             errors.append("app_name is required and cannot be empty.")
@@ -90,11 +91,11 @@ class NamingInput:
 # Validation helpers
 # ---------------------------------------------------------------------------
 
-_APP_ID_RE = re.compile(r"^[a-z](-si)?$")
+_APP_ID_RE = re.compile(r"^[a-z]$")
 
 
 def _validate_app_id(app_id: str) -> bool:
-    """Return True if app_id is a single lowercase letter, optionally with -si."""
+    """Return True if app_id is a single lowercase letter."""
     return bool(_APP_ID_RE.match(app_id.lower()))
 
 
@@ -161,16 +162,26 @@ def _generate_standard(inp: NamingInput, info: ResourceTypeInfo) -> str:
 
 
 def _generate_mini(inp: NamingInput, info: ResourceTypeInfo) -> str:
-    """Mini pattern: {prefix}{lob}{stage}{shortName} — no hyphens, typically <=24 chars."""
+    """Mini pattern: {prefix}{lobCode}{stageCode}{appName}{role}{appId} — no hyphens, typically <=24 chars.
+
+    Uses 1-char LOB codes and 1-char stage codes for maximum compactness.
+    Always includes role (if provided) and appId to prevent name collisions.
+    """
     prefix = info.prefix
     lob = inp.lob.lower()
     stage = inp.stage.lower()
+    lob_code = LOB_CODES[lob]
+    stage_code = STAGE_CODES[stage]
     app_name = inp.app_name.lower()
+    role = inp.role.lower() if inp.role else ""
+    app_id = inp.app_id.lower()
 
-    # Remove any hyphens/underscores from app_name for mini pattern
+    # Strip hyphens/underscores from all variable parts for mini (no-hyphen) pattern
     clean_name = re.sub(r"[-_]", "", app_name)
+    clean_role = re.sub(r"[-_]", "", role)
 
-    fixed_len = len(prefix) + len(lob) + len(stage)
+    # Fixed parts (never truncated): prefix + lobCode(1) + stageCode(1) + appId(1)
+    fixed_len = len(prefix) + len(lob_code) + len(stage_code) + len(app_id)
     budget = info.max_length - fixed_len
 
     if budget <= 0:
@@ -179,28 +190,49 @@ def _generate_mini(inp: NamingInput, info: ResourceTypeInfo) -> str:
             f"{info.resource_type}. Fixed parts alone exceed the limit."
         )
 
-    truncated = clean_name[:budget]
-    return f"{prefix}{lob}{stage}{truncated}"
+    if clean_role:
+        truncated_app, truncated_role = _shorten_pair(clean_name, clean_role, budget)
+        return f"{prefix}{lob_code}{stage_code}{truncated_app}{truncated_role}{app_id}"
+    else:
+        truncated = clean_name[:budget]
+        return f"{prefix}{lob_code}{stage_code}{truncated}{app_id}"
 
 
 def _generate_small(inp: NamingInput, info: ResourceTypeInfo) -> str:
-    """Small pattern: {prefix}-{lob}-{stage}-{shortName} — hyphens allowed, <=60 chars."""
+    """Small pattern: {prefix}-{lob}-{stage}-{appName}-{role}-{appId} — hyphens allowed, <=60 chars.
+
+    Always includes role (if provided) and appId to prevent name collisions.
+    Uses full LOB and stage strings (not codes).
+    """
     prefix = info.prefix
     lob = inp.lob.lower()
     stage = inp.stage.lower()
     app_name = inp.app_name.lower()
+    role = inp.role.lower() if inp.role else ""
+    app_id = inp.app_id.lower()
 
-    fixed_len = len(prefix) + 1 + len(lob) + 1 + len(stage) + 1  # hyphens
-    budget = info.max_length - fixed_len
-
-    if budget <= 0:
-        raise NamingError(
-            f"Cannot fit name within {info.max_length} chars for "
-            f"{info.resource_type}. Fixed parts alone exceed the limit."
-        )
-
-    truncated = app_name[:budget]
-    return f"{prefix}-{lob}-{stage}-{truncated}"
+    if role:
+        # {prefix}-{lob}-{stage}-{appName}-{role}-{appId}
+        fixed_len = len(prefix) + 1 + len(lob) + 1 + len(stage) + 1 + 1 + len(app_id) + 1  # hyphens around role and appId
+        budget = info.max_length - fixed_len
+        if budget <= 0:
+            raise NamingError(
+                f"Cannot fit name within {info.max_length} chars for "
+                f"{info.resource_type}. Fixed parts alone exceed the limit."
+            )
+        truncated_app, truncated_role = _shorten_pair(app_name, role, budget)
+        return f"{prefix}-{lob}-{stage}-{truncated_app}-{truncated_role}-{app_id}"
+    else:
+        # {prefix}-{lob}-{stage}-{appName}-{appId}
+        fixed_len = len(prefix) + 1 + len(lob) + 1 + len(stage) + 1 + len(app_id) + 1
+        budget = info.max_length - fixed_len
+        if budget <= 0:
+            raise NamingError(
+                f"Cannot fit name within {info.max_length} chars for "
+                f"{info.resource_type}. Fixed parts alone exceed the limit."
+            )
+        truncated = app_name[:budget]
+        return f"{prefix}-{lob}-{stage}-{truncated}-{app_id}"
 
 
 # ---------------------------------------------------------------------------

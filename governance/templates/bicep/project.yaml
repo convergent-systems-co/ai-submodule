@@ -27,13 +27,12 @@ conventions:
     require_util_module: true
     util_module: "br/acr-prod:modules/util:v0"
     import_statement: "import { getResourceNames } from 'br/acr-prod:modules/util:v0'"
-    # Patterns: standard ({prefix}-{bu}-{stage}-{appName}-{appId}),
-    #           mini ({prefix}{bu}{stage}{product}, 24-char, no hyphens),
-    #           small ({prefix}-{bu}-{stage}-{product}, 60-char)
+    # v2 naming patterns — all patterns include role + appId for collision prevention
+    # Mini uses 1-char LOB/stage codes (see docs/guides/naming-cli-usage.md)
     patterns:
-      standard: "{prefix}-{bu}-{stage}-{appName}-{appId}"
-      mini: "{prefix}{bu}{stage}{product}"
-      small: "{prefix}-{bu}-{stage}-{product}"
+      standard: "{prefix}-{lob}-{stage}-{appName}-{role}-{appId}"
+      mini: "{prefix}{lobCode}{stageCode}{appName}{role}{appId}"
+      small: "{prefix}-{lob}-{stage}-{appName}-{role}-{appId}"
     # CLI tool for generating Azure-compliant resource names
     # Usage: python .ai/bin/generate-name.py --resource-type ... --lob ... --stage ...
     cli_path: "bin/generate-name.py"

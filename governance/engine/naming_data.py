@@ -78,4 +78,29 @@ RESOURCE_TYPES: dict[str, ResourceTypeInfo] = {
 
 VALID_LOBS: set[str] = {"jma", "jmf", "jmfe", "set", "setf", "to", "ocio", "octo", "lexus"}
 
-VALID_STAGES: set[str] = {"dev", "stg", "uat", "prod", "nonprod"}
+VALID_STAGES: set[str] = {"dev", "stg", "qa", "uat", "prod", "nonprod"}
+
+# ---------------------------------------------------------------------------
+# v2 mini-pattern code tables — 1-char codes for compact resource names
+# ---------------------------------------------------------------------------
+
+LOB_CODES: dict[str, str] = {
+    "set": "s",
+    "setf": "v",
+    "jma": "j",
+    "jmf": "f",
+    "jmfe": "e",
+    "to": "t",
+    "ocio": "i",
+    "octo": "c",
+    "lexus": "l",
+}
+
+STAGE_CODES: dict[str, str] = {
+    "dev": "d",
+    "stg": "s",
+    "qa": "q",
+    "uat": "u",
+    "prod": "p",
+    "nonprod": "n",
+}

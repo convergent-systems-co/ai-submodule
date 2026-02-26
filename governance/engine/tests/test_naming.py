@@ -18,7 +18,13 @@ from governance.engine.naming import (
     list_resource_types,
     validate_name,
 )
-from governance.engine.naming_data import RESOURCE_TYPES, VALID_LOBS, VALID_STAGES
+from governance.engine.naming_data import (
+    LOB_CODES,
+    RESOURCE_TYPES,
+    STAGE_CODES,
+    VALID_LOBS,
+    VALID_STAGES,
+)
 
 
 # ===========================================================================
@@ -130,18 +136,6 @@ class TestNamingInputValidation:
         )
         assert inp.resource_type == "Microsoft.AppConfiguration/configurationStores"
 
-    def test_valid_app_id_with_si(self):
-        """app_id 'a-si' (shared infrastructure) should be valid."""
-        inp = NamingInput(
-            resource_type="Microsoft.Sql/servers",
-            lob="set",
-            stage="dev",
-            app_name="myapp",
-            app_id="a-si",
-            role="web",
-        )
-        assert inp.app_id == "a-si"
-
     def test_multiple_errors_reported(self):
         """All validation errors should be combined."""
         with pytest.raises(NamingError) as exc_info:
@@ -190,18 +184,6 @@ class TestStandardPattern:
         )
         name = generate_name(inp)
         assert name == "sql-jma-prod-billing-api-eastus-b"
-
-    def test_with_si_suffix(self):
-        inp = NamingInput(
-            resource_type="Microsoft.Sql/servers",
-            lob="set",
-            stage="dev",
-            app_name="shared",
-            app_id="a-si",
-            role="db",
-        )
-        name = generate_name(inp)
-        assert name == "sql-set-dev-shared-db-a-si"
 
     def test_case_normalized(self):
         """All inputs should be lowercased in the output."""
@@ -252,7 +234,8 @@ class TestMiniPattern:
             app_id="a",
         )
         name = generate_name(inp)
-        assert name == "kvsetdevmyapp"
+        # v2: kv + s(set) + d(dev) + myapp + a
+        assert name == "kvsdmyappa"
         assert "-" not in name
         assert len(name) <= 24
 
@@ -265,7 +248,8 @@ class TestMiniPattern:
             app_id="b",
         )
         name = generate_name(inp)
-        assert name == "stjmaproddatalake"
+        # v2: st + j(jma) + p(prod) + datalake + b
+        assert name == "stjpdatalakeb"
         assert "-" not in name
         assert len(name) <= 24
 
@@ -278,7 +262,8 @@ class TestMiniPattern:
             app_id="a",
         )
         name = generate_name(inp)
-        assert name == "crsetdevplatform"
+        # v2: cr + s(set) + d(dev) + platform + a
+        assert name == "crsdplatforma"
         assert "-" not in name
         assert len(name) <= 50
 
@@ -292,9 +277,9 @@ class TestMiniPattern:
             app_id="a",
         )
         name = generate_name(inp)
-        # kv(2) + set(3) + dev(3) = 8 fixed; budget = 24 - 8 = 16
+        # v2: kv(2) + s(1) + d(1) + a(1) = 5 fixed; budget = 24 - 5 = 19
         assert len(name) <= 24
-        assert name.startswith("kvsetdev")
+        assert name.startswith("kvsd")
 
     def test_mini_strips_hyphens_from_app_name(self):
         """Hyphens in app_name should be removed for mini pattern."""
@@ -308,6 +293,7 @@ class TestMiniPattern:
         name = generate_name(inp)
         assert "-" not in name
         assert "mycoolapp" in name
+        assert name.endswith("a")  # appId always present
 
     def test_all_mini_resources_generate(self):
         """Every mini-pattern resource type should produce a valid name."""
@@ -343,7 +329,8 @@ class TestSmallPattern:
             app_id="a",
         )
         name = generate_name(inp)
-        assert name == "appcs-set-dev-platform"
+        # v2: small now includes appId
+        assert name == "appcs-set-dev-platform-a"
 
     def test_app_insights(self):
         inp = NamingInput(
@@ -354,7 +341,8 @@ class TestSmallPattern:
             app_id="b",
         )
         name = generate_name(inp)
-        assert name == "appi-jma-prod-analytics"
+        # v2: small now includes appId
+        assert name == "appi-jma-prod-analytics-b"
 
     def test_small_truncation(self):
         """Long names should be truncated for small pattern."""
@@ -415,7 +403,7 @@ class TestDeterministicShortening:
             lob="setf",
             stage="nonprod",
             app_name="app",
-            app_id="a-si",
+            app_id="a",
             role="a" * 40,  # very long role
         )
         name = generate_name(inp)
@@ -429,13 +417,13 @@ class TestDeterministicShortening:
             lob="lexus",
             stage="nonprod",
             app_name="superlongapplicationname",
-            app_id="a-si",
+            app_id="a",
             role="database",
         )
         name = generate_name(inp)
         assert len(name) <= 44
         assert name.startswith("cosmos-lexus-nonprod-")
-        assert name.endswith("-a-si")
+        assert name.endswith("-a")
 
     def test_shortening_is_deterministic(self):
         """Same inputs always produce the same output."""
@@ -637,7 +625,7 @@ class TestCLI:
             "--app-id", "a",
         )
         assert result.returncode == 0
-        assert result.stdout.strip() == "kvsetdevmyapp"
+        assert result.stdout.strip() == "kvsdmyappa"
 
     def test_validate_valid(self):
         result = self._run(
@@ -691,3 +679,236 @@ class TestCLI:
         )
         assert result.returncode == 0
         assert result.stdout.strip() == "sql-set-dev-payments-db-eastus-a"
+
+
+# ===========================================================================
+# v2 naming scheme — LOB/stage codes, collision prevention, qa stage
+# ===========================================================================
+
+
+class TestV2LobStageCodes:
+    """Verify LOB and stage code tables are complete and consistent."""
+
+    def test_lob_codes_cover_all_valid_lobs(self):
+        assert set(LOB_CODES.keys()) == VALID_LOBS
+
+    def test_stage_codes_cover_all_valid_stages(self):
+        assert set(STAGE_CODES.keys()) == VALID_STAGES
+
+    def test_lob_codes_are_single_char(self):
+        for lob, code in LOB_CODES.items():
+            assert len(code) == 1, f"LOB code for '{lob}' is '{code}', expected 1 char"
+
+    def test_stage_codes_are_single_char(self):
+        for stage, code in STAGE_CODES.items():
+            assert len(code) == 1, f"Stage code for '{stage}' is '{code}', expected 1 char"
+
+    def test_lob_codes_are_unique(self):
+        codes = list(LOB_CODES.values())
+        assert len(codes) == len(set(codes)), "LOB codes contain duplicates"
+
+    def test_stage_codes_are_unique(self):
+        codes = list(STAGE_CODES.values())
+        assert len(codes) == len(set(codes)), "Stage codes contain duplicates"
+
+    def test_all_codes_are_lowercase(self):
+        for code in LOB_CODES.values():
+            assert code == code.lower()
+        for code in STAGE_CODES.values():
+            assert code == code.lower()
+
+
+class TestV2QaStage:
+    """Verify qa stage is accepted across all patterns."""
+
+    def test_qa_stage_standard(self):
+        inp = NamingInput(
+            resource_type="Microsoft.Sql/servers",
+            lob="set",
+            stage="qa",
+            app_name="myapp",
+            app_id="a",
+            role="db",
+        )
+        name = generate_name(inp)
+        assert name == "sql-set-qa-myapp-db-a"
+
+    def test_qa_stage_mini(self):
+        inp = NamingInput(
+            resource_type="Microsoft.KeyVault/vaults",
+            lob="set",
+            stage="qa",
+            app_name="myapp",
+            app_id="a",
+        )
+        name = generate_name(inp)
+        # kv + s(set) + q(qa) + myapp + a
+        assert name == "kvsqmyappa"
+
+    def test_qa_stage_small(self):
+        inp = NamingInput(
+            resource_type="Microsoft.AppConfiguration/configurationStores",
+            lob="set",
+            stage="qa",
+            app_name="platform",
+            app_id="a",
+        )
+        name = generate_name(inp)
+        assert name == "appcs-set-qa-platform-a"
+
+
+class TestV2CollisionPrevention:
+    """Verify that v2 mini pattern prevents collisions that v1 had."""
+
+    def test_different_roles_produce_different_mini_names(self):
+        """Two storage accounts for same app but different roles must differ."""
+        inp_checks = NamingInput(
+            resource_type="Microsoft.Storage/storageAccounts",
+            lob="set",
+            stage="dev",
+            app_name="acctach",
+            app_id="a",
+            role="chk",
+        )
+        inp_reports = NamingInput(
+            resource_type="Microsoft.Storage/storageAccounts",
+            lob="set",
+            stage="dev",
+            app_name="acctach",
+            app_id="a",
+            role="rpt",
+        )
+        name_checks = generate_name(inp_checks)
+        name_reports = generate_name(inp_reports)
+        assert name_checks != name_reports
+        assert "-" not in name_checks
+        assert "-" not in name_reports
+
+    def test_different_app_ids_produce_different_mini_names(self):
+        """Same resource type/lob/stage/app but different appIds must differ."""
+        inp_a = NamingInput(
+            resource_type="Microsoft.KeyVault/vaults",
+            lob="jma",
+            stage="prod",
+            app_name="billing",
+            app_id="a",
+        )
+        inp_b = NamingInput(
+            resource_type="Microsoft.KeyVault/vaults",
+            lob="jma",
+            stage="prod",
+            app_name="billing",
+            app_id="b",
+        )
+        assert generate_name(inp_a) != generate_name(inp_b)
+
+    def test_different_lobs_produce_different_mini_names(self):
+        """Different LOBs with same other inputs must produce different names."""
+        inp_set = NamingInput(
+            resource_type="Microsoft.Storage/storageAccounts",
+            lob="set",
+            stage="dev",
+            app_name="myapp",
+            app_id="a",
+        )
+        inp_jma = NamingInput(
+            resource_type="Microsoft.Storage/storageAccounts",
+            lob="jma",
+            stage="dev",
+            app_name="myapp",
+            app_id="a",
+        )
+        assert generate_name(inp_set) != generate_name(inp_jma)
+
+    def test_different_stages_produce_different_mini_names(self):
+        """Different stages with same other inputs must produce different names."""
+        inp_dev = NamingInput(
+            resource_type="Microsoft.KeyVault/vaults",
+            lob="set",
+            stage="dev",
+            app_name="myapp",
+            app_id="a",
+        )
+        inp_prod = NamingInput(
+            resource_type="Microsoft.KeyVault/vaults",
+            lob="set",
+            stage="prod",
+            app_name="myapp",
+            app_id="a",
+        )
+        assert generate_name(inp_dev) != generate_name(inp_prod)
+
+    def test_si_suffix_rejected(self):
+        """v2 does not accept -si suffix on app_id."""
+        with pytest.raises(NamingError, match="Invalid app_id"):
+            NamingInput(
+                resource_type="Microsoft.Sql/servers",
+                lob="set",
+                stage="dev",
+                app_name="shared",
+                app_id="a-si",
+                role="db",
+            )
+
+
+class TestV2MiniWithRole:
+    """Verify mini pattern with role included."""
+
+    def test_mini_keyvault_with_role(self):
+        inp = NamingInput(
+            resource_type="Microsoft.KeyVault/vaults",
+            lob="set",
+            stage="dev",
+            app_name="myapp",
+            app_id="a",
+            role="sec",
+        )
+        name = generate_name(inp)
+        # kv + s + d + myapp + sec + a
+        assert name == "kvsdmyappseca"
+        assert "-" not in name
+        assert len(name) <= 24
+
+    def test_mini_storage_with_role(self):
+        inp = NamingInput(
+            resource_type="Microsoft.Storage/storageAccounts",
+            lob="set",
+            stage="dev",
+            app_name="acctach",
+            app_id="a",
+            role="chk",
+        )
+        name = generate_name(inp)
+        # st + s + d + acctach + chk + a
+        assert name == "stsdacctachchka"
+        assert "-" not in name
+        assert len(name) <= 24
+
+
+class TestV2SmallWithRoleAndAppId:
+    """Verify small pattern includes role and appId in v2."""
+
+    def test_small_with_role(self):
+        inp = NamingInput(
+            resource_type="Microsoft.AppConfiguration/configurationStores",
+            lob="set",
+            stage="dev",
+            app_name="platform",
+            app_id="a",
+            role="cfg",
+        )
+        name = generate_name(inp)
+        assert name == "appcs-set-dev-platform-cfg-a"
+
+    def test_small_appid_always_present(self):
+        """Even without role, appId must appear at the end."""
+        inp = NamingInput(
+            resource_type="Microsoft.Insights/components",
+            lob="set",
+            stage="dev",
+            app_name="monitor",
+            app_id="a",
+        )
+        name = generate_name(inp)
+        assert name.endswith("-a")
+        assert name == "appi-set-dev-monitor-a"

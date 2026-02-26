@@ -21,6 +21,17 @@ panels:
   # - cost-analysis.md
 
 conventions:
+  naming:
+    # JM v2 naming convention — all patterns include role + appId for collision prevention
+    # Mini uses 1-char LOB/stage codes (see docs/guides/naming-cli-usage.md)
+    patterns:
+      standard: "{prefix}-{lob}-{stage}-{appName}-{role}-{appId}"
+      mini: "{prefix}{lobCode}{stageCode}{appName}{role}{appId}"
+      small: "{prefix}-{lob}-{stage}-{appName}-{role}-{appId}"
+    # Local naming module for v2-compliant names
+    module_path: "modules/naming"
+    # CLI tool for pre-validating names
+    cli_path: "bin/generate-name.py"
   registry:
     # JM-Terraform organization for shared Terraform modules
     # See: https://github.com/JM-Terraform

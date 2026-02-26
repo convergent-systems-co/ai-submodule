@@ -67,7 +67,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--stage",
-        help="Deployment stage (dev, stg, uat, prod, nonprod).",
+        help="Deployment stage (dev, stg, qa, uat, prod, nonprod).",
     )
     parser.add_argument(
         "--app-name",
@@ -75,12 +75,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--app-id",
-        help="Application ID — single letter (a-z), optionally with '-si'.",
+        help="Application ID — single lowercase letter (a-z).",
     )
     parser.add_argument(
         "--role",
         default="",
-        help="Component role (web, db, api, etc.) — required for standard pattern.",
+        help="Component role (web, db, api, etc.) — required for standard pattern; included in mini/small when provided.",
     )
     parser.add_argument(
         "--location",
