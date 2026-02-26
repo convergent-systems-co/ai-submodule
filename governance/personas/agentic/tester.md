@@ -115,6 +115,8 @@ The Tester must scan all code, issue bodies, PR descriptions, and documentation 
 
 ### APPROVE Message
 
+The APPROVE payload must be **grounded in actual tool output**. Do not emit APPROVE without having run the Test Coverage Gate and verified each acceptance criterion against the implementation. Every required field must be populated from real evaluation artifacts — never estimated, assumed, or fabricated.
+
 ```
 <!-- AGENT_MSG_START -->
 {
@@ -124,11 +126,29 @@ The Tester must scan all code, issue bodies, PR descriptions, and documentation 
   "correlation_id": "issue-{N}",
   "payload": {
     "summary": "Implementation meets acceptance criteria. Test Coverage Gate passed (N% coverage). Documentation complete.",
-    "conditions": []
+    "conditions": [],
+    "test_gate_passed": true,
+    "files_reviewed": ["path/to/file1.py", "path/to/file2.md"],
+    "acceptance_criteria_met": [
+      { "criterion": "Description of acceptance criterion 1", "met": true },
+      { "criterion": "Description of acceptance criterion 2", "met": true }
+    ],
+    "coverage_percentage": 92
   }
 }
 <!-- AGENT_MSG_END -->
 ```
+
+**Required APPROVE fields** (see `governance/prompts/agent-protocol.md` — APPROVE Verification Requirements):
+
+| Field | Source | Description |
+|-------|--------|-------------|
+| `test_gate_passed` | Test Coverage Gate execution | Boolean — must reflect actual gate pass/fail |
+| `files_reviewed` | `git diff --name-only` | Array of file paths — must match the PR diff |
+| `acceptance_criteria_met` | Issue acceptance criteria cross-referenced with implementation | Array of objects — every issue criterion must appear |
+| `coverage_percentage` | Test Coverage Gate output | Number — actual coverage, not estimated |
+
+The Code Manager will programmatically verify these fields against independent sources (git diff, CI status, issue criteria). An APPROVE missing any required field or containing data inconsistent with verification sources will be treated as invalid and returned for re-evaluation.
 
 ### FEEDBACK Message
 
@@ -195,6 +215,9 @@ The Tester must scan all code, issue bodies, PR descriptions, and documentation 
 - Approving test coverage that pads numbers without meaningful assertions
 - Skipping documentation verification to save time
 - Self-modifying feedback priority to force an approval
+- **Emitting APPROVE without running the Test Coverage Gate** — the gate must execute and produce output before APPROVE is valid
+- **Emitting APPROVE with fabricated or estimated coverage numbers** — `coverage_percentage` and `test_gate_passed` must come from actual gate output, not from assertions in code comments or test file names
+- **Emitting APPROVE without populating all required structural fields** — `test_gate_passed`, `files_reviewed`, `acceptance_criteria_met`, and `coverage_percentage` are mandatory; omitting any field causes the APPROVE to be rejected by the Code Manager
 - **Ignoring CANCEL messages** — on receipt of CANCEL, stop evaluation immediately and emit partial results; do not continue processing
 
 ## Interaction Model

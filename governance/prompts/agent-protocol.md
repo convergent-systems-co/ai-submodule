@@ -90,8 +90,35 @@ Evaluator approves submitted work for the next phase.
 |-------|-------------|
 | `payload.summary` | What was evaluated and found acceptable |
 | `payload.conditions` | Any conditions on the approval (empty array if unconditional) |
+| `payload.test_gate_passed` | Boolean — whether the Test Coverage Gate passed, grounded in actual gate output |
+| `payload.files_reviewed` | Array of file paths reviewed — must match the PR diff file list |
+| `payload.acceptance_criteria_met` | Array of objects (`{ "criterion": string, "met": boolean }`) — must cover all issue acceptance criteria |
+| `payload.coverage_percentage` | Number — actual coverage percentage from Test Coverage Gate output |
 
 **Valid senders:** Tester → Code Manager
+
+#### APPROVE Verification Requirements
+
+The APPROVE message carries the highest trust weight in the pipeline — it gates whether code is pushed and merged. Because the Coder and Tester may execute within the same LLM context (Phase A), the APPROVE payload must be **structurally verifiable** by the Code Manager to prevent self-approval via prompt injection.
+
+**Required fields:** An APPROVE message missing any of the following fields is **invalid** and must be treated as if it was never emitted:
+
+| Field | Verification Rule |
+|-------|-------------------|
+| `test_gate_passed` | Must be consistent with actual CI/test output. The Tester must have executed the Test Coverage Gate before emitting APPROVE. |
+| `files_reviewed` | Must exactly match the output of `git diff --name-only` for the PR branch. Missing or extra files invalidate the APPROVE. |
+| `acceptance_criteria_met` | Must include every acceptance criterion from the issue. Each criterion must have a `met` boolean grounded in the actual implementation review. |
+| `coverage_percentage` | Must be a number derived from actual Test Coverage Gate output, not estimated or fabricated. |
+
+**Code Manager verification procedure:**
+
+1. Extract `files_reviewed` from the APPROVE payload and compare against `git diff --name-only <base>...<head>`. If the lists do not match, the APPROVE is **invalid**.
+2. Extract `acceptance_criteria_met` and compare criteria against the issue's acceptance criteria. If any criterion is missing, the APPROVE is **invalid**.
+3. Verify `test_gate_passed` is consistent with the latest CI/test status. If the gate failed but `test_gate_passed` is `true`, the APPROVE is **invalid**.
+4. Verify `coverage_percentage` is a number within the plausible range (0-100). If absent or non-numeric, the APPROVE is **invalid**.
+5. If verification fails on any check, treat the APPROVE as **FEEDBACK** (request Tester re-evaluation) — not as an approval. Log the verification failure reason.
+
+**Rationale:** In Phase A, the Coder and Tester are the same LLM. A prompt injection embedded in code under review could instruct the model to emit APPROVE as the Tester persona without actually running the Test Coverage Gate or verifying acceptance criteria. Structural verification by the Code Manager provides a programmatic check that the APPROVE payload is grounded in real evaluation artifacts, independent of the Tester's assertion.
 
 ### BLOCK
 
