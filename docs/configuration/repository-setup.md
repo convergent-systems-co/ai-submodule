@@ -184,6 +184,25 @@ This catches misconfiguration before the agentic loop starts, preventing silent 
 | `.governance/checkpoints/` | Context capacity checkpoints (session state) | Session lifecycle |
 | `.governance/state/` | Cross-session governance state persistence | Accumulated |
 
+### Resource Locations — AI Submodule vs. Consuming Repos
+
+Emitted output uses identical `.governance/` paths everywhere. Read-only governance sources differ by the `.ai/` submodule prefix in consumers:
+
+| Resource | AI Submodule | Consuming Repo |
+|----------|-------------|----------------|
+| Plans | `.governance/plans/` | `.governance/plans/` |
+| Panel reports | `.governance/panels/` | `.governance/panels/` |
+| Checkpoints | `.governance/checkpoints/` | `.governance/checkpoints/` |
+| Cross-session state | `.governance/state/` | `.governance/state/` |
+| Worktrees | `../{repo}-worktree-issue-{N}/` | `../{repo}-worktree-issue-{N}/` |
+| Personas | `governance/personas/agentic/` | `.ai/governance/personas/agentic/` (read-only) |
+| Review prompts | `governance/prompts/reviews/` | `.ai/governance/prompts/reviews/` (read-only) |
+| Policy profiles | `governance/policy/` | `.ai/governance/policy/` (read-only) |
+| Schemas | `governance/schemas/` | `.ai/governance/schemas/` (read-only) |
+| Instructions | `instructions.md` | `CLAUDE.md` → `.ai/instructions.md` (symlink) |
+
+See [Project Structure](../onboarding/project-structure.md) for a detailed breakdown of every directory and file created by `init.sh`.
+
 ### Configuration
 
 Directories are declared in `config.yaml` under `project_directories`:

@@ -376,49 +376,16 @@ governance:
 
 ### 6.6 Cognitive Routing Process
 
-```
-    +---------------------+
-    | Validated Intent     |
-    | Package (from L1)    |
-    +----------+----------+
-               |
-               v
-    +----------+----------+
-    | Intent Type          |
-    | Classification       |
-    +----------+----------+
-               |
-               v
-    +----------+----------+     +-------------------+
-    | Panel Graph          |<--->| project.yaml      |
-    | Lookup               |     | panel_graph config|
-    +----------+----------+     +-------------------+
-               |
-               v
-    +----------+----------+
-    | Risk Profile         |
-    | Evaluation           |
-    +----------+----------+
-               |
-       +-------+-------+
-       |               |
-    standard        elevated
-       |               |
-       v               v
-    +--+---+    +------+------+
-    |Base  |    |Base Panels  |
-    |Panels|    |+ Risk       |
-    |      |    |  Overrides  |
-    +--+---+    +------+------+
-       |               |
-       +-------+-------+
-               |
-               v
-    +----------+----------+
-    | Cognitive Execution  |
-    | Plan                 |
-    | (-> Layer 3)         |
-    +---------------------+
+```mermaid
+flowchart TD
+    A[Validated Intent Package\nfrom L1] --> B[Intent Type\nClassification]
+    B --> C[Panel Graph Lookup]
+    Config[project.yaml\npanel_graph config] <--> C
+    C --> D[Risk Profile\nEvaluation]
+    D -->|standard| E[Base Panels]
+    D -->|elevated| F[Base Panels\n+ Risk Overrides]
+    E --> G[Cognitive Execution Plan\n→ Layer 3]
+    F --> G
 ```
 
 ---
@@ -540,57 +507,20 @@ DEFAULT: decision = "human_review_required"
 
 ### 7.6 Execution Flow
 
-```
-    +---------------------+
-    | Cognitive Execution  |
-    | Plan (from L2)       |
-    +----------+----------+
-               |
-               v
-    +----------+----------+
-    | Coder Persona        |
-    | Executes Work        |
-    | (code, tests, docs)  |
-    +----------+----------+
-               |
-               v
-    +----------+----------+
-    | Panel Execution      |
-    | (Panels)             |
-    +----------+----------+
-               |
-       +-------+-------+
-       |               |
-       v               v
-  +----+-----+   +-----+------+
-  | Markdown  |   | Structured |
-  | Reasoning |   | Emission   |
-  | (cognitive|   | (JSON)     |
-  |  artifact)|   +-----+------+
-  +----------+         |
-                       v
-              +--------+--------+
-              | Schema           |
-              | Validation       |
-              +--------+--------+
-                       |
-                pass?  |  fail?
-               +-------+-------+
-               |               |
-               v               v
-       +-------+------+  +----+--------+
-       | Policy        |  | Re-execute |
-       | Evaluation    |  | Panel      |
-       +-------+------+  +-------------+
-               |
-               v
-    +----------+-----------+
-    |                      |
-    v          v           v          v
- +--+---+  +--+-----+  +--+----+  +--+--+
- |auto  |  |auto    |  |human  |  |block|
- |merge |  |remed.  |  |review |  |     |
- +------+  +--------+  +-------+  +-----+
+```mermaid
+flowchart TD
+    A[Cognitive Execution Plan\nfrom L2] --> B[Coder Persona\nExecutes Work\ncode, tests, docs]
+    B --> C[Panel Execution]
+    C --> D[Markdown Reasoning\ncognitive artifact]
+    C --> E[Structured Emission\nJSON]
+    E --> F{Schema\nValidation}
+    F -->|pass| G[Policy Evaluation]
+    F -->|fail| H[Re-execute Panel]
+    H --> C
+    G --> I[auto_merge]
+    G --> J[auto_remediate]
+    G --> K[human_review]
+    G --> L[block]
 ```
 
 ---
@@ -1314,56 +1244,49 @@ Each step can be adopted independently. Steps 1-4 are additive with zero risk. S
 
 ---
 
-## Appendix A: ASCII Architecture Diagrams
+## Appendix A: Architecture Diagrams
 
 ### A.1 Full Governance Pipeline
 
-```
-+============================================================================+
-|                                                                            |
-|                       DARK FACTORY GOVERNANCE MODEL                        |
-|                       Phase 4: Policy-Bound Autonomy                       |
-|                                                                            |
-+============================================================================+
-|                                                                            |
-|   EXTERNAL                                                                 |
-|   INPUTS           GOVERNANCE PIPELINE                    OUTPUTS          |
-|   -------          -------------------                    -------          |
-|                                                                            |
-|   Issue/DI    +--> [L1: INTENT GOV.] --+                                   |
-|   Feature Req |    Validates intake    |                                   |
-|   Bug Report  |    Code Manager auth.  |                                   |
-|   -----------+     Reject/Accept       |                                   |
-|                                        |  Intent Package                   |
-|                                        v                                   |
-|   project.yaml +--> [L2: COGNITIVE GOV.] --+                               |
-|   Persona Reg. |    Routes to workflow     |                               |
-|   Panel Graph  |    Assigns panels         |                               |
-|   ------------+     Activates personas     |                               |
-|                                            |  Cognitive Plan                |
-|                                            v                               |
-|   Schemas     +--> [L3: EXECUTION GOV.] --+                               |
-|   Policies    |    Validates emissions    |                                |
-|   CI Config   |    Evaluates policy       |----> Run Manifest              |
-|   -----------+     Decides merge/block    |----> Policy Decision           |
-|                                           |----> Audit Trail               |
-|                                           |                                |
-|                    [L4: RUNTIME GOV.] <---+  Emission Baselines            |
-|   Metrics     +--> Detects drift          |                                |
-|   Incidents   |    Generates remed. DIs   |----> Remediation DIs --+       |
-|   SLO Data    |    Triggers re-eval       |                        |       |
-|   -----------+                            |                        |       |
-|                                           |                        |       |
-|                    [L5: EVOLUTION GOV.] <--+  Quality Trends       |       |
-|   Change Reqs +--> Versions governance    |                        |       |
-|   Metrics     |    Checks compatibility   |----> Manifests         |       |
-|   Proposals   |    Manages migration      |----> Migration Plans   |       |
-|   -----------+                            |                        |       |
-|                                           |                        |       |
-|                    FEEDBACK LOOP:         |                        |       |
-|                    L4 Remed. DI ------->--+-- back to L1 ---------+       |
-|                                                                            |
-+============================================================================+
+```mermaid
+flowchart TD
+    subgraph Inputs["External Inputs"]
+        I1[Issue / DI\nFeature Req\nBug Report]
+        I2[project.yaml\nPersona Registry\nPanel Graph]
+        I3[Schemas\nPolicies\nCI Config]
+        I4[Metrics\nIncidents\nSLO Data]
+        I5[Change Reqs\nMetrics\nProposals]
+    end
+
+    subgraph Pipeline["Governance Pipeline"]
+        L1["L1: INTENT GOV.\nValidates intake\nCode Manager auth.\nReject / Accept"]
+        L2["L2: COGNITIVE GOV.\nRoutes to workflow\nAssigns panels\nActivates personas"]
+        L3["L3: EXECUTION GOV.\nValidates emissions\nEvaluates policy\nDecides merge / block"]
+        L4["L4: RUNTIME GOV.\nDetects drift\nGenerates remed. DIs\nTriggers re-eval"]
+        L5["L5: EVOLUTION GOV.\nVersions governance\nChecks compatibility\nManages migration"]
+    end
+
+    subgraph Outputs["Outputs"]
+        O1[Intent Package]
+        O2[Cognitive Plan]
+        O3[Run Manifest\nPolicy Decision\nAudit Trail]
+        O4[Remediation DIs]
+        O5[Manifests\nMigration Plans]
+    end
+
+    I1 --> L1
+    L1 --> O1 --> L2
+    I2 --> L2
+    L2 --> O2 --> L3
+    I3 --> L3
+    L3 --> O3
+    O3 -->|Emission Baselines| L4
+    I4 --> L4
+    L4 --> O4
+    O4 -->|Quality Trends| L5
+    I5 --> L5
+    L5 --> O5
+    O4 -.->|Feedback Loop\nRemediation DI| L1
 ```
 
 ### A.2 Persona-to-Governance-Layer Mapping

@@ -317,25 +317,17 @@ The `issue-monitor.yml` workflow can dispatch new issues to an AI agent for auto
 
 Every code change goes through the governance pipeline before merge:
 
-```
-Developer creates PR
-        │
-        ▼
-  CI Governance Workflow triggers
-        │
-        ▼
-  Panel emissions detected?
-    ├── No  → PR blocked ("Missing panel emissions")
-    └── Yes ─┐
-             ▼
-    Policy engine evaluates emissions
-             │
-             ▼
-    Decision rendered
-    ├── auto_merge    → PR approved, merge enabled
-    ├── human_review  → Comment posted, awaits human action
-    ├── auto_remediate → Fix attempted (max 3 cycles)
-    └── block         → Changes requested, merge blocked
+```mermaid
+flowchart TD
+    A[Developer creates PR] --> B[CI Governance Workflow triggers]
+    B --> C{Panel emissions\ndetected?}
+    C -->|No| D[PR blocked\nMissing panel emissions]
+    C -->|Yes| E[Policy engine\nevaluates emissions]
+    E --> F{Decision rendered}
+    F -->|auto_merge| G[PR approved\nmerge enabled]
+    F -->|human_review| H[Comment posted\nawaits human action]
+    F -->|auto_remediate| I[Fix attempted\nmax 3 cycles]
+    F -->|block| J[Changes requested\nmerge blocked]
 ```
 
 ### 4.2 Governance CI Pipeline
@@ -567,15 +559,12 @@ chore: update governance submodule to latest
 
 ### Governance Decision Flow
 
-```
-Panel Emissions → Policy Engine → Decision
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-              auto_merge     human_review        block
-              (≥85% conf,    (low conf or      (critical
-               low risk,      critical risk)    violation,
-               all approve)                     CI failed)
+```mermaid
+flowchart LR
+    A[Panel Emissions] --> B[Policy Engine] --> C{Decision}
+    C -->|"≥85% conf, low risk,\nall approve"| D[auto_merge]
+    C -->|"low conf or\ncritical risk"| E[human_review]
+    C -->|"critical violation\nor CI failed"| F[block]
 ```
 
 ---

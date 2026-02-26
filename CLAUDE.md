@@ -131,3 +131,22 @@ This ensures Claude Code and GitHub Copilot receive the same base instructions i
 - `.governance/state/` — Cross-session governance state persistence (accumulated)
 
 Directories are configured in `config.yaml` under `project_directories` and can be extended in `project.yaml` (project root).
+
+### Resource Locations — AI Submodule vs. Consuming Repos
+
+Emitted output uses identical `.governance/` paths everywhere. Read-only governance sources differ by the `.ai/` submodule prefix in consumers:
+
+| Resource | AI Submodule | Consuming Repo |
+|----------|-------------|----------------|
+| Plans | `.governance/plans/` | `.governance/plans/` |
+| Panel reports | `.governance/panels/` | `.governance/panels/` |
+| Checkpoints | `.governance/checkpoints/` | `.governance/checkpoints/` |
+| Cross-session state | `.governance/state/` | `.governance/state/` |
+| Worktrees | `../{repo}-worktree-issue-{N}/` | `../{repo}-worktree-issue-{N}/` |
+| Personas | `governance/personas/agentic/` | `.ai/governance/personas/agentic/` (read-only) |
+| Review prompts | `governance/prompts/reviews/` | `.ai/governance/prompts/reviews/` (read-only) |
+| Policy profiles | `governance/policy/` | `.ai/governance/policy/` (read-only) |
+| Schemas | `governance/schemas/` | `.ai/governance/schemas/` (read-only) |
+| Instructions | `instructions.md` | `CLAUDE.md` → `.ai/instructions.md` (symlink) |
+
+See `docs/onboarding/project-structure.md` for a full breakdown of what `init.sh` creates and what to expect in each directory.

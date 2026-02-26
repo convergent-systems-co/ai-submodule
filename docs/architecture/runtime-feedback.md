@@ -417,54 +417,19 @@ A Design Intent produced by the DI Generator is structurally identical to a huma
 
 ### Architecture
 
-```
-+----------------------------------------------------------------------+
-|                     DI GENERATOR PIPELINE                            |
-|                                                                      |
-|  +------------------+                                                |
-|  | Classified Signal|                                                |
-|  +--------+---------+                                                |
-|           |                                                          |
-|           v                                                          |
-|  +------------------+     +------------------+                       |
-|  | Correlation      |---->| Existing DI      |                       |
-|  | Engine           |     | Store            |                       |
-|  +--------+---------+     +------------------+                       |
-|           |                       |                                   |
-|           |   +-------------------+                                   |
-|           |   | match found?                                          |
-|           |   |    YES --> Append signal to existing DI               |
-|           |   |    NO  --> Continue to template hydration             |
-|           v   v                                                       |
-|  +------------------+                                                |
-|  | DI Template      |                                                |
-|  | Hydrator         |                                                |
-|  +--------+---------+                                                |
-|           |                                                          |
-|           v                                                          |
-|  +------------------+                                                |
-|  | Root Cause       |                                                |
-|  | Hypothesis       |                                                |
-|  | Generator        |                                                |
-|  +--------+---------+                                                |
-|           |                                                          |
-|           v                                                          |
-|  +------------------+                                                |
-|  | Panel Selector   |                                                |
-|  +--------+---------+                                                |
-|           |                                                          |
-|           v                                                          |
-|  +------------------+                                                |
-|  | Priority         |                                                |
-|  | Calculator       |                                                |
-|  +--------+---------+                                                |
-|           |                                                          |
-|           v                                                          |
-|  +------------------+                                                |
-|  | Design Intent    |  --> [Governance Pipeline]                     |
-|  | (Hydrated)       |  --> [Manifest System]                         |
-|  +------------------+                                                |
-+----------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    A[Classified Signal] --> B[Correlation Engine]
+    B <--> C[Existing DI Store]
+    B --> D{Match found?}
+    D -->|Yes| E[Append signal\nto existing DI]
+    D -->|No| F[DI Template Hydrator]
+    F --> G[Root Cause\nHypothesis Generator]
+    G --> H[Panel Selector]
+    H --> I[Priority Calculator]
+    I --> J[Design Intent\nHydrated]
+    J --> K[Governance Pipeline]
+    J --> L[Manifest System]
 ```
 
 ### DI Template Structure
@@ -746,30 +711,27 @@ When a panel is re-executed due to escalation or remediation verification, the s
 
 **Diff computation:**
 
-```
-+---------------------------------------------------------------------+
-|                    DIFF-BASED RE-EXECUTION LOGIC                    |
-|                                                                     |
-|  Previous Execution Context (PEC):                                  |
-|    - DI state at last execution                                     |
-|    - Signal set at last execution                                   |
-|    - Component state at last execution                              |
-|    - Policy profile at last execution                               |
-|                                                                     |
-|  Current Execution Context (CEC):                                   |
-|    - DI state now                                                   |
-|    - Signal set now (possibly expanded)                             |
-|    - Component state now (possibly changed by remediation)          |
-|    - Policy profile now (possibly updated)                          |
-|                                                                     |
-|  Diff = CEC - PEC                                                   |
-|                                                                     |
-|  For each panel in the proposed set:                                |
-|    IF panel.input_fields INTERSECT diff.changed_fields != empty     |
-|      THEN mark panel for re-execution                               |
-|    ELSE                                                             |
-|      skip panel, carry forward previous emission                    |
-+---------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    subgraph PEC["Previous Execution Context (PEC)"]
+        P1["DI state at last execution"]
+        P2["Signal set at last execution"]
+        P3["Component state at last execution"]
+        P4["Policy profile at last execution"]
+    end
+
+    subgraph CEC["Current Execution Context (CEC)"]
+        C1["DI state now"]
+        C2["Signal set now (possibly expanded)"]
+        C3["Component state now (possibly changed)"]
+        C4["Policy profile now (possibly updated)"]
+    end
+
+    PEC --> DIFF["Diff = CEC − PEC"]
+    CEC --> DIFF
+    DIFF --> CHECK{panel.input_fields ∩\ndiff.changed_fields ≠ ∅?}
+    CHECK -->|Yes| REEXEC[Mark panel for re-execution]
+    CHECK -->|No| SKIP[Skip panel — carry forward\nprevious emission]
 ```
 
 **Panel input field mapping** (which fields each panel type is sensitive to):
@@ -792,22 +754,13 @@ Automatic panel re-execution introduces the risk of feedback loops: a signal tri
 
 The rate limiter operates at three levels:
 
-```
-+---------------------------------------------------------------------+
-|                     RATE LIMITING HIERARCHY                         |
-|                                                                     |
-|  Level 1: Per-DI Rate Limit                                        |
-|    Max 5 panel executions per DI per hour.                          |
-|    After limit: queue for next window.                              |
-|                                                                     |
-|  Level 2: Per-Component Rate Limit                                  |
-|    Max 10 panel executions per component per hour.                  |
-|    After limit: aggregate pending DIs, execute once.                |
-|                                                                     |
-|  Level 3: Global Rate Limit                                         |
-|    Max 50 panel executions per hour system-wide.                    |
-|    After limit: triage by priority. P0/P1 proceed. P2+ queued.     |
-+---------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    L1["**Level 1: Per-DI Rate Limit**\nMax 5 executions per DI per hour\nOverflow: queue for next window"]
+    L2["**Level 2: Per-Component Rate Limit**\nMax 10 executions per component per hour\nOverflow: aggregate pending DIs, execute once"]
+    L3["**Level 3: Global Rate Limit**\nMax 50 executions per hour system-wide\nOverflow: triage by priority — P0/P1 proceed, P2+ queued"]
+
+    L1 --> L2 --> L3
 ```
 
 **Configuration location:** `governance/policy/rate-limits.yaml`
@@ -835,29 +788,17 @@ rate_limits:
 
 The circuit breaker prevents infinite remediation loops. It operates as a state machine:
 
-```
-                    CIRCUIT BREAKER STATE MACHINE
-                    =============================
+```mermaid
+stateDiagram-v2
+    [*] --> CLOSED
+    CLOSED --> HALF_OPEN : execution
+    HALF_OPEN --> OPEN : failure_threshold reached
+    HALF_OPEN --> CLOSED : success_threshold\n(reset counter)
+    OPEN --> CLOSED : cooldown_expired\nAND manual_reset
 
-  +--------+     execution     +-----------+     failure_threshold    +--------+
-  | CLOSED |  ------------->   | HALF-OPEN |  ----------------------> |  OPEN  |
-  |        |                   |           |                          |        |
-  | Normal |                   | Counting  |                          | Halted |
-  | flow   |                   | failures  |                          |        |
-  +---+----+                   +-----+-----+                          +---+----+
-      ^                              |                                    |
-      |                              | success_threshold                  |
-      |                              v                                    |
-      |                        [Reset counter]                            |
-      |                              |                                    |
-      +------------------------------+                                    |
-                                                                          |
-      +-------------------------------------------------------------------+
-      |  cooldown_expired AND manual_reset
-      v
-  +--------+
-  | CLOSED |  (re-enter normal flow)
-  +--------+
+    CLOSED : Normal flow
+    HALF_OPEN : Counting failures
+    OPEN : Halted
 ```
 
 **Circuit breaker parameters:**
@@ -959,29 +900,13 @@ Drift is any divergence between the expected state of a system (as defined by go
 
 Drift is classified into four categories, each with distinct detection methods and remediation paths.
 
-```
-+---------------------------------------------------------------------+
-|                       DRIFT TAXONOMY                                |
-|                                                                     |
-|  +-------------------+  +-------------------+                       |
-|  | CONFIGURATION     |  | BEHAVIOR          |                       |
-|  | DRIFT             |  | DRIFT             |                       |
-|  |                   |  |                   |                       |
-|  | Deployed config   |  | Runtime behavior  |                       |
-|  | differs from      |  | deviates from     |                       |
-|  | declared config   |  | expected patterns |                       |
-|  +-------------------+  +-------------------+                       |
-|                                                                     |
-|  +-------------------+  +-------------------+                       |
-|  | PERFORMANCE       |  | COMPLIANCE        |                       |
-|  | DRIFT             |  | DRIFT             |                       |
-|  |                   |  |                   |                       |
-|  | Gradual           |  | System state      |                       |
-|  | degradation of    |  | diverges from     |                       |
-|  | performance       |  | compliance        |                       |
-|  | characteristics   |  | requirements      |                       |
-|  +-------------------+  +-------------------+                       |
-+---------------------------------------------------------------------+
+```mermaid
+block-beta
+    columns 2
+    A["**CONFIGURATION DRIFT**\nDeployed config differs\nfrom declared config"]
+    B["**BEHAVIOR DRIFT**\nRuntime behavior deviates\nfrom expected patterns"]
+    C["**PERFORMANCE DRIFT**\nGradual degradation of\nperformance characteristics"]
+    D["**COMPLIANCE DRIFT**\nSystem state diverges\nfrom compliance requirements"]
 ```
 
 #### 4.1 Configuration Drift
@@ -1046,29 +971,19 @@ Drift detection requires a baseline: the "expected" state against which runtime 
 
 #### Baseline Sources
 
-```
-+---------------------------------------------------------------------+
-|                   BASELINE LIFECYCLE                                |
-|                                                                     |
-|  [Merge Event]                                                      |
-|       |                                                             |
-|       v                                                             |
-|  [Manifest Produced]                                                |
-|       |                                                             |
-|       v                                                             |
-|  [Baseline Snapshot Captured]                                       |
-|       |                                                             |
-|       +-- Configuration baseline: deployed config at merge time     |
-|       +-- Behavior baseline: 4-hour post-deploy observation window  |
-|       +-- Performance baseline: 24-hour post-deploy metrics         |
-|       +-- Compliance baseline: policy profile evaluation at merge   |
-|       |                                                             |
-|       v                                                             |
-|  [Baseline Stored in Baseline Store]                                |
-|       |                                                             |
-|       v                                                             |
-|  [Baseline Versioned: component + manifest_id + timestamp]          |
-+---------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    A[Merge Event] --> B[Manifest Produced]
+    B --> C[Baseline Snapshot Captured]
+    C --> C1["Configuration baseline:\ndeployed config at merge time"]
+    C --> C2["Behavior baseline:\n4-hour post-deploy observation window"]
+    C --> C3["Performance baseline:\n24-hour post-deploy metrics"]
+    C --> C4["Compliance baseline:\npolicy profile evaluation at merge"]
+    C1 --> D[Baseline Stored in Baseline Store]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E["Baseline Versioned:\ncomponent + manifest_id + timestamp"]
 ```
 
 **Baseline store schema:** `governance/schemas/baseline.schema.json`
@@ -1162,37 +1077,19 @@ drift_severity = deviation_magnitude * dimension_criticality
 
 The system distinguishes between drift that can be automatically remediated and drift that requires human judgment.
 
-```
-+---------------------------------------------------------------------+
-|                REMEDIATION DECISION TREE                            |
-|                                                                     |
-|  [Drift Detected]                                                   |
-|       |                                                             |
-|       v                                                             |
-|  Is drift_severity < auto_remediation_ceiling?                      |
-|       |                |                                            |
-|      YES              NO                                            |
-|       |                |                                            |
-|       v                v                                            |
-|  Is drift_type in     [Human Escalation]                            |
-|  auto_remediable_set?  |                                            |
-|       |       |        +-- Create P0/P1 DI                          |
-|      YES     NO        +-- Notify on-call                           |
-|       |       |        +-- Block further auto-remediation           |
-|       v       v                                                     |
-|  [Auto       [Panel                                                 |
-|   Remediate]  Review]                                               |
-|       |       |                                                     |
-|       v       v                                                     |
-|  [Execute    [Execute panels]                                       |
-|   rollback   [Policy engine evaluates]                              |
-|   or config  [Output: remediate / escalate / accept]                |
-|   restore]                                                          |
-|       |                                                             |
-|       v                                                             |
-|  [Verify remediation]                                               |
-|  [Capture new baseline]                                             |
-+---------------------------------------------------------------------+
+```mermaid
+flowchart TD
+    A[Drift Detected] --> B{"drift_severity <\nauto_remediation_ceiling?"}
+    B -->|Yes| C{"drift_type in\nauto_remediable_set?"}
+    B -->|No| D[Human Escalation]
+    D --> D1[Create P0/P1 DI]
+    D --> D2[Notify on-call]
+    D --> D3[Block further auto-remediation]
+    C -->|Yes| E[Auto Remediate]
+    C -->|No| F[Panel Review]
+    E --> G["Execute rollback\nor config restore"]
+    F --> H["Execute panels\nPolicy engine evaluates\nOutput: remediate / escalate / accept"]
+    G --> I["Verify remediation\nCapture new baseline"]
 ```
 
 **Auto-remediation ceiling** (configurable in `governance/policy/drift-remediation.yaml`):
@@ -1291,21 +1188,15 @@ drift_policy:
 
 ### Drift Detection Schedule Summary
 
-```
-+---------------------------------------------------------------------+
-|               DRIFT DETECTION SCHEDULE                              |
-|                                                                     |
-|  Category        | Critical Components | Standard Components       |
-|  ----------------+---------------------+---------------------------  |
-|  Configuration   | Every 15 min        | Every 60 min              |
-|  Behavior        | Continuous          | Continuous                |
-|  Performance     | Every 60 min        | Every 60 min              |
-|  Compliance      | Every 6 hours       | Every 24 hours            |
-|                                                                     |
-|  Baseline Refresh: After every merge, or when baseline age > 30d   |
-|  Stale Baseline Alert: After 45 days without refresh               |
-+---------------------------------------------------------------------+
-```
+| Category | Critical Components | Standard Components |
+|---|---|---|
+| Configuration | Every 15 min | Every 60 min |
+| Behavior | Continuous | Continuous |
+| Performance | Every 60 min | Every 60 min |
+| Compliance | Every 6 hours | Every 24 hours |
+
+> **Baseline Refresh:** After every merge, or when baseline age > 30 days.
+> **Stale Baseline Alert:** After 45 days without refresh.
 
 ---
 

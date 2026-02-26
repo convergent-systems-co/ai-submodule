@@ -163,25 +163,24 @@ A new workflow `.github/workflows/dark-factory-governance.yml` introduces the fo
 
 ### 2.3 Check Ordering and Dependencies
 
-```
-jm-compliance.yml (enterprise)
-    |
-    +-- JM Compliance / Dependency Review --------+
-    +-- JM Compliance / Code Scanning ------------+
-                                                   |
-dark-factory-governance.yml                        |
-    |                                              |
-    +-- Dark Factory / Panel Emissions Validation  |
-    |       |                                      |
-    +-- Dark Factory / Copilot Review Gate         |
-    |       |                                      |
-    +-------+--------------------------------------+
-            |
-            v
-    Dark Factory / Policy Evaluation
-            |
-            v
-    Dark Factory / Merge Gate
+```mermaid
+flowchart TD
+    subgraph JM["jm-compliance.yml (enterprise)"]
+        JM_DEP[JM Compliance /\nDependency Review]
+        JM_CS[JM Compliance /\nCode Scanning]
+    end
+
+    subgraph DF["dark-factory-governance.yml"]
+        DF_PEV[Dark Factory /\nPanel Emissions Validation]
+        DF_CRG[Dark Factory /\nCopilot Review Gate]
+    end
+
+    JM_DEP --> POLICY
+    JM_CS --> POLICY
+    DF_PEV --> POLICY
+    DF_CRG --> POLICY
+
+    POLICY[Dark Factory /\nPolicy Evaluation] --> MERGE[Dark Factory /\nMerge Gate]
 ```
 
 **Dependency Rules:**

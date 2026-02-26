@@ -107,6 +107,25 @@ cp .ai/governance/prompts/templates/plan-template.md .governance/plans/42-my-fea
 
 **Context management:** Stop at 80% context capacity. Checkpoint. Request `/clear`. See [context management](../architecture/context-management.md) for the full strategy.
 
+## Where Things Live
+
+Emitted output uses identical `.governance/` paths in both the ai-submodule and consuming repos. Read-only governance sources differ — consumers access them via the `.ai/` submodule prefix:
+
+| Resource | AI Submodule | Consuming Repo |
+|----------|-------------|----------------|
+| Plans | `.governance/plans/` | `.governance/plans/` |
+| Panel reports | `.governance/panels/` | `.governance/panels/` |
+| Checkpoints | `.governance/checkpoints/` | `.governance/checkpoints/` |
+| Cross-session state | `.governance/state/` | `.governance/state/` |
+| Worktrees | `../{repo}-worktree-issue-{N}/` | `../{repo}-worktree-issue-{N}/` |
+| Personas | `governance/personas/agentic/` | `.ai/governance/personas/agentic/` (read-only) |
+| Review prompts | `governance/prompts/reviews/` | `.ai/governance/prompts/reviews/` (read-only) |
+| Policy profiles | `governance/policy/` | `.ai/governance/policy/` (read-only) |
+| Schemas | `governance/schemas/` | `.ai/governance/schemas/` (read-only) |
+| Instructions | `instructions.md` | `CLAUDE.md` → `.ai/instructions.md` (symlink) |
+
+See [Project Structure](project-structure.md) for a detailed breakdown of every directory and file created by `init.sh`.
+
 ## Recovery & Re-Entry Patterns
 
 When the agentic loop stops — context reset, crash, stuck PR, dirty git state — use these patterns to get back in.
