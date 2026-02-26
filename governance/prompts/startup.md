@@ -319,7 +319,14 @@ Generate a unique session identifier for the agent audit log. This ID is used by
    those changes through a PR using the same branch→commit→push→PR→merge pattern as step 4.
    All failures are non-blocking — warn and continue.
 
-6. **Detect branch protection** (cache for session):
+6. **Verify submodule integrity** (if manifest exists): `bin/init.sh` automatically verifies
+   critical file hashes against `governance/integrity/critical-files.sha256` during the refresh
+   step above. If verification fails, the update is flagged but not blocked (warning-only in
+   the current release). A hash mismatch may indicate unauthorized modification of governance
+   files. The manifest covers all policy profiles (`governance/policy/*.yaml`), JSON schemas
+   (`governance/schemas/*.json`), and `bin/init.sh` itself.
+
+7. **Detect branch protection** (cache for session):
    ```bash
    REQUIRES_PR=$(bash .ai/bin/init.sh --check-branch-protection 2>/dev/null | grep '^REQUIRES_PR=' | cut -d= -f2)
    REQUIRES_PR=${REQUIRES_PR:-false}
@@ -328,7 +335,7 @@ Generate a unique session identifier for the agent audit log. This ID is used by
    The result is cached for the session — all subsequent phases reference `REQUIRES_PR`
    without re-querying the API. Detection failures are non-blocking (defaults to `false`).
 
-   **Note:** Step 6 runs first conceptually (before step 4), but is listed after step 5 for
+   **Note:** Step 7 runs first conceptually (before step 4), but is listed after step 6 for
    readability. The DevOps Engineer should execute branch protection detection before any
    commit that targets the default branch.
 

@@ -260,6 +260,68 @@ if [ -f "$PROJECT_ROOT/.gitmodules" ]; then
 fi
 fi  # end REFRESH_MODE gate
 
+# --- Submodule integrity verification ---
+# Verify critical governance files against known-good SHA-256 hashes.
+# This is advisory (warning-only) in the current release — a hash mismatch
+# may indicate unauthorized modification of governance files.
+
+INTEGRITY_MANIFEST="$AI_DIR/governance/integrity/critical-files.sha256"
+if [ -f "$INTEGRITY_MANIFEST" ]; then
+  echo "Verifying submodule integrity..."
+
+  # Portable SHA-256 check: prefer sha256sum (Linux), fall back to shasum -a 256 (macOS)
+  SHA_CMD=""
+  if command -v sha256sum &>/dev/null; then
+    SHA_CMD="sha256sum"
+  elif command -v shasum &>/dev/null; then
+    SHA_CMD="shasum -a 256"
+  fi
+
+  if [ -n "$SHA_CMD" ]; then
+    # Run verification from the AI_DIR so relative paths in the manifest resolve correctly
+    INTEGRITY_FAILURES=""
+    INTEGRITY_CHECKED=0
+    INTEGRITY_PASSED=0
+    while IFS= read -r line; do
+      # Skip empty lines and comments
+      [ -z "$line" ] && continue
+      [[ "$line" =~ ^# ]] && continue
+
+      # Parse hash and filepath (sha256sum format: "<hash>  <path>")
+      expected_hash="${line%%  *}"
+      file_path="${line#*  }"
+
+      # Resolve path relative to AI_DIR
+      full_path="$AI_DIR/$file_path"
+      if [ ! -f "$full_path" ]; then
+        INTEGRITY_FAILURES="${INTEGRITY_FAILURES}\n  MISSING: $file_path"
+        INTEGRITY_CHECKED=$((INTEGRITY_CHECKED + 1))
+        continue
+      fi
+
+      actual_hash=$($SHA_CMD "$full_path" | awk '{print $1}')
+      INTEGRITY_CHECKED=$((INTEGRITY_CHECKED + 1))
+      if [ "$actual_hash" = "$expected_hash" ]; then
+        INTEGRITY_PASSED=$((INTEGRITY_PASSED + 1))
+      else
+        INTEGRITY_FAILURES="${INTEGRITY_FAILURES}\n  MISMATCH: $file_path (expected: ${expected_hash:0:16}..., actual: ${actual_hash:0:16}...)"
+      fi
+    done < "$INTEGRITY_MANIFEST"
+
+    if [ -z "$INTEGRITY_FAILURES" ]; then
+      echo "  [OK] All $INTEGRITY_CHECKED critical files verified ($INTEGRITY_PASSED/$INTEGRITY_CHECKED)"
+    else
+      echo "  [WARN] Integrity verification found issues ($INTEGRITY_PASSED/$INTEGRITY_CHECKED passed):"
+      echo -e "$INTEGRITY_FAILURES"
+      echo "  This may indicate unauthorized modification of governance files."
+      echo "  Review changes carefully before proceeding."
+    fi
+  else
+    echo "  [SKIP] No SHA-256 tool available (install sha256sum or shasum)"
+  fi
+  echo ""
+fi
+
 # --- Symlinks ---
 
 echo "Initializing .ai submodule symlinks..."
