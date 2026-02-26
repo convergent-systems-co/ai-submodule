@@ -124,6 +124,10 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #348 | #352 | Contributing guide | How-to-contribute page for the governance framework |
 | #353 | #354 | Remove Cursor tooling references | Removed all Cursor IDE references; supported tools are now Claude Code and GitHub Copilot |
 
+## TODO
+
+- [ ] **MkDocs strict build mode** (#366) — Add `mkdocs build --strict` to CI pipeline. NOT INGESTABLE: requires troubleshooting build warnings/errors before strict mode can be enabled. Rolled back from PR #382.
+
 ## Phase 4b — Remaining Work
 
 The following Phase 4b capabilities are designed but not yet implemented:
