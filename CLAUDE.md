@@ -14,11 +14,12 @@ There is no build system or linter. The policy engine has a pytest test suite in
 
 **Bootstrap (for consuming repos):**
 ```bash
-bash .ai/bin/init.sh                    # Symlinks only
-bash .ai/bin/init.sh --install-deps     # Symlinks + Python venv + dependencies
-bash .ai/bin/init.sh --refresh          # Re-apply structural setup after submodule update
+bash .ai/bin/init.sh                          # Symlinks only
+bash .ai/bin/init.sh --install-deps           # Symlinks + Python venv + dependencies
+bash .ai/bin/init.sh --refresh                # Re-apply structural setup after submodule update
+bash .ai/bin/init.sh --check-branch-protection  # Query if default branch requires PRs
 ```
-Checks `.ai` submodule freshness (auto-updates if behind), creates symlinks for CLAUDE.md and .github/copilot-instructions.md, creates `.governance/plans/`, `.governance/panels/`, `.governance/checkpoints/`, and `.governance/state/` directories (with migration from legacy paths), generates GOALS.md from template, and validates required panel emissions. The `--refresh` flag skips the submodule freshness check and SSH-to-HTTPS conversion (already handled by the caller) but runs all other steps; the agentic startup loop calls this automatically after every submodule state check.
+Checks `.ai` submodule freshness (auto-updates if behind), creates symlinks for CLAUDE.md and .github/copilot-instructions.md, creates `.governance/plans/`, `.governance/panels/`, `.governance/checkpoints/`, and `.governance/state/` directories (with migration from legacy paths), generates GOALS.md from template, and validates required panel emissions. The `--refresh` flag skips the submodule freshness check and SSH-to-HTTPS conversion (already handled by the caller) but runs all other steps; the agentic startup loop calls this automatically after every submodule state check. The `--check-branch-protection` flag queries the GitHub API to detect if the default branch requires PRs and outputs `REQUIRES_PR=true|false`; the agentic startup loop uses this to route structural commits through PRs when required.
 
 **Agentic bootstrap (interactive):**
 Tell your AI assistant to read and execute `governance/prompts/init.md`. This walks through setup interactively — choosing a language template, configuring repository settings, and installing dependencies — with the agent asking about each option.
@@ -108,7 +109,7 @@ When operating autonomously (via `governance/prompts/startup.md`), the pipeline 
 
 | Phase | Persona | What Happens |
 |-------|---------|-------------|
-| 1 | DevOps Engineer | Pre-flight (submodule, repo config — respects `project.yaml` pin), resolve open PRs, triage and route issues |
+| 1 | DevOps Engineer | Pre-flight (submodule, repo config, branch protection detection — respects `project.yaml` pin), resolve open PRs, triage and route issues |
 | 2 | Code Manager | Validate intent, select review panels, and create plans for **all issues** (up to N = `governance.parallel_coders`; all actionable issues when N = -1) |
 | 3 | Code Manager | **Parallel dispatch**: spawn up to N Coder agents via `Task` tool with `isolation: "worktree"` (N = `governance.parallel_coders`, default 5; all planned issues when N = -1). IaC Engineer dispatched for infrastructure changes (conditional — infrastructure changes only) |
 | 4 | Code Manager + Tester | Collect results as each Coder/IaC Engineer finishes → Tester evaluates → Security review → PR monitoring |

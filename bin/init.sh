@@ -3,9 +3,10 @@
 # Creates symlinks, detects platform, and optionally installs all dependencies.
 #
 # Usage:
-#   bash .ai/bin/init.sh                 # Symlinks only (existing behavior)
-#   bash .ai/bin/init.sh --install-deps  # Symlinks + Python venv + dependencies
-#   bash .ai/bin/init.sh --refresh       # Re-apply structural setup after submodule update
+#   bash .ai/bin/init.sh                          # Symlinks only (existing behavior)
+#   bash .ai/bin/init.sh --install-deps           # Symlinks + Python venv + dependencies
+#   bash .ai/bin/init.sh --refresh                # Re-apply structural setup after submodule update
+#   bash .ai/bin/init.sh --check-branch-protection  # Query branch protection status (machine-readable)
 #
 # This script is idempotent — safe to run multiple times.
 
@@ -19,6 +20,7 @@ REQUIREMENTS="$AI_DIR/governance/bin/requirements.txt"
 PYPROJECT="$AI_DIR/governance/engine/pyproject.toml"
 INSTALL_DEPS=false
 REFRESH_MODE=false
+CHECK_BRANCH_PROTECTION=false
 PYTHON_MIN_MAJOR=3
 PYTHON_MIN_MINOR=12
 
@@ -28,22 +30,98 @@ for arg in "$@"; do
   case "$arg" in
     --install-deps) INSTALL_DEPS=true ;;
     --refresh) REFRESH_MODE=true ;;
+    --check-branch-protection) CHECK_BRANCH_PROTECTION=true ;;
     --help|-h)
-      echo "Usage: bash .ai/bin/init.sh [--install-deps] [--refresh]"
+      echo "Usage: bash .ai/bin/init.sh [--install-deps] [--refresh] [--check-branch-protection]"
       echo ""
       echo "Options:"
-      echo "  --install-deps  Install Python virtual environment and dependencies"
-      echo "  --refresh       Re-apply structural setup (skip submodule check and SSH conversion)"
-      echo "  --help, -h      Show this help message"
+      echo "  --install-deps              Install Python virtual environment and dependencies"
+      echo "  --refresh                   Re-apply structural setup (skip submodule check and SSH conversion)"
+      echo "  --check-branch-protection   Query if default branch requires PRs (outputs REQUIRES_PR=true|false)"
+      echo "  --help, -h                  Show this help message"
       exit 0
       ;;
     *)
       echo "Unknown argument: $arg"
-      echo "Usage: bash .ai/bin/init.sh [--install-deps] [--refresh]"
+      echo "Usage: bash .ai/bin/init.sh [--install-deps] [--refresh] [--check-branch-protection]"
       exit 1
       ;;
   esac
 done
+
+# --- Early exit: --check-branch-protection ---
+
+if [ "$CHECK_BRANCH_PROTECTION" = "true" ]; then
+  # Minimal setup: just need gh CLI and optionally Python for config override
+  if ! command -v gh &>/dev/null; then
+    echo "REQUIRES_PR=false"
+    exit 0
+  fi
+
+  # Check for config override (best-effort — requires Python for YAML parsing)
+  _bp_override="auto"
+  _bp_python=""
+  if [ -d "$VENV_DIR" ] && [ -x "$VENV_DIR/bin/python" ]; then
+    _bp_python="$VENV_DIR/bin/python"
+  elif command -v python3 &>/dev/null; then
+    _bp_python="python3"
+  fi
+  if [ -n "$_bp_python" ]; then
+    _bp_override=$("$_bp_python" -c "
+import yaml, os, sys
+def deep_merge(base, override):
+    result = dict(base)
+    for k, v in override.items():
+        if k in result and isinstance(result[k], dict) and isinstance(v, dict):
+            result[k] = deep_merge(result[k], v)
+        elif k in result and isinstance(result[k], list) and isinstance(v, list):
+            result[k] = result[k] + v
+        else:
+            result[k] = v
+    return result
+config = {}
+for f in sys.argv[1:]:
+    if os.path.exists(f):
+        with open(f) as fh:
+            data = yaml.safe_load(fh) or {}
+            config = deep_merge(config, data)
+val = config.get('repository', {}).get('branch_protection', {}).get('require_pr_for_structural_commits', 'auto')
+print(val)
+" "$AI_DIR/config.yaml" "$AI_DIR/project.yaml" "$PROJECT_ROOT/project.yaml" 2>/dev/null) || _bp_override="auto"
+  fi
+
+  if [ "$_bp_override" = "true" ]; then
+    echo "REQUIRES_PR=true"
+    exit 0
+  elif [ "$_bp_override" = "false" ]; then
+    echo "REQUIRES_PR=false"
+    exit 0
+  fi
+
+  # Auto-detect via GitHub API
+  _bp_repo=$(gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null) || {
+    echo "REQUIRES_PR=false"
+    exit 0
+  }
+  _bp_branch=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null) || _bp_branch="main"
+
+  # Try rulesets API (modern)
+  _bp_rules=$(gh api "repos/$_bp_repo/rules/branches/$_bp_branch" --jq '[.[] | select(.type == "pull_request")] | length' 2>/dev/null) || _bp_rules="0"
+  if [ "$_bp_rules" != "0" ] && [ -n "$_bp_rules" ]; then
+    echo "REQUIRES_PR=true"
+    exit 0
+  fi
+
+  # Fallback: legacy branch protection
+  _bp_pr_reviews=$(gh api "repos/$_bp_repo/branches/$_bp_branch/protection" --jq '.required_pull_request_reviews // empty' 2>/dev/null) || _bp_pr_reviews=""
+  if [ -n "$_bp_pr_reviews" ]; then
+    echo "REQUIRES_PR=true"
+    exit 0
+  fi
+
+  echo "REQUIRES_PR=false"
+  exit 0
+fi
 
 # --- Platform detection ---
 

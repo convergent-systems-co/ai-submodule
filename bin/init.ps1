@@ -19,18 +19,25 @@
     repo settings) without checking submodule freshness or converting SSH URLs.
     Used by the agentic startup loop after submodule updates.
 
+.PARAMETER CheckBranchProtection
+    Query if the default branch requires PRs. Outputs REQUIRES_PR=true or
+    REQUIRES_PR=false and exits. Used by the agentic startup loop.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .ai\bin\init.ps1
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .ai\bin\init.ps1 -InstallDeps
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File .ai\bin\init.ps1 -Refresh
+.EXAMPLE
+    powershell -ExecutionPolicy Bypass -File .ai\bin\init.ps1 -CheckBranchProtection
 #>
 
 [CmdletBinding()]
 param(
     [switch]$InstallDeps,
-    [switch]$Refresh
+    [switch]$Refresh,
+    [switch]$CheckBranchProtection
 )
 
 Set-StrictMode -Version Latest
@@ -43,6 +50,51 @@ $VenvDir = Join-Path $AiDir ".venv"
 $RequirementsFile = Join-Path (Join-Path (Join-Path $AiDir "governance") "bin") "requirements.txt"
 $PythonMinMajor = 3
 $PythonMinMinor = 12
+
+# --- Check branch protection (early exit) ---
+
+if ($CheckBranchProtection) {
+    # Check for gh CLI
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Write-Output "REQUIRES_PR=false"
+        exit 0
+    }
+
+    try {
+        $repo = (gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>$null)
+        if (-not $repo) { Write-Output "REQUIRES_PR=false"; exit 0 }
+
+        $defaultBranch = (gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>$null)
+        if (-not $defaultBranch) { $defaultBranch = "main" }
+
+        # Try rulesets API
+        $rulesJson = (gh api "repos/$repo/rules/branches/$defaultBranch" 2>$null)
+        if ($rulesJson) {
+            $rules = $rulesJson | ConvertFrom-Json
+            $prRules = $rules | Where-Object { $_.type -eq "pull_request" }
+            if ($prRules) {
+                Write-Output "REQUIRES_PR=true"
+                exit 0
+            }
+        }
+
+        # Fallback: legacy branch protection
+        $protectionJson = (gh api "repos/$repo/branches/$defaultBranch/protection" 2>$null)
+        if ($protectionJson) {
+            $protection = $protectionJson | ConvertFrom-Json
+            if ($protection.required_pull_request_reviews) {
+                Write-Output "REQUIRES_PR=true"
+                exit 0
+            }
+        }
+    }
+    catch {
+        # API failure — default to no protection
+    }
+
+    Write-Output "REQUIRES_PR=false"
+    exit 0
+}
 
 # --- Dependency checks ---
 

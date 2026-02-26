@@ -539,3 +539,29 @@ YAML
   # Should NOT contain submodule freshness output
   [[ "$output" != *"Checking .ai submodule freshness"* ]]
 }
+
+# ---------------------------------------------------------------------------
+# --check-branch-protection
+# ---------------------------------------------------------------------------
+
+@test "init.sh --check-branch-protection outputs REQUIRES_PR format" {
+  run bash "$INIT_SH" --check-branch-protection 2>&1
+  [ "$status" -eq 0 ]
+  # Output must contain the machine-readable flag
+  [[ "$output" == *"REQUIRES_PR="* ]]
+}
+
+@test "init.sh --check-branch-protection defaults to false without gh" {
+  # Override command to hide gh
+  gh() { return 1; }
+  export -f gh
+  run bash "$INIT_SH" --check-branch-protection 2>&1
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"REQUIRES_PR=false"* ]]
+}
+
+@test "init.sh --help shows --check-branch-protection" {
+  run bash "$INIT_SH" --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"--check-branch-protection"* ]]
+}

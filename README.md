@@ -186,7 +186,7 @@ The platform uses a 5-agent prompt-chained pipeline implementing Anthropic's orc
 
 | Agent | Pattern | Role |
 |-------|---------|------|
-| **DevOps Engineer** | Routing | Session entry, pre-flight checks, issue triage, routing |
+| **DevOps Engineer** | Routing | Session entry, pre-flight checks (including branch protection detection), issue triage, routing |
 | **Code Manager** | Orchestrator-Workers | Intent validation, panel selection, parallel dispatch, review coordination, merge |
 | **Coder** | Worker | Implementation, test coverage, structured output (runs in isolated worktree) |
 | **IaC Engineer** | Worker | Infrastructure execution: Bicep/Terraform, security-first defaults (runs in isolated worktree) |

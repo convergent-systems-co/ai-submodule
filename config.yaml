@@ -71,6 +71,9 @@ repository:
 
   # Branch protection expectations (validated, not applied)
   branch_protection:
+    # Whether structural commits (submodule updates, CODEOWNERS) require PRs.
+    # "auto" = detect from GitHub API; "true" = always use PRs; "false" = direct commits
+    require_pr_for_structural_commits: "auto"
     expected_rulesets:
       - name: "Pull Request - Reviewer"
         required_approving_review_count: 1

@@ -156,6 +156,31 @@ The legacy `workflows_to_copy` flat list is still supported. If `config.yaml` us
 
 If the API call fails (insufficient permissions), validation is skipped with a warning. Missing rulesets are reported but do not block the script.
 
+## Branch Protection Detection
+
+The `--check-branch-protection` flag queries the GitHub API to determine if the default branch requires pull requests before merging. It outputs a machine-readable result: `REQUIRES_PR=true` or `REQUIRES_PR=false`.
+
+**Detection order:**
+1. **Config override** — `repository.branch_protection.require_pr_for_structural_commits` in `config.yaml` or `project.yaml`. If set to `true` or `false`, uses that value directly. Default: `auto`.
+2. **Rulesets API** (modern) — queries `gh api repos/{owner}/{repo}/rules/branches/{default_branch}` for a `pull_request` rule type.
+3. **Legacy branch protection API** (fallback) — queries `gh api repos/{owner}/{repo}/branches/{default_branch}/protection` for `required_pull_request_reviews`.
+4. **Default** — if all API calls fail or return no protection, defaults to `false` (direct commits allowed).
+
+**Usage:**
+```bash
+REQUIRES_PR=$(bash .ai/bin/init.sh --check-branch-protection 2>/dev/null | grep '^REQUIRES_PR=' | cut -d= -f2)
+```
+
+**Behavior when `REQUIRES_PR=true`:**
+
+| Operation | Without Protection | With Protection |
+|-----------|-------------------|-----------------|
+| Submodule pointer update | `git commit` on main | branch → commit → push → PR → merge |
+| CODEOWNERS changes | `git commit` on main | branch → commit → push → PR → merge |
+| `project.yaml` updates | `git commit` on main | branch → commit → push → PR → merge |
+
+The agentic startup loop detects this during pre-flight and caches the result for the session. All downstream phases reference the cached flag without re-querying the API.
+
 ## Pre-flight Check in Startup
 
 The agentic startup sequence (`governance/prompts/startup.md`) includes a pre-flight check that verifies repository settings before scanning issues:

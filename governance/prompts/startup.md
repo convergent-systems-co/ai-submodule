@@ -276,6 +276,16 @@ The Shutdown Protocol (Phase 5c / end of this file) tells the user exactly what 
    REMOTE_SHA=$(git -C .ai rev-parse origin/main)
    ```
    If behind: `git submodule update --remote .ai` → commit pointer change.
+   **If `REQUIRES_PR=true`** (see step 6), route the commit through a PR:
+   ```bash
+   git checkout -b chore/update-ai-submodule
+   git add .ai && git commit -m "chore: update .ai submodule"
+   git push -u origin chore/update-ai-submodule
+   gh pr create --title "chore: update .ai submodule" --body "Automated submodule pointer update."
+   gh pr merge --squash --delete-branch --auto
+   git checkout main && git pull
+   ```
+   **If `REQUIRES_PR=false`** (default): commit directly to main (current behavior).
    All failures are non-blocking — warn and continue.
 
 5. **Refresh structural setup** (after any submodule state check):
@@ -284,7 +294,22 @@ The Shutdown Protocol (Phase 5c / end of this file) tells the user exactly what 
    ```
    Run regardless of whether the submodule was updated — idempotent. Ensures symlinks,
    workflows, directories, CODEOWNERS, and repo settings match current `.ai` config.
+   If `REQUIRES_PR=true` and the refresh modified tracked files (e.g., CODEOWNERS), route
+   those changes through a PR using the same branch→commit→push→PR→merge pattern as step 4.
    All failures are non-blocking — warn and continue.
+
+6. **Detect branch protection** (cache for session):
+   ```bash
+   REQUIRES_PR=$(bash .ai/bin/init.sh --check-branch-protection 2>/dev/null | grep '^REQUIRES_PR=' | cut -d= -f2)
+   REQUIRES_PR=${REQUIRES_PR:-false}
+   ```
+   Queries the GitHub API for rulesets or legacy branch protection on the default branch.
+   The result is cached for the session — all subsequent phases reference `REQUIRES_PR`
+   without re-querying the API. Detection failures are non-blocking (defaults to `false`).
+
+   **Note:** Step 6 runs first conceptually (before step 4), but is listed after step 5 for
+   readability. The DevOps Engineer should execute branch protection detection before any
+   commit that targets the default branch.
 
 ### 1b: Repository Configuration
 

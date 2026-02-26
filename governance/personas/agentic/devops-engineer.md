@@ -67,6 +67,7 @@ After emitting CANCEL, wait for the Code Manager to report back with a STATUS su
 
 - **Submodule freshness** — detect if `.ai` is a submodule; check `project.yaml` for `governance.ai_submodule_pin` (if pinned, verify match but do not auto-update); if not pinned, check for dirty state, fetch latest, update if behind, commit the pointer change
 - **Post-update refresh** — run `bash .ai/bin/init.sh --refresh` to apply structural changes (symlinks, workflows, directories, CODEOWNERS, repo settings); idempotent, runs every pre-flight
+- **Branch protection detection** — run `bash .ai/bin/init.sh --check-branch-protection` to determine if the default branch requires PRs; cache the result as a session-level flag (`REQUIRES_PR=true|false`); when `true`, route all structural commits (submodule updates, CODEOWNERS) through branch→PR→merge instead of direct commits; detection failures default to `false` (direct commits allowed)
 - **Repository configuration** — verify `allow_auto_merge`, CODEOWNERS presence, governance workflow file existence, workflow enabled state, and recent run health (last 5 conclusions)
 - **Non-blocking failures** — all pre-flight checks warn and continue; the agent can do useful work even with degraded infrastructure
 
@@ -118,6 +119,7 @@ When resuming from a checkpoint (`.governance/checkpoints/`):
 
 - Submodule freshness: Is `.ai` at the latest remote SHA?
 - Structural refresh: Did `init.sh --refresh` complete successfully?
+- Branch protection: Does the default branch require PRs? Is `REQUIRES_PR` set correctly for the session?
 - Repository health: Is auto-merge enabled, CODEOWNERS present, governance workflow active and healthy?
 - Open PR backlog: Are there unresolved PRs that must be addressed before new work?
 - Issue actionability: Does each issue pass the filter criteria (no branch, no blocking labels, no human assignment)?
