@@ -37,6 +37,16 @@ Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
 
 Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
 
+**Additional criteria — JM Naming Convention Compliance (Bicep):**
+
+When reviewing Bicep infrastructure changes, the Infrastructure Engineer must also evaluate:
+
+- **Util module import:** Every Bicep file that creates named Azure resources imports `getResourceNames` from `br/acr-prod:modules/util:v0`
+- **Name derivation:** All resource names are derived from the output of `getResourceNames()` — no hardcoded names, no string interpolation for resource names
+- **Pattern correctness:** Resources use the correct naming pattern for their type (standard, mini, or small) as defined by the util module
+- **Destroy/purge alignment:** Destroy and purge pipelines reference the same `getResourceNames()` output to ensure soft-delete cleanup targets match deployed resource names
+- **No naming drift:** Resource names in parameter files, deployment scripts, and pipeline definitions are consistent with the util module output
+
 ### API Designer
 
 **Focus:** Contract stability, versioning strategy, consumer experience, backward compatibility.
