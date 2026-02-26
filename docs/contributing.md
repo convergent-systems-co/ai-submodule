@@ -100,7 +100,7 @@ Use the issue templates:
 Every implementation requires a plan before code. Use the plan template:
 
 ```bash
-cp governance/prompts/templates/plan-template.md governance/plans/348-contributing-page.md
+cp governance/prompts/templates/plan-template.md .governance/plans/348-contributing-page.md
 ```
 
 Fill in all sections:
@@ -188,7 +188,7 @@ gh pr create --title "docs: add contributing guide" --body "Closes #348"
 
 **PR checklist:**
 
-- [ ] Plan exists in `governance/plans/`
+- [ ] Plan exists in `.governance/plans/`
 - [ ] Tests pass locally
 - [ ] Documentation updated
 - [ ] CHANGELOG.md updated (if user-facing)
@@ -255,7 +255,7 @@ Pattern: `itsfwcp/{type}/{issue-number}/{short-name}`
 | `governance/engine/` | Python policy engine + tests | Standard code (with tests) |
 | `governance/templates/` | Language-specific project templates | Editable |
 | `docs/` | Documentation (MkDocs) | Editable |
-| `governance/plans/` | Implementation plans | Append-only (archived on merge) |
+| `.governance/plans/` | Implementation plans | Append-only (archived on merge) |
 | `governance/manifests/` | Run manifests | Append-only (audit artifacts) |
 
 ### Testing
@@ -397,8 +397,9 @@ Key directories for contributors:
     engine/                    Python policy engine + test suite
       tests/                   pytest test suite (7 test modules)
     templates/                 Language-specific project templates (go/, python/, node/, react/, csharp/)
-    plans/                     Implementation plans (archived to releases on merge)
     manifests/                 Run manifests (audit trail, append-only)
+  .governance/
+    plans/                     Implementation plans (archived to releases on merge)
   docs/                        Documentation (MkDocs)
     architecture/              Design and architecture
     configuration/             Setup and integration

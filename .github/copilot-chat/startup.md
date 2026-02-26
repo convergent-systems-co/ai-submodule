@@ -23,7 +23,7 @@ For each actionable issue (up to 5 per session):
 2. Read the issue body and validate clear acceptance criteria. If unclear, label `refine` and comment.
 3. Select review panels based on change type (see `.ai/governance/prompts/startup.md` Phase 2c).
 4. Create branch: `itsfwcp/{type}/{number}/{name}`
-5. Write plan using `.ai/governance/prompts/templates/plan-template.md` and save to `.governance/plans/{number}-{description}.md` (consuming repos) or `governance/plans/{number}-{description}.md` (ai-submodule).
+5. Write plan using `.ai/governance/prompts/templates/plan-template.md` and save to .governance/plans/{number}-{description}.md`.
 
 ## Phase 3: Implementation
 
@@ -51,7 +51,7 @@ For each planned issue (sequentially, since Copilot does not support parallel Ta
 1. Merge: `gh pr merge <pr-number> --squash --delete-branch`
 2. Close issue with comment.
 3. If no hard-stop condition (5 issues completed, context pressure): return to Phase 1 immediately.
-4. If hard-stop: write checkpoint to `.governance/checkpoints/` (consuming repos) or `governance/checkpoints/` (ai-submodule), execute shutdown protocol, request `/clear`.
+4. If hard-stop: write checkpoint to `.governance/checkpoints/`, execute shutdown protocol, request `/clear`.
 
 ## Context Capacity
 
@@ -59,7 +59,7 @@ Monitor for context pressure throughout. If the conversation exceeds ~30 turns, 
 
 1. Stop all work.
 2. Clean git state (commit WIP, abort merges).
-3. Write checkpoint to `.governance/checkpoints/{timestamp}-{branch}.json` (consuming repos) or `governance/checkpoints/{timestamp}-{branch}.json` (ai-submodule).
+3. Write checkpoint to .governance/checkpoints/{timestamp}-{branch}.json`.
 4. Report to user and suggest starting a new Copilot Chat thread with: `Resume from checkpoint: .governance/checkpoints/{checkpoint-file}`
 
 ## Constraints

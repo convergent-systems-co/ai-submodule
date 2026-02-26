@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Cross-session state persistence provides governance memory that accumulates across multiple agentic sessions. While checkpoints (`.governance/checkpoints/` in consuming repos, `governance/checkpoints/` in ai-submodule) handle per-session save/restore, persistent state captures long-lived context: metrics trends, threshold tuning history, persona weight adjustments, work queue state, and governance decisions.
+Cross-session state persistence provides governance memory that accumulates across multiple agentic sessions. While checkpoints (`.governance/checkpoints/`) handle per-session save/restore, persistent state captures long-lived context: metrics trends, threshold tuning history, persona weight adjustments, work queue state, and governance decisions.
 
 This document defines the storage strategy for cross-session state. The data format is defined in `governance/schemas/session-state.schema.json`.
 

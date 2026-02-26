@@ -162,8 +162,8 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
     tutorials/                   End-to-end guides
       end-to-end-walkthrough.md  Complete walkthrough of the governance pipeline
 
-  governance/plans/            Implementation plans (archived to releases after merge)
-  governance/checkpoints/      Context capacity checkpoints (session state)
+  .governance/plans/           Implementation plans (archived to releases after merge)
+  .governance/checkpoints/     Context capacity checkpoints (session state)
   .github/
     workflows/
       dark-factory-governance.yml   Governance review CI (detect + policy engine + review)

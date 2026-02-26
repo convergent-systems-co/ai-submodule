@@ -11,7 +11,7 @@ Stop all current work immediately and execute the Context Capacity Shutdown Prot
    - If a rebase is in progress, run `git rebase --abort`.
    - Verify `git status` shows `nothing to commit, working tree clean`.
 
-3. **Write a checkpoint file** to `.governance/checkpoints/{timestamp}-{branch}.json` (consuming repos) or `governance/checkpoints/{timestamp}-{branch}.json` (ai-submodule) where `{timestamp}` is `YYYYMMDD-HHMMSS` and `{branch}` is the current branch name (with slashes replaced by dashes). The file must contain:
+3. **Write a checkpoint file** to .governance/checkpoints/{timestamp}-{branch}.json` where `{timestamp}` is `YYYYMMDD-HHMMSS` and `{branch}` is the current branch name (with slashes replaced by dashes). The file must contain:
    ```json
    {
      "timestamp": "ISO-8601 timestamp",
@@ -30,7 +30,7 @@ Stop all current work immediately and execute the Context Capacity Shutdown Prot
      "review_cycle": "current review cycle number if in Phase 4, else null"
    }
    ```
-   Create the `.governance/checkpoints/` (or `governance/checkpoints/`) directory if it does not exist.
+   Create the `.governance/checkpoints/` directory if it does not exist.
 
 4. **Report to user** -- print a summary:
    - What was completed this session (issues, PRs)
@@ -39,7 +39,7 @@ Stop all current work immediately and execute the Context Capacity Shutdown Prot
    - Current git state confirmation
 
 5. **Offer two options**:
-   - **Option A (recommended if context is high):** Run `/clear` to reset context, then resume with: `Resume from checkpoint: .governance/checkpoints/{checkpoint-file}` (consuming repos) or `governance/checkpoints/{checkpoint-file}` (ai-submodule)
+   - **Option A (recommended if context is high):** Run `/clear` to reset context, then resume with: `Resume from checkpoint: .governance/checkpoints/{checkpoint-file}`
    - **Option B (if context capacity permits):** Continue working from the current state.
 
 ## Important

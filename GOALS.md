@@ -111,14 +111,18 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #209 | #211 | Cross-session state persistence (Phase 5c) | Session state schema and storage strategy; completes Phase 5c governance artifacts |
 | #220 | — | Persona consolidation — 19 consolidated review prompts, shared perspectives, deprecation notices |
 
-## Open Work
+### Documentation Site & Tooling
 
-### Needs Refinement
-
-| Issue | Title | Labels | What's Unclear |
-|-------|-------|--------|----------------|
-| #41 | Agentic Speedup (parallelization) | `enhancement`, `refine` | Platform constraints for parallel agent execution |
-| #42 | Agentic Monitor (always-on orchestrator) | `enhancement`, `refine` | Daemon vs. scheduled vs. event-driven architecture |
+| Issue | PR | Title | Impact |
+|-------|----|-------|--------|
+| #336 | #343 | Nord Dark theme for GitHub Pages site | Darkened Polar Night backgrounds by 20% for deeper dark theme |
+| #336 | #344 | Hamburger drawer navigation menu | Replaced top tabs with CSS hamburger drawer for all screen sizes |
+| #339 | #349 | Consolidate consumer governance outputs | Moved plans, panels, checkpoints, state under unified `.governance/` directory |
+| #340 | #341 | Onboarding HTML to MkDocs pages | Converted onboarding HTML to MkDocs pages + AI-assisted install guide |
+| #345 | #350 | GitHub repo link in site header | Added repository link to MkDocs site header |
+| #347 | #351 | Slash commands reference page | Reference guide for AI tooling chain commands (`/startup`, `/checkpoint`) |
+| #348 | #352 | Contributing guide | How-to-contribute page for the governance framework |
+| #353 | #354 | Remove Cursor tooling references | Removed all Cursor IDE references; supported tools are now Claude Code and GitHub Copilot |
 
 ## Phase 4b — Remaining Work
 

@@ -37,7 +37,7 @@ Content loaded once when an agent begins a task session. Stays in context for th
 |---------|--------|-------------|
 | Language conventions | `governance/templates/{language}/instructions.md` | Session start, based on `project.yaml` language |
 | Active persona set | Persona files listed in `project.yaml` | Session start |
-| Current plan | `.governance/plans/{active-plan}.md` (consuming repos) or `governance/plans/{active-plan}.md` (ai-submodule) | Session start if plan exists |
+| Current plan | `.governance/plans/{active-plan}.md` | Session start if plan exists |
 
 **Total Tier 1 budget: ~2,000 tokens**
 

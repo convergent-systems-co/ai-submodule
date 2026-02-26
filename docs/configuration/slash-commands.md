@@ -73,7 +73,7 @@ The `/checkpoint` command executes the Context Capacity Shutdown Protocol, prese
 
 1. **Stops execution** - Halts all in-progress tasks immediately
 2. **Cleans git state** - Commits WIP changes, aborts merges/rebases, verifies working tree is clean
-3. **Writes checkpoint file** - Saves session state to `governance/checkpoints/{timestamp}-{branch}.json`
+3. **Writes checkpoint file** - Saves session state to `.governance/checkpoints/{timestamp}-{branch}.json`
 4. **Reports to user** - Summarizes completed work, remaining work, checkpoint location
 5. **Offers context reset** - Prompts for `/clear` (Claude Code) or new chat thread (Copilot)
 
@@ -86,10 +86,10 @@ The `/checkpoint` command executes the Context Capacity Shutdown Protocol, prese
     ```
 
     The agent will:
-    - Write checkpoint to `governance/checkpoints/{timestamp}-{branch}.json`
+    - Write checkpoint to `.governance/checkpoints/{timestamp}-{branch}.json`
     - Report summary with completed/remaining work
     - Offer `/clear` to reset context
-    - Provide resume command: `Resume from checkpoint: governance/checkpoints/{file}`
+    - Provide resume command: `Resume from checkpoint: .governance/checkpoints/{file}`
 
 === "GitHub Copilot"
 
@@ -98,7 +98,7 @@ The `/checkpoint` command executes the Context Capacity Shutdown Protocol, prese
     ```
 
     The agent will:
-    - Write checkpoint to `.governance/checkpoints/{timestamp}-{branch}.json` (consuming repos) or `governance/checkpoints/{timestamp}-{branch}.json` (ai-submodule)
+    - Write checkpoint to `.governance/checkpoints/{timestamp}-{branch}.json`
     - Report summary with completed/remaining work
     - Prompt to start new chat thread
     - Provide resume command: `Resume from checkpoint: .governance/checkpoints/{file}`
@@ -141,7 +141,6 @@ Use `/checkpoint` when:
 - Never allow context to compact with dirty git state
 - Always clean working tree before checkpoint
 - Checkpoints are session-scoped - they do not persist across repository clones
-- Consuming repos use `.governance/checkpoints/`, ai-submodule uses `governance/checkpoints/`
 
 ## Context Capacity Protocol
 
@@ -172,8 +171,7 @@ See [Context Management](../architecture/context-management.md) for the full pro
 |---------|-------------|----------------|
 | Parallel Coder dispatch | Yes (up to N agents) | No (sequential only) |
 | Context reset mechanism | `/clear` command | New chat thread |
-| Checkpoint directory (consuming repos) | `governance/checkpoints/` | `.governance/checkpoints/` |
-| Checkpoint directory (ai-submodule) | `governance/checkpoints/` | `governance/checkpoints/` |
+| Checkpoint directory | `.governance/checkpoints/` | `.governance/checkpoints/` |
 | Task isolation | Worktrees via `Task` tool | Branch switching |
 | Max issues per session | 5 | 5 |
 | Context capacity threshold | 80% | ~30 turns or 200K chars |

@@ -10,7 +10,7 @@ This persona operates as a **Worker** in Anthropic's Orchestrator-Workers patter
 
 - **Receive ASSIGN messages from Code Manager** — accept decomposed tasks with plan references, scope constraints, and acceptance criteria
 - Create feature branches for assigned issues following the repository's branch naming convention
-- Write a detailed implementation plan to `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) before writing code
+- Write a detailed implementation plan to `.governance/plans/` before writing code
 - Implement fixes and features according to the plan and project conventions
 - Write tests that meet coverage targets defined in the project configuration
 - **Run the Test Coverage Gate before every push** — execute `governance/prompts/test-coverage-gate.md` to verify all tests pass and coverage meets the 80% minimum threshold. Do not push until the gate passes.
@@ -70,7 +70,7 @@ All claims in RESULT messages and commit messages must be grounded in actual too
 
 ## Output Format
 
-- Implementation plan (Markdown in `.governance/plans/` for consuming repos, or `governance/plans/` for ai-submodule)
+- Implementation plan (Markdown in `.governance/plans/`)
 - Code changes on a feature branch
 - Test files with coverage meeting project targets
 - Commit messages following project convention

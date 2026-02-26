@@ -407,7 +407,7 @@ If the Tester rejects a Coder's work repeatedly:
 When any context pressure signal is detected (80% threshold):
 1. Stop all work immediately
 2. Clean git state (commit, stash, or abort)
-3. Write checkpoint to `.governance/checkpoints/` (consuming repos) or `governance/checkpoints/` (ai-submodule)
+3. Write checkpoint to `.governance/checkpoints/`
 4. Report to user and request `/clear`
 5. Next session restores from checkpoint with issue state re-validation
 

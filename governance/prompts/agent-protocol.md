@@ -215,7 +215,7 @@ In single-session execution, all agents run sequentially within one context wind
   "payload": {
     "task": "Implement authentication middleware",
     "context": { "issue_number": 42, "priority": "P1" },
-    "constraints": { "plan": "governance/plans/42-add-auth.md" },
+    "constraints": { "plan": ".governance/plans/42-add-auth.md" },
     "priority": "P1"
   }
 }

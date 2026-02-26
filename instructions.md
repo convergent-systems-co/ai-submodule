@@ -22,7 +22,7 @@
 When approaching 80% of context window:
 1. Stop current work immediately — do not start new tasks
 2. Ensure git working tree is clean (commit, stash, or abort in-progress merges)
-3. Write a checkpoint to `.governance/checkpoints/` (consuming repos) or `governance/checkpoints/` (ai-submodule) with: current task, completed work, remaining work, git branch state
+3. Write a checkpoint to `.governance/checkpoints/` with: current task, completed work, remaining work, git branch state
 4. Summarize the checkpoint to the user
 5. Request a context reset (`/clear`)
 
@@ -56,14 +56,14 @@ Closed issues represent a user decision. Continuing work on them wastes compute 
 
 Every code change — regardless of size, urgency, or operating mode — must follow this sequence:
 
-1. **Plan first** — Create a plan in `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) before writing any code. No implementation without a plan.
+1. **Plan first** — Create a plan in `.governance/plans/` before writing any code. No implementation without a plan.
 2. **Panels must run** — Default panels (code-review, security-review, threat-modeling, cost-analysis, documentation-review, data-governance-review) must execute on every change. If panel emissions are missing, the change is not governance-approved.
 3. **Documentation with every change** — Update affected docs in the same commit (GOALS.md, CLAUDE.md, README.md, governance docs).
 
 ### Local Mode (no GitHub remote)
 
 When operating without a GitHub remote (no issues, PRs, or CI):
-- Plans are still mandatory — write to `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) before implementing.
+- Plans are still mandatory — write to `.governance/plans/` before implementing.
 - Panel evaluation still applies — the policy engine can run locally via `python governance/bin/policy-engine.py`.
 - Commit messages must still use conventional commit format.
 - Skip only GitHub-specific steps (issue comments, PR creation, Copilot polling).

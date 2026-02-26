@@ -82,7 +82,7 @@ Context is loaded in tiers to prevent window overflow:
 - **Tier 2** (~3,000 tokens, per-phase): Workflow phase + panel context
 - **Tier 3** (0 tokens, on-demand): Policies, schemas, docs — queried only when needed
 
-**Hard stop at 80% context capacity.** When approaching this limit: stop all work, clean git state, write a checkpoint to `.governance/checkpoints/` (consuming repos) or `governance/checkpoints/` (ai-submodule), report to user, and request `/clear`. Never allow context to compact with dirty state. See `docs/architecture/context-management.md` for the full shutdown protocol.
+**Hard stop at 80% context capacity.** When approaching this limit: stop all work, clean git state, write a checkpoint to `.governance/checkpoints/`, report to user, and request `/clear`. Never allow context to compact with dirty state. See `docs/architecture/context-management.md` for the full shutdown protocol.
 
 ### Structured Emissions
 
@@ -92,7 +92,7 @@ All panel output must include JSON between `<!-- STRUCTURED_EMISSION_START -->` 
 
 - **Commit style**: Conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`)
 - **Branch naming**: `itsfwcp/{issue-type}/{issue-number}/{branch-name}` (e.g., `itsfwcp/feat/42/add-auth`)
-- **Plans before code**: Every implementation requires a plan in `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) using `governance/prompts/templates/plan-template.md`
+- **Plans before code**: Every implementation requires a plan in `.governance/plans/` using `governance/prompts/templates/plan-template.md`
 - **Governance pipeline is mandatory**: The governance pipeline applies in all modes (local and remote). Required panels must execute, plan-first is non-negotiable, and the CI workflow blocks merges when panel emissions are missing. Projects can opt out via `governance.skip_panel_validation: true` in `project.yaml` (project root).
 - **`jm-compliance.yml` is enterprise-locked**: Never modify, move, or override `jm-compliance.yml`. It is managed centrally.
 - **Backward compatibility**: All changes must be additive. Breaking changes require migration plans and version bumps.
@@ -124,12 +124,10 @@ This ensures Claude Code and GitHub Copilot receive the same base instructions i
 
 ## Project Directories
 
-`init.sh` creates these directories in consuming repos (not in the submodule):
+`init.sh` creates these directories:
 - `.governance/plans/` — Implementation plans for issues and features (accumulated)
 - `.governance/panels/` — Panel review reports (latest only per panel type, overwrite strategy)
 - `.governance/checkpoints/` — Context capacity checkpoints (session state)
 - `.governance/state/` — Cross-session governance state persistence (accumulated)
-
-> **Note:** The ai-submodule itself uses `governance/plans/` and `governance/checkpoints/` (under `governance/`). Consuming repos use `.governance/`. The `init.sh` migration logic automatically moves contents from legacy paths (`governance/plans/`, `.panels/`, `governance/checkpoints/`, `.governance-state/`) to the new `.governance/` structure.
 
 Directories are configured in `config.yaml` under `project_directories` and can be extended in `project.yaml` (project root).

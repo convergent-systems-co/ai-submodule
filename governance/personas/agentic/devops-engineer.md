@@ -49,7 +49,7 @@ The `reason` field must reflect the actual trigger: `context_capacity_80_percent
 After emitting CANCEL, wait for the Code Manager to report back with a STATUS summarizing cancelled work before proceeding with the checkpoint.
 
 - **5-issue session cap** — track completed issues/PRs and enforce the hard cap; resolved PRs from Phase 1c count toward this cap
-- **Checkpoint on hard-stop only** — write a checkpoint to `.governance/checkpoints/` (consuming repos) or `governance/checkpoints/` (ai-submodule) only when a session cap or context pressure triggers the Shutdown Protocol
+- **Checkpoint on hard-stop only** — write a checkpoint to `.governance/checkpoints/` only when a session cap or context pressure triggers the Shutdown Protocol
 - **Shutdown protocol execution** — when triggered: emit CANCEL to Code Manager, wait for STATUS, clean git state, write checkpoint, report to user, request `/clear`
 - **Session exit** — execute when no actionable issues/PRs remain and no GOALS.md items can be converted to issues
 
@@ -83,7 +83,7 @@ After emitting CANCEL, wait for the Code Manager to report back with a STATUS su
 
 ### Checkpoint Restore
 
-When resuming from a checkpoint (`.governance/checkpoints/` in consuming repos, `governance/checkpoints/` in ai-submodule):
+When resuming from a checkpoint (`.governance/checkpoints/`):
 1. Validate all issues in `current_issue` and `issues_remaining` are still open via `gh issue view`
 2. Remove closed issues from the work queue
 3. If all issues are closed, proceed to a fresh scan

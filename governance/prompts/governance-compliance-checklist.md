@@ -6,10 +6,10 @@ This checklist defines the required governance steps for every PR in the Dark Fa
 
 ### 1. Plan Created (Phase 2d of startup.md)
 
-**Requirement:** Every PR must have an implementation plan in `.governance/plans/` (consuming repos) or `governance/plans/` (ai-submodule) created before implementation began.
+**Requirement:** Every PR must have an implementation plan in `.governance/plans/` created before implementation began.
 
 **Verification:**
-- Check if a file matching `.governance/plans/{issue-number}-*.md` (consuming repos) or `governance/plans/{issue-number}-*.md` (ai-submodule) exists in the PR diff or on the branch
+- Check if a file matching `.governance/plans/{issue-number}-*.md` exists in the PR diff or on the branch
 - The plan should have a status field (draft, in_review, approved, in_progress, completed)
 - The plan should reference the issue number
 

@@ -96,10 +96,7 @@ See [startup.md](../../governance/prompts/startup.md) for the full protocol and 
 
 **Write a plan before coding** — Every non-trivial change needs a plan:
 ```bash
-# Consuming repos:
 cp .ai/governance/prompts/templates/plan-template.md .governance/plans/42-my-feature.md
-# ai-submodule:
-cp governance/prompts/templates/plan-template.md governance/plans/42-my-feature.md
 ```
 
 **Branch naming:** `itsfwcp/{type}/{issue-number}/{short-name}` (e.g., `itsfwcp/feat/42/add-auth`)
