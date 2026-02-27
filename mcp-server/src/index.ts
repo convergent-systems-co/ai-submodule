@@ -24,9 +24,29 @@ function parseArgs(argv: string[]): { governanceRoot?: string } {
 }
 
 /**
+ * Route CLI subcommands before starting the MCP server.
+ * Returns true if a subcommand was handled (caller should exit).
+ */
+async function routeSubcommand(argv: string[]): Promise<boolean> {
+  const subcommand = argv[2];
+
+  if (subcommand === "install") {
+    const { runInstaller } = await import("./install.js");
+    await runInstaller(argv);
+    return true;
+  }
+
+  return false;
+}
+
+/**
  * Main entry point for the MCP server.
  */
 async function main(): Promise<void> {
+  // Check for subcommands before starting the server
+  const handled = await routeSubcommand(process.argv);
+  if (handled) return;
+
   const args = parseArgs(process.argv);
 
   let governanceRoot: string;
