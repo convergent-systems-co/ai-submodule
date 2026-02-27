@@ -31,7 +31,7 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | #34 | #37 | Plan tracking best practices | Plan archival to GitHub Releases, retrospective prompt |
 | #35 | #39 | Issue templates | Structured feature request and bug report forms |
 | #43 | #44 | Context management enforcement | 3-issue cap, mandatory checkpoints, two-tier capacity thresholds |
-| #26 | #29 | Branch naming convention | `itsfwcp/{type}/{number}/{name}` standard |
+| #26 | #29 | Branch naming convention | `NETWORK_ID/{type}/{number}/{name}` standard |
 | #32 | #33 | Issue labeling | Governance labels (refine, blocked, P0-P4, chore, refactor, ci) |
 | #48 | #55 | Agentic loop goals fallback | Startup sequence falls back to GOALS.md when no actionable issues remain |
 
@@ -163,6 +163,243 @@ This document tracks the maturity phases, completed work, and open enhancements 
 ## TODO
 
 - [ ] **MkDocs strict build mode** (#366) — Add `mkdocs build --strict` to CI pipeline. NOT INGESTABLE: requires troubleshooting build warnings/errors before strict mode can be enabled. Rolled back from PR #382.
+
+## Phase 6 — Azure DevOps Integration
+
+Bidirectional synchronization between GitHub Issues and Azure DevOps Work Items (Epics, Features, Stories, Tasks, Bugs). This enables organizations running ADO for portfolio management to use Dark Factory's GitHub-native governance pipeline while maintaining a single source of truth for project tracking in ADO.
+
+### Problem Statement
+
+Many enterprise teams track work in Azure DevOps Boards (sprints, epics, capacity planning) while using GitHub for code, PRs, and CI/CD. Dark Factory's governance pipeline is GitHub-native — issues drive the agentic loop, PRs carry panel emissions, and the policy engine evaluates merge decisions on GitHub Actions. Without integration, teams must manually duplicate work items across both platforms, leading to drift, stale items, and wasted effort.
+
+### Architecture
+
+```
+┌──────────────────┐                           ┌──────────────────┐
+│   GitHub Issues   │                           │  ADO Work Items  │
+│   (source of      │◄─── Sync Engine ────►    │  (Epics, Stories, │
+│    agentic work)  │     (bidirectional)       │   Tasks, Bugs)   │
+└────────┬─────────┘                           └────────┬─────────┘
+         │                                              │
+    Webhooks                                     Service Hooks
+    (issue events)                          (workitem.created/updated)
+         │                                              │
+         ▼                                              ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                        Sync Mediator                             │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────────┐  │
+│  │ Sync Ledger │  │ State Mapper │  │ Conflict Resolution    │  │
+│  │ (GH↔ADO ID  │  │ (labels ↔    │  │ (echo prevention,      │  │
+│  │  mapping)   │  │  ADO states) │  │  last-write-wins)      │  │
+│  └─────────────┘  └──────────────┘  └────────────────────────┘  │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────────┐  │
+│  │ Type Mapper │  │ Hierarchy    │  │ Field Mapper           │  │
+│  │ (labels ↔   │  │ Sync (Epic → │  │ (title, desc, assign,  │  │
+│  │  WI types)  │  │  Feature →   │  │  priority, area path,  │  │
+│  └─────────────┘  │  Story/Task) │  │  iteration, custom)    │  │
+│                   └──────────────┘  └────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Authentication Strategy
+
+| Method | Use Case | Security |
+|--------|----------|----------|
+| **Managed Identity** | Azure-hosted sync (Azure Functions, AKS) | Automatic credential rotation, no secrets to manage |
+| **Service Principal (Entra ID OAuth)** | CI/CD pipelines, GitHub Actions | Hourly token expiry, supports Conditional Access |
+| **Personal Access Token (PAT)** | Local development, prototyping, CLI tool | Scoped to `vso.work_write`; rotate regularly |
+
+Production deployments should use Managed Identity or Service Principal. PATs are acceptable for development and the CLI tool.
+
+### ADO REST API Integration Points
+
+| Operation | Endpoint | Method | Purpose |
+|-----------|----------|--------|---------|
+| Create work item | `/_apis/wit/workitems/${type}` | `POST` | Sync new GitHub issue to ADO |
+| Update work item | `/_apis/wit/workitems/{id}` | `PATCH` | Sync field changes (title, state, assignment) |
+| Get work item | `/_apis/wit/workitems/{id}` | `GET` | Fetch ADO data for reverse sync |
+| Query (WIQL) | `/_apis/wit/wiql` | `POST` | Find work items by criteria |
+| Batch get | `/_apis/wit/workitemsbatch` | `POST` | Bulk fetch after WIQL query (IDs only then details) |
+| Add relation | `/_apis/wit/workitems/{id}` | `PATCH` | Create parent-child links (Epic to Feature to Story) |
+| List fields | `/_apis/wit/fields` | `GET` | Discover custom fields |
+| Create field | `/_apis/wit/fields` | `POST` | Create `Custom.GitHubIssueUrl` cross-reference field |
+
+API version: **7.1** (stable). All work item mutations use JSON Patch (`application/json-patch+json`).
+
+### Sync Ledger
+
+A persistent mapping between GitHub Issues and ADO Work Items, preventing duplicate creation and enabling bidirectional updates:
+
+```json
+{
+  "mappings": [
+    {
+      "github_issue_number": 42,
+      "github_repo": "SET-Apps/my-project",
+      "ado_work_item_id": 12345,
+      "ado_project": "MyProject",
+      "ado_work_item_type": "User Story",
+      "sync_direction": "github_to_ado",
+      "last_synced_at": "2026-02-27T18:00:00Z",
+      "last_sync_source": "github",
+      "created_at": "2026-02-20T10:00:00Z",
+      "sync_status": "active"
+    }
+  ]
+}
+```
+
+Storage options: `.governance/state/ado-sync-ledger.json` (git-tracked, simple), Azure Table Storage (scalable), or SQLite (local).
+
+### State Mapping (Agile Process)
+
+| GitHub State | GitHub Labels | ADO State | Direction |
+|-------------|---------------|-----------|-----------|
+| `open` | (none) | `New` | Bidirectional |
+| `open` | `ado:active` | `Active` | Bidirectional |
+| `open` | `ado:resolved` | `Resolved` | ADO to GitHub |
+| `closed` | (any) | `Closed` | Bidirectional |
+| `closed` | `wontfix` | `Removed` | GitHub to ADO |
+
+State mapping is configurable per-project via `project.yaml` to support Agile, Scrum, and CMMI process templates.
+
+### Work Item Type Mapping
+
+| GitHub Signal | ADO Work Item Type | Rationale |
+|---------------|-------------------|-----------|
+| Issue with `epic` label | Epic | Portfolio-level grouping |
+| Issue with `feature` label | Feature | Feature-level tracking |
+| Issue (default) | User Story | Standard work item |
+| Issue with `task` label | Task | Sub-story breakdown |
+| Issue with `bug` label | Bug | Defect tracking |
+
+### Field Mapping
+
+| GitHub Field | ADO Field | Sync Direction |
+|-------------|-----------|----------------|
+| Title | `System.Title` | Bidirectional |
+| Body (description) | `System.Description` | Bidirectional |
+| Assignees | `System.AssignedTo` | Bidirectional (first assignee) |
+| Labels (priority) | `Microsoft.VSTS.Common.Priority` | GitHub to ADO (`P0`=1, `P1`=2, `P2`=3, `P3`=4) |
+| Milestone | `System.IterationPath` | GitHub to ADO |
+| Issue URL | `Custom.GitHubIssueUrl` | GitHub to ADO (custom field) |
+| Work item URL | Issue comment | ADO to GitHub (pinned comment) |
+| State | `System.State` | Bidirectional (via state mapping) |
+| Labels (area) | `System.AreaPath` | Configurable |
+| Story points (label) | `Microsoft.VSTS.Scheduling.StoryPoints` | Configurable |
+
+### Conflict Resolution
+
+When both platforms update the same item within a configurable grace period:
+
+1. **Echo detection** — If a sync write triggers a webhook on the target platform, the mediator recognizes the `last_sync_source` in the ledger and ignores the echo (default grace period: 5 seconds)
+2. **Last-write-wins** — Outside the grace period, the most recent timestamp wins
+3. **Field-level merge** — Title and state changes from ADO; description and label changes from GitHub (configurable ownership per field)
+4. **Conflict log** — All conflict resolutions are logged to `.governance/state/ado-sync-conflicts.json` for audit
+
+### Hierarchy Sync
+
+ADO's parent-child relationships (Epic to Feature to Story to Task) map to GitHub via:
+
+1. **Issue references** — `parent: #42` in issue body metadata block
+2. **ADO link types** — `System.LinkTypes.Hierarchy-Forward` (parent to child) and `System.LinkTypes.Hierarchy-Reverse` (child to parent)
+3. **Sync behavior** — When a GitHub issue references a parent, the sync engine creates the ADO hierarchy link. When an ADO work item gains a child, the sync engine adds the reference to the GitHub issue body.
+
+### Configuration (`project.yaml` Extension)
+
+```yaml
+ado_integration:
+  enabled: true
+  organization: "https://dev.azure.com/my-org"
+  project: "MyProject"
+  auth_method: "service_principal"     # service_principal | managed_identity | pat
+  auth_secret_name: "ADO_PAT"         # GitHub secret or env var name
+
+  sync:
+    direction: "bidirectional"         # bidirectional | github_to_ado | ado_to_github
+    auto_create: true                  # Create ADO items for new GitHub issues
+    auto_close: true                   # Close ADO items when GitHub issues close
+    grace_period_seconds: 5            # Echo detection window
+    conflict_strategy: "last_write"    # last_write | field_ownership | github_wins | ado_wins
+
+  state_mapping:                       # Agile process (default)
+    open: "New"
+    "open+ado:active": "Active"
+    "open+ado:resolved": "Resolved"
+    closed: "Closed"
+    "closed+wontfix": "Removed"
+
+  type_mapping:
+    default: "User Story"
+    epic: "Epic"
+    feature: "Feature"
+    task: "Task"
+    bug: "Bug"
+
+  field_mapping:
+    area_path: "MyProject\\TeamA"      # Default area path for new items
+    iteration_path: "@CurrentIteration" # ADO macro or explicit path
+
+  filters:
+    include_labels: []                 # Empty = all issues synced
+    exclude_labels: ["internal", "governance"]
+    ado_area_path_filter: ""           # Only sync ADO items under this area path
+```
+
+### Sub-Phases
+
+**Epic:** #490
+
+| Sub-Phase | Name | Issues | Dependencies |
+|-----------|------|--------|--------------|
+| 6a | Foundation — Data In/Out | #491 (API client), #492 (Schemas), #493 (CLI tool) | None |
+| 6b | GitHub to ADO Sync | #494 (Sync engine + GitHub Action) | 6a |
+| 6c | ADO to GitHub Sync | #495 (Service Hook receiver + reverse mapping) | 6a, 6b |
+| 6d | Advanced Features | #496 (Hierarchy, comments, area/iteration, bulk sync) | 6b, 6c |
+| 6e | Operations and Observability | #497 (Health, retry, dashboard, documentation) | 6b, 6c |
+
+### 6a — Foundation: Data In/Out
+
+The foundation layer provides the core ability to read from and write to Azure DevOps. Everything else builds on this.
+
+- [ ] **ADO API client library** — Python module (`governance/integrations/ado/client.py`) wrapping ADO REST API 7.1. Supports work item CRUD, WIQL queries, batch operations, field management, and classification node (area/iteration) queries. Handles authentication (PAT, Service Principal, Managed Identity), rate limiting (TSTU-aware with `Retry-After` header respect), pagination (continuation tokens), and error handling. Full test suite with mocked HTTP responses.
+- [ ] **Configuration schema** — JSON Schema (`governance/schemas/ado-integration.schema.json`) defining the `ado_integration` section of `project.yaml`. Validates organization URL, auth method, sync direction, state/type/field mappings, filters, and all configurable parameters. Policy engine extended to load and validate ADO config.
+- [ ] **Sync ledger schema** — JSON Schema (`governance/schemas/ado-sync-ledger.schema.json`) defining the mapping store format. Fields: `github_issue_number`, `github_repo`, `ado_work_item_id`, `ado_project`, `ado_work_item_type`, `sync_direction`, `last_synced_at`, `last_sync_source`, `created_at`, `sync_status`. Storage at `.governance/state/ado-sync-ledger.json`.
+- [ ] **CLI tool** — `bin/ado-sync.py` providing manual operations: `test-connection` (verify auth), `list-projects`, `list-work-item-types`, `query` (WIQL), `get` (fetch work item), `create` (create work item), `sync-status` (show ledger), `initial-sync` (bulk import). Uses the API client library. Supports `--dry-run` and `--verbose` flags.
+- [ ] **Custom field provisioning** — Script or CLI subcommand to create `Custom.GitHubIssueUrl` and `Custom.GitHubRepo` custom fields on the ADO organization/process, and add them to relevant work item types. Idempotent (skips if fields already exist).
+
+### 6b — GitHub to ADO Sync
+
+- [ ] **Sync engine core** — Python module (`governance/integrations/ado/sync_engine.py`) implementing the mapping logic: state mapping, type mapping, field mapping, ledger management, echo detection. Stateless per-invocation; reads ledger, processes event, writes ledger.
+- [ ] **GitHub Action workflow** — `.github/workflows/ado-sync.yml` triggered on `issues: [opened, edited, closed, reopened, labeled, unlabeled, assigned, unassigned, milestoned, demilestoned]`. Loads project.yaml config, invokes sync engine, commits ledger updates.
+- [ ] **Work item creation** — When a GitHub issue is opened and no ledger entry exists: create ADO work item with mapped type, title, description, state, assignment, area/iteration path. Store cross-reference in `Custom.GitHubIssueUrl`. Add pinned comment on GitHub issue with ADO work item link.
+- [ ] **Work item updates** — When a GitHub issue is edited, closed, reopened, labeled, or assigned: update the corresponding ADO work item fields via JSON Patch. Respect field ownership rules from conflict resolution config.
+- [ ] **Filter enforcement** — Apply `include_labels` and `exclude_labels` filters before syncing. Issues matching `exclude_labels` are skipped entirely (no ledger entry created).
+
+### 6c — ADO to GitHub Sync
+
+- [ ] **Service Hook receiver** — Lightweight HTTP endpoint (Azure Function or GitHub Actions `repository_dispatch` via ADO webhook) that receives ADO `workitem.created`, `workitem.updated`, and `workitem.deleted` events. Validates payload signature, extracts work item ID, invokes sync engine in reverse direction.
+- [ ] **Reverse state mapping** — ADO state changes update GitHub issue state and `ado:*` labels. `Closed`/`Removed` close the issue. `New`/`Active` reopen it (if closed). `Resolved` adds `ado:resolved` label.
+- [ ] **Reverse field mapping** — ADO title/description changes update GitHub issue title/body. ADO assignment changes update GitHub assignees (requires user mapping: ADO email to GitHub username).
+- [ ] **User mapping configuration** — `ado_integration.user_mapping` in `project.yaml`: dictionary mapping ADO user emails to GitHub usernames for assignment sync.
+- [ ] **Echo prevention** — Before processing an ADO webhook, check ledger `last_sync_source` and `last_synced_at`. If the last sync was from GitHub and within the grace period, skip the update to prevent infinite loops.
+
+### 6d — Advanced Features
+
+- [ ] **Hierarchy sync** — When a GitHub issue references `parent: #N` in its body, create `System.LinkTypes.Hierarchy-Reverse` link in ADO pointing to the parent work item. When ADO adds a child link, add the parent reference to the GitHub issue body.
+- [ ] **Comment sync** — Bidirectional comment sync with attribution (`[Synced from GitHub — @username]` / `[Synced from ADO — User Name]`). Configurable: `sync_comments: true/false` in `project.yaml`. Only sync comments with `[ado-sync]` prefix to avoid noise (opt-in per comment).
+- [ ] **Area path mapping** — Map GitHub labels prefixed with `area:` to ADO area paths. Example: `area:backend` maps to `MyProject\Backend`. Configurable mapping table in `project.yaml`.
+- [ ] **Iteration path mapping** — Map GitHub milestones to ADO iteration paths. When an issue is added to a milestone, set the ADO iteration path. Supports `@CurrentIteration` macro.
+- [ ] **Bulk initial sync** — CLI command `bin/ado-sync.py initial-sync` that reads all open GitHub issues and creates corresponding ADO work items (with ledger entries). Supports `--dry-run`, `--limit`, and `--since` flags. Handles rate limiting gracefully.
+- [ ] **Attachment sync** — When GitHub issue body contains image links or file attachments, download and attach to the ADO work item (and vice versa). Configurable: `sync_attachments: true/false`.
+
+### 6e — Operations and Observability
+
+- [ ] **Health check** — `bin/ado-sync.py health` command that verifies: ADO connection works, custom fields exist, service hooks are configured, ledger is consistent (no orphaned entries), and last sync was recent.
+- [ ] **Sync dashboard** — Structured emission for sync health: items synced, conflicts resolved, errors, last sync timestamp. Consumable by the governance dashboard.
+- [ ] **Retry and dead-letter** — Failed sync operations are logged to `.governance/state/ado-sync-errors.json` with full context. CLI command `bin/ado-sync.py retry-failed` processes the error queue.
+- [ ] **Documentation** — `docs/guides/ado-integration.md` covering: setup, configuration, authentication, state/type mapping, hierarchy sync, troubleshooting, FAQ.
+- [ ] **ADO Service Hook setup guide** — Step-by-step guide for configuring ADO Service Hooks to point to the receiver endpoint, with filtering by area path and work item type.
 
 ## Phase 4b — Remaining Work
 
