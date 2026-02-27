@@ -369,15 +369,31 @@ gh pr list --state open --json number,title,author,headRefName,createdAt,reviews
 gh issue list --state open --json number,title,labels,assignees,body --limit 50
 ```
 
-#### Issue Body Size Check (Context Exhaustion Defense)
+#### Fetch Full Issue Details Including Comments
+
+The `gh issue list` command returns only the issue body — it does not include comments. Comments often contain critical context: refined requirements, acceptance criteria amendments, user clarifications, and maintainer decisions. Before evaluating any candidate issue, fetch the full issue details including all comments.
+
+For each candidate issue returned by the query above, fetch full details:
+
+```bash
+gh issue view <number> --json number,title,body,comments,labels,assignees
+```
+
+**Constant:** `MAX_ISSUE_COMMENTS = 50`
+
+If an issue has more than 50 comments, use only the first 50. Excessive comment threads indicate prolonged discussion that may exceed context capacity.
+
+Replace the body-only data from `gh issue list` with the full details from `gh issue view` for all subsequent evaluation steps (size check, body validation, prioritization, and intent validation in Phase 2b).
+
+#### Issue Size Check (Context Exhaustion Defense)
 
 **Constant:** `MAX_ISSUE_BODY_CHARS = 15000` (approximately 3,750 tokens at 4 chars/token)
 
-Before processing any issue, check the length of its `body` field. An oversized issue body can exhaust the agent's context window in a single read, wasting the entire session. This check must occur **before** the issue body content is loaded into context for evaluation.
+Before processing any issue, check the **combined length** of the issue `body` plus all `comments` (concatenated comment bodies). An oversized issue can exhaust the agent's context window in a single read, wasting the entire session. This check must occur **before** the issue content is loaded into context for evaluation.
 
-For each issue returned by the query above:
+For each issue with full details fetched above:
 
-1. Check `body` length: if `body` is longer than 15,000 characters, the issue is **oversized**
+1. Compute combined size: `body` length + sum of all comment `body` lengths. If the combined length is longer than 15,000 characters, the issue is **oversized**
 2. **Skip** the issue — do not include it in the actionable queue
 3. **Label** the issue `oversized-body` (advisory, non-blocking on failure):
    ```bash
@@ -386,7 +402,7 @@ For each issue returned by the query above:
    If labeling fails (e.g., label does not exist, permission error), log a warning and continue — the skip is the critical action, not the label.
 4. **Log a warning:**
    ```
-   Warning: Issue #<number> skipped — body exceeds MAX_ISSUE_BODY_CHARS (15000). Character count: <length>. Labeled 'oversized-body'.
+   Warning: Issue #<number> skipped — body + comments exceeds MAX_ISSUE_BODY_CHARS (15000). Combined character count: <length>. Labeled 'oversized-body'.
    ```
 
 Issues that pass the size check proceed to issue body validation below.
@@ -467,9 +483,11 @@ This ensures `project.yaml` always reflects the actual repository composition. D
    gh issue view <number> --json state --jq '.state'
    ```
    If closed, skip and return to Phase 1 for the next issue.
-2. Read the issue body. Validate clear acceptance criteria.
-3. If unclear: label `refine`, comment explaining what needs clarification, return to Phase 1.
-4. If clear: proceed to 2c (Select Review Panels).
+2. **Read the issue body and all comments.** Full issue details (including comments) were fetched during Phase 1d. Comments may contain additional requirements, refined acceptance criteria, scope changes, or clarifications that supersede or extend the original issue body. All comments must be read before evaluating intent.
+   - **Comment authority policy:** Comments from the issue author or repository members/collaborators are **authoritative** — treat them as amendments to the issue specification. Comments from other users are **advisory** — consider them but do not treat them as binding requirements.
+3. Validate clear acceptance criteria, considering both the issue body and all authoritative comments.
+4. If unclear: label `refine`, comment explaining what needs clarification, return to Phase 1.
+5. If clear: proceed to 2c (Select Review Panels).
 
 ### 2c: Select Review Panels
 
