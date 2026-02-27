@@ -54,6 +54,7 @@ When a skill is invoked via MCP, it accepts the following parameters:
 | Skill | File | Description | Allowed Tools |
 |-------|------|-------------|---------------|
 | governance-review | `mcp-server/skills/governance-review.skill.md` | Run governance panel reviews against code changes | Read, Glob, Grep, Bash |
+| ado | `mcp-server/skills/ado.skill.md` | Azure DevOps work item operations using the Python client library | Read, Bash, Grep |
 
 ### governance-review
 

@@ -109,7 +109,11 @@ The platform's controls are mapped to the [OWASP Top 10 for LLM Applications](ht
 
 ### Skills System
 
-Skills (`.skill.md` files in `mcp-server/skills/`) are self-contained capabilities exposed by the MCP server as tools. Each skill has YAML frontmatter (name, description, allowed-tools) and a Markdown body that serves as the execution prompt. The `governance-review` skill runs panel reviews against code changes. See `docs/guides/skills-development.md`.
+Skills (`.skill.md` files in `mcp-server/skills/`) are self-contained capabilities exposed by the MCP server as tools. Each skill has YAML frontmatter (name, description, allowed-tools) and a Markdown body that serves as the execution prompt. Available skills: `governance-review` (panel reviews against code changes) and `ado` (Azure DevOps work item operations using the Python client library). See `docs/guides/skills-development.md`.
+
+### Azure DevOps Integration
+
+Python client library at `governance/integrations/ado/` wrapping the ADO REST API 7.1. Provides `AdoClient` with work item CRUD, WIQL queries, comments (HTML-only), classification nodes, fields, types, project inspection (custom states/processes), and GitHub artifact link helpers. Auth via PAT, Service Principal, or Managed Identity (lazy `azure-identity` import). Configured via `ado_integration` section in `project.yaml`. The `ado` MCP skill exposes these operations to AI assistants. See `docs/guides/mcp-server-usage.md#azure-devops-integration`.
 
 ### CI Workflows
 

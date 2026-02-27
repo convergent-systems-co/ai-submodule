@@ -203,6 +203,51 @@
       },
       "additionalProperties": false
     },
+    "ado_integration": {
+      "type": "object",
+      "description": "Azure DevOps integration configuration for work item sync.",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Azure DevOps organization name."
+        },
+        "default_project": {
+          "type": "string",
+          "description": "Default ADO project name for API calls."
+        },
+        "access_method": {
+          "type": "string",
+          "enum": ["api", "az_cli"],
+          "default": "api",
+          "description": "How to reach ADO. 'api' uses the REST API via requests (default). 'az_cli' shells out to az boards / az devops invoke commands."
+        },
+        "auth_method": {
+          "type": "string",
+          "enum": ["pat", "service_principal", "managed_identity"],
+          "default": "pat",
+          "description": "Authentication method for ADO API. For az_cli access_method, auth is handled by the az login session."
+        },
+        "api_version": {
+          "type": "string",
+          "default": "7.1",
+          "description": "Azure DevOps REST API version."
+        },
+        "max_retries": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Maximum retry attempts for failed API calls."
+        },
+        "timeout": {
+          "type": "number",
+          "default": 30.0,
+          "description": "HTTP request timeout in seconds."
+        }
+      },
+      "required": ["organization"],
+      "additionalProperties": false
+    },
     "escalation": {
       "type": "object",
       "description": "Cross-repo issue escalation configuration. When enabled, the agentic loop detects framework-level issues and escalates them to the upstream governance repository.",

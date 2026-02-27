@@ -219,6 +219,109 @@ List available policy profiles with their key settings.
 
 **Returns:** Array of `{name, description, risk_tolerance, auto_merge}`
 
+## Azure DevOps Integration
+
+The MCP server can expose Azure DevOps work item operations through both the `ado` skill and a Python client library at `governance/integrations/ado/`.
+
+### Configuration
+
+Add `ado_integration` to your `project.yaml`:
+
+```yaml
+ado_integration:
+  organization: my-org              # Required — ADO org name
+  default_project: My Project       # Default project for API calls
+  auth_method: pat                  # pat | service_principal | managed_identity
+  api_version: "7.1"               # ADO REST API version
+  max_retries: 5                   # Retry attempts for transient failures
+  timeout: 30.0                    # HTTP timeout in seconds
+```
+
+### Authentication
+
+Set credentials via environment variables:
+
+| Auth Method | Environment Variables |
+|-------------|----------------------|
+| `pat` | `ADO_PAT` |
+| `service_principal` | `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` |
+| `managed_identity` | `AZURE_CLIENT_ID` (optional) |
+
+PAT auth uses only `requests`. Service Principal and Managed Identity lazily import `azure-identity` — it is not required for PAT-only usage.
+
+### Client Library
+
+The Python client library (`governance/integrations/ado/`) provides:
+
+| Category | Methods |
+|----------|---------|
+| **Work Items** | `create_work_item()`, `get_work_item()`, `update_work_item()`, `delete_work_item()`, `get_work_items_batch()` |
+| **WIQL** | `query_wiql()`, `query_wiql_with_details()` |
+| **Comments** | `get_comments()`, `add_comment()` — HTML only, not Markdown |
+| **Classification** | `list_area_paths()`, `list_iteration_paths()` |
+| **Fields & Types** | `list_fields()`, `create_field()`, `list_work_item_types()` |
+| **Project Inspection** | `get_work_item_type_states()`, `get_project_properties()` |
+| **Patch Builder** | `add_field()`, `replace_field()`, `add_tag()`, `add_github_pr_link()`, `add_github_commit_link()`, `add_hyperlink()`, `remove_relation()` |
+
+Usage:
+
+```python
+from governance.integrations.ado import AdoClient, AdoConfig, create_auth_provider
+
+config = AdoConfig(organization="myorg", default_project="myproject")
+auth = create_auth_provider("pat", pat="my-token")
+
+with AdoClient(config, auth) as client:
+    wi = client.get_work_item(42)
+    states = client.get_work_item_type_states("Bug")
+    client.add_comment(42, "<p>Status update from governance pipeline</p>")
+```
+
+### Project Inspection
+
+ADO projects can have custom processes with different states, fields, and work item types. Always inspect the project before making assumptions:
+
+```python
+# Discover the process template (Agile, Scrum, CMMI, or custom)
+props = client.get_project_properties()
+template = props["capabilities"]["processTemplate"]["templateName"]
+
+# Get valid states for a work item type in this project
+states = client.get_work_item_type_states("User Story")
+# May return custom states like "Ready", "In Development" instead of defaults
+```
+
+### Dependencies
+
+Install the ADO client:
+
+```bash
+# Standalone (from governance/integrations/ado/)
+pip install -e .
+
+# With azure-identity for Service Principal / Managed Identity
+pip install -e ".[azure]"
+
+# Or via the engine's optional group
+pip install -e ".[ado]"    # from governance/engine/
+```
+
+### MCP Skill
+
+The `ado` skill (`mcp-server/skills/ado.skill.md`) exposes ADO operations as an MCP tool. It provides guided instructions for work item CRUD, WIQL queries, comment posting, GitHub linking, and project inspection using the client library.
+
+### GitHub Artifact Links
+
+Link GitHub resources to ADO work items:
+
+| Link Type | ADO Section | Helper |
+|-----------|-------------|--------|
+| Pull Request | Development | `add_github_pr_link(connection_id, pr_number)` |
+| Commit (full SHA) | Development | `add_github_commit_link(connection_id, commit_sha)` |
+| Branch / Issue | Links tab | `add_hyperlink(url, comment)` |
+
+The `connection_id` is the GitHub service connection GUID configured in your ADO organization. Discover it by inspecting an existing artifact link on any work item.
+
 ## Available Prompts
 
 ### governance_review
@@ -282,6 +385,7 @@ Skills are self-contained capabilities exposed as MCP tools. Each skill is a `.s
 | Skill | Description | Allowed Tools |
 |-------|-------------|---------------|
 | `governance-review` | Run governance panel reviews against code changes | Read, Glob, Grep, Bash |
+| `ado` | Azure DevOps work item operations (query, create, update, comment, link) | Read, Bash, Grep |
 
 **Skill tool input schema:**
 
