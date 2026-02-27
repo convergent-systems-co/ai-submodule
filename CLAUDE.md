@@ -77,6 +77,10 @@ Every code change flows through these layers in order:
 
 > For the full agent architecture — including protocol details, transport phases, failure modes, and extension points — see `docs/architecture/agent-architecture.md`.
 
+### Compliance Coverage
+
+The platform's controls are mapped to the [OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/) in `docs/compliance/owasp-llm-top10-mapping.md`. This coverage matrix identifies the specific panels, policy rules, schema fields, and persona guardrails addressing each LLM risk, along with gap analysis and mitigation recommendations.
+
 ### Policy Engine
 
 Four deterministic YAML profiles in `governance/policy/`:

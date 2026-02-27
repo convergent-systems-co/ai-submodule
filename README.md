@@ -245,6 +245,8 @@ Security, regulatory compliance, and code quality are embedded at every governan
 | Runtime | Drift detection monitors compliance regression; incidents generate remediation DIs |
 | Evolution | Backward compatibility checks; breaking changes require migration plans |
 
+For a detailed mapping of governance controls to the OWASP Top 10 for LLM Applications, see [OWASP LLM Top 10 Coverage Matrix](docs/compliance/owasp-llm-top10-mapping.md).
+
 Policy profiles provide pre-configured compliance postures:
 - **`fin_pii_high`** — SOC2, PCI-DSS, HIPAA, GDPR. Auto-merge disabled. 3-approver override.
 - **`infrastructure_critical`** — Production stability. Mandatory architecture and SRE review.
@@ -311,6 +313,12 @@ Quick navigation to all documentation in this repository.
 | [GOALS.md](GOALS.md) | Phase tracking, completed work, and open enhancements |
 | [DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md) | Quick-start onboarding for developers |
 | [CLAUDE.md](CLAUDE.md) | AI tool instructions (Claude Code, GitHub Copilot) |
+
+### Compliance
+
+| Document | Topic |
+|----------|-------|
+| [OWASP LLM Top 10 Coverage Matrix](docs/compliance/owasp-llm-top10-mapping.md) | Maps each OWASP LLM risk to governance controls, panels, schemas, and persona guardrails |
 
 ### Architecture & Design
 
