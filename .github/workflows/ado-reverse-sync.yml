@@ -1,0 +1,140 @@
+name: ADO Reverse Sync
+
+on:
+  repository_dispatch:
+    types: [ado-sync]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: ado-reverse-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: sync-from-ado
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check ADO integration enabled
+        id: check
+        run: |
+          # Auto-detect project.yaml location
+          if [ -f "project.yaml" ]; then
+            CONFIG_FILE="project.yaml"
+          elif [ -f ".ai/project.yaml" ]; then
+            CONFIG_FILE=".ai/project.yaml"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No project.yaml found — ADO reverse sync disabled"
+            exit 0
+          fi
+
+          # Check if ado_integration.enabled is true and sync direction allows reverse
+          ENABLED=$(python3 -c "
+          import yaml, sys
+          with open('${CONFIG_FILE}') as f:
+              data = yaml.safe_load(f) or {}
+          ado = data.get('ado_integration', {})
+          enabled = ado.get('enabled', False)
+          direction = ado.get('sync', {}).get('direction', 'github_to_ado')
+          # Reverse sync is allowed for bidirectional or ado_to_github
+          reverse_ok = direction in ('bidirectional', 'ado_to_github')
+          print('true' if enabled and reverse_ok else 'false')
+          " 2>/dev/null || echo "false")
+
+          echo "enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
+          echo "config_file=${CONFIG_FILE}" >> "$GITHUB_OUTPUT"
+          echo "ADO reverse sync enabled: ${ENABLED}"
+
+      - name: Set up Python
+        if: steps.check.outputs.enabled == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          pip install pyyaml requests
+
+      - name: Run reverse sync engine
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ADO_PAT: ${{ secrets.ADO_PAT }}
+          CONFIG_FILE: ${{ steps.check.outputs.config_file }}
+          CLIENT_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+        run: |
+          python3 -c "
+          import json, yaml, os, sys
+          from pathlib import Path
+
+          # Load client_payload (the ADO webhook data)
+          payload_str = os.environ.get('CLIENT_PAYLOAD', '{}')
+          try:
+              payload = json.loads(payload_str)
+          except json.JSONDecodeError:
+              print('Invalid client_payload JSON')
+              sys.exit(0)
+
+          if not payload:
+              print('Empty client_payload')
+              sys.exit(0)
+
+          # Load config
+          config_file = os.environ.get('CONFIG_FILE', 'project.yaml')
+          with open(config_file) as f:
+              project_config = yaml.safe_load(f) or {}
+
+          ado_config_data = project_config.get('ado_integration', {})
+
+          # Set up paths
+          ledger_path = Path('.governance/state/ado-sync-ledger.json')
+          error_log_path = Path('.governance/state/ado-sync-errors.json')
+
+          # Determine repo
+          github_repo = os.environ.get('GITHUB_REPOSITORY', '')
+          github_token = os.environ.get('GITHUB_TOKEN', '')
+
+          # Create engine and run
+          sys.path.insert(0, '.')
+          from governance.integrations.ado.reverse_sync import ReverseSyncEngine
+
+          engine = ReverseSyncEngine(
+              config=ado_config_data,
+              github_token=github_token,
+              github_repo=github_repo,
+              ledger_path=ledger_path,
+              error_log_path=error_log_path,
+          )
+          result = engine.sync(payload)
+
+          print(f'Reverse sync result: status={result.status}, operation={result.operation}, '
+                f'ado_work_item_id={result.ado_work_item_id}')
+          if result.error:
+              print(f'Error: {result.error}')
+              sys.exit(1)
+          "
+
+      - name: Commit updated ledger
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if ledger or error log changed
+          if git diff --quiet .governance/state/ 2>/dev/null && \
+             ! git ls-files --others --exclude-standard .governance/state/ | grep -q .; then
+            echo "No ledger changes to commit"
+            exit 0
+          fi
+
+          git add .governance/state/ado-sync-ledger.json .governance/state/ado-sync-errors.json 2>/dev/null || true
+          git commit -m "chore: update ADO sync ledger (reverse sync) [skip ci]" || true
+          git push || true

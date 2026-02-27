@@ -883,6 +883,150 @@ def cmd_setup_custom_fields(args: argparse.Namespace) -> int:
     return EXIT_SUCCESS
 
 
+def cmd_setup_service_hooks(args: argparse.Namespace) -> int:
+    """Create ADO Service Hook subscriptions for reverse sync.
+
+    Creates ``workitem.created``, ``workitem.updated``, and
+    ``workitem.deleted`` service hook subscriptions that target the
+    GitHub ``repository_dispatch`` endpoint.  Idempotent — checks for
+    existing subscriptions before creating new ones.
+    """
+    github_repo = getattr(args, "github_repo", None)
+    if not github_repo:
+        print("Error: --github-repo is required for setup-service-hooks", file=sys.stderr)
+        return EXIT_ERROR
+
+    github_pat = getattr(args, "github_pat", None)
+    if not github_pat:
+        import os
+        github_pat = os.environ.get("GITHUB_TOKEN", "")
+    if not github_pat:
+        print("Error: --github-pat or GITHUB_TOKEN env var is required", file=sys.stderr)
+        return EXIT_ERROR
+
+    event_types = ["workitem.created", "workitem.updated", "workitem.deleted"]
+    dispatch_url = f"https://api.github.com/repos/{github_repo}/dispatches"
+
+    config, raw = _build_config(args)
+    org = config.organization
+    project = raw.get("project", config.default_project)
+
+    # Build subscription definitions
+    subscriptions = []
+    for event_type in event_types:
+        sub = {
+            "publisherId": "tfs",
+            "eventType": event_type,
+            "resourceVersion": "1.0",
+            "publisherInputs": {
+                "projectId": project,
+            },
+            "consumerActionId": "httpRequest",
+            "consumerId": "webHooks",
+            "consumerInputs": {
+                "url": dispatch_url,
+                "httpHeaders": (
+                    f"Authorization:Bearer {github_pat}\n"
+                    "Accept:application/vnd.github+json\n"
+                    "Content-Type:application/json"
+                ),
+                "resourceDetailsToSend": "All",
+                "messagesToSend": "None",
+                "detailedMessagesToSend": "None",
+            },
+        }
+        subscriptions.append((event_type, sub))
+
+    if args.dry_run:
+        summary = [
+            {
+                "event_type": et,
+                "target_url": dispatch_url,
+                "project": project,
+                "status": "would_create",
+            }
+            for et, _ in subscriptions
+        ]
+        if args.json:
+            _print_json({"dry_run": True, "subscriptions": summary})
+        else:
+            print("[dry-run] Would create these service hook subscriptions:")
+            for s in summary:
+                print(f"  - {s['event_type']} -> {s['target_url']}")
+        return EXIT_DRY_RUN_WOULD_CHANGE
+
+    # Check for existing subscriptions and create missing ones
+    import requests as req
+
+    base_url = f"https://dev.azure.com/{org}"
+    hooks_url = f"{base_url}/_apis/hooks/subscriptions"
+
+    from governance.integrations.ado.auth import create_auth_provider
+    auth_method = raw.get("auth_method", "pat")
+    auth = create_auth_provider(auth_method)
+    auth_header = auth.get_auth_header()
+
+    headers = {
+        "Authorization": auth_header,
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+    }
+
+    # List existing subscriptions
+    _verbose(args, "Fetching existing service hook subscriptions...")
+    resp = req.get(hooks_url, headers=headers, params={"api-version": "7.1"}, timeout=30)
+    if resp.status_code >= 400:
+        print(f"Error listing service hooks: {resp.status_code} {resp.text}", file=sys.stderr)
+        return EXIT_ERROR
+
+    existing_subs = resp.json().get("value", [])
+
+    # Index existing by event type + URL
+    existing_keys: set[str] = set()
+    for sub in existing_subs:
+        et = sub.get("eventType", "")
+        consumer_inputs = sub.get("consumerInputs", {})
+        url = consumer_inputs.get("url", "")
+        existing_keys.add(f"{et}:{url}")
+
+    results = []
+    for event_type, sub_def in subscriptions:
+        key = f"{event_type}:{dispatch_url}"
+        if key in existing_keys:
+            status = "already_exists"
+            _verbose(args, f"Subscription for {event_type} already exists, skipping")
+        else:
+            _verbose(args, f"Creating subscription for {event_type}...")
+            # The consumer inputs need to wrap the payload for repository_dispatch
+            # Modify the webhook to post as a repository_dispatch event
+            sub_def["consumerInputs"]["url"] = dispatch_url
+            create_resp = req.post(
+                hooks_url,
+                headers=headers,
+                json=sub_def,
+                params={"api-version": "7.1"},
+                timeout=30,
+            )
+            if create_resp.status_code >= 400:
+                status = f"error: {create_resp.status_code}"
+                _verbose(args, f"Failed to create {event_type}: {create_resp.text}")
+            else:
+                status = "created"
+
+        results.append({"event_type": event_type, "status": status})
+
+    if args.json:
+        _print_json(results)
+    else:
+        for r in results:
+            icon = "+" if r["status"] == "created" else ("=" if r["status"] == "already_exists" else "!")
+            print(f"  [{icon}] {r['event_type']}: {r['status']}")
+
+    # Check if any failed
+    errors = [r for r in results if r["status"].startswith("error")]
+    return EXIT_ERROR if errors else EXIT_SUCCESS
+
+
 def cmd_health(args: argparse.Namespace) -> int:
     """Run health checks: connection, custom fields, ledger consistency."""
     checks: list[dict[str, Any]] = []
@@ -1202,6 +1346,22 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Create Custom.GitHubIssueUrl and Custom.GitHubRepo fields (idempotent).",
     )
 
+    p_hooks = subparsers.add_parser(
+        "setup-service-hooks",
+        help="Create ADO service hook subscriptions for reverse sync (idempotent).",
+    )
+    p_hooks.add_argument(
+        "--github-repo",
+        required=True,
+        metavar="OWNER/REPO",
+        help="GitHub repository (e.g., 'owner/repo') to receive dispatches.",
+    )
+    p_hooks.add_argument(
+        "--github-pat",
+        metavar="TOKEN",
+        help="GitHub PAT for repository_dispatch (defaults to GITHUB_TOKEN env var).",
+    )
+
     subparsers.add_parser(
         "health",
         help="Run health checks (connection, custom fields, ledger consistency).",
@@ -1226,6 +1386,7 @@ _COMMANDS = {
     "sync-one": cmd_sync_one,
     "retry-failed": cmd_retry_failed,
     "setup-custom-fields": cmd_setup_custom_fields,
+    "setup-service-hooks": cmd_setup_service_hooks,
     "health": cmd_health,
 }
 

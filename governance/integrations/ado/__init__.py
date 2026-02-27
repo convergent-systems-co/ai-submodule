@@ -38,6 +38,13 @@ from governance.integrations.ado.mappers import (
     map_github_user_to_ado,
 )
 from governance.integrations.ado.sync_engine import SyncEngine, SyncResult
+from governance.integrations.ado.reverse_sync import ReverseSyncEngine
+from governance.integrations.ado.reverse_mappers import (
+    map_ado_fields_to_github,
+    map_ado_priority_to_github,
+    map_ado_state_to_github,
+    map_ado_user_to_github,
+)
 from governance.integrations.ado._patch import (
     add_field,
     add_github_commit_link,
@@ -88,12 +95,19 @@ __all__ = [
     # Sync engine
     "SyncEngine",
     "SyncResult",
-    # Mappers
+    # Reverse sync engine
+    "ReverseSyncEngine",
+    # Mappers (GitHub -> ADO)
     "map_github_state_to_ado",
     "map_github_labels_to_ado_type",
     "map_github_fields_to_ado_patch",
     "map_github_priority_to_ado",
     "map_github_user_to_ado",
+    # Reverse mappers (ADO -> GitHub)
+    "map_ado_state_to_github",
+    "map_ado_fields_to_github",
+    "map_ado_priority_to_github",
+    "map_ado_user_to_github",
     # Patch builder
     "add_field",
     "add_github_commit_link",
