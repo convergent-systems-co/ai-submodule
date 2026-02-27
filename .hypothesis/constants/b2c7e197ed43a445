@@ -1,0 +1,4 @@
+# file: /Users/itsfwcp/.ai/.claude/worktrees/agent-a7c30596/governance/engine/naming_data.py
+# hypothesis_version: 6.141.1
+
+[128, 260, 'Microsoft.Web/sites', 'agw', 'aks', 'apim', 'app', 'appcs', 'appi', 'c', 'cosmos', 'cr', 'd', 'dev', 'e', 'evh', 'f', 'func', 'i', 'id', 'j', 'jma', 'jmf', 'jmfe', 'kv', 'l', 'lexus', 'log', 'mini', 'n', 'nonprod', 'nsg', 'ocio', 'octo', 'p', 'pip', 'plan', 'prod', 'q', 'qa', 'redis', 's', 'sb', 'set', 'setf', 'small', 'sql', 'sqldb', 'st', 'standard', 'stg', 't', 'to', 'u', 'uat', 'v', 'vnet']

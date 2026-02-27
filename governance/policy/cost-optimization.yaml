@@ -1,0 +1,99 @@
+# Cost Optimization Policy
+# Defines budget thresholds, cost alert rules, and model downgrade strategies.
+# Evaluated by the policy engine alongside the active evaluation profile.
+# All thresholds are in USD. All evaluation is deterministic.
+
+profile_name: cost-optimization
+profile_version: "1.0.0"
+description: >
+  Cost governance policy for multi-model execution. Enforces per-session,
+  per-issue, and per-panel budget limits. Triggers model downgrades and
+  alerts when spending exceeds thresholds.
+
+# Budget Thresholds
+# Hard limits that trigger enforcement actions when exceeded.
+budget_thresholds:
+  per_session_usd: 5.00
+  per_issue_usd: 1.00
+  per_panel_usd: 0.25
+
+# Cost Alert Thresholds
+# Soft limits that trigger warnings before hard limits are reached.
+# Expressed as a percentage of the corresponding budget threshold.
+cost_alerts:
+  warn_at_percent: 75
+  critical_at_percent: 90
+  rules:
+    - name: session_budget_warning
+      description: "Session cost approaching budget limit."
+      condition: session_cost_usd >= per_session_usd * 0.75
+      action: warn
+      notify:
+        - role: code_manager
+
+    - name: session_budget_critical
+      description: "Session cost near budget limit — switch to fallback models."
+      condition: session_cost_usd >= per_session_usd * 0.90
+      action: downgrade_model
+      notify:
+        - role: code_manager
+        - role: devops_engineer
+
+    - name: session_budget_exceeded
+      description: "Session budget exceeded — block further panel executions."
+      condition: session_cost_usd >= per_session_usd
+      action: block_execution
+      notify:
+        - role: code_manager
+        - role: devops_engineer
+
+    - name: issue_budget_warning
+      description: "Issue cost approaching per-issue limit."
+      condition: issue_cost_usd >= per_issue_usd * 0.75
+      action: warn
+
+    - name: issue_budget_exceeded
+      description: "Issue budget exceeded — require human approval to continue."
+      condition: issue_cost_usd >= per_issue_usd
+      action: human_review_required
+
+    - name: panel_budget_exceeded
+      description: "Single panel exceeded per-panel budget — log anomaly."
+      condition: panel_cost_usd >= per_panel_usd
+      action: flag_anomaly
+
+# Model Downgrade Rules
+# When budget pressure triggers a downgrade, these rules define which
+# backends to switch to and which personas are eligible for downgrade.
+model_downgrade:
+  enabled: true
+  strategy: fallback_chain
+  rules:
+    - name: use_fallback_on_budget_pressure
+      description: "Switch personas to their fallback backend when session budget is >90%."
+      condition: session_cost_usd >= per_session_usd * 0.90
+      action: switch_to_fallback
+
+    - name: skip_optional_panels
+      description: "Skip optional panels when budget exceeds threshold."
+      condition: session_cost_usd >= per_session_usd * 0.75
+      action: skip_optional_panels
+
+    - name: reduce_context_window
+      description: "Reduce context sent to panels when budget is under pressure."
+      condition: session_cost_usd >= per_session_usd * 0.50
+      action: reduce_context
+      max_context_reduction_percent: 25
+
+  # Personas that must never be downgraded regardless of budget pressure.
+  protected_personas:
+    - security-review
+    - threat-modeling
+
+# Cost Tracking
+# Defines how cost data is recorded in emissions and manifests.
+cost_tracking:
+  require_token_count: false  # Advisory — backends that support it should report
+  require_estimated_cost: false  # Advisory — calculated from token_count + backend pricing
+  aggregate_in_manifest: true  # Sum all panel costs into run manifest
+  retention_days: 90  # How long cost data is retained in state

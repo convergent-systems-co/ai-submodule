@@ -154,6 +154,283 @@ class TestPolicyProfileValidity:
 
 
 # ===========================================================================
+# Execution backend schema validation
+# ===========================================================================
+
+
+class TestExecutionBackendSchema:
+    @pytest.fixture
+    def backend_schema(self):
+        with open(SCHEMAS_DIR / "execution-backend.schema.json") as f:
+            return json.load(f)
+
+    def _valid_backend_config(self):
+        """Return a minimal valid execution backend config."""
+        return {
+            "backends": {
+                "claude-opus": {
+                    "model_id": "claude-opus-4-6",
+                    "provider": "anthropic",
+                    "context_window": 200000,
+                    "cost_per_1k_input_tokens": 0.015,
+                    "cost_per_1k_output_tokens": 0.075,
+                    "capabilities": ["reasoning", "code-generation"],
+                    "max_output_tokens": 32000,
+                },
+                "claude-sonnet": {
+                    "model_id": "claude-sonnet-4-20250514",
+                    "provider": "anthropic",
+                    "context_window": 200000,
+                    "cost_per_1k_input_tokens": 0.003,
+                    "cost_per_1k_output_tokens": 0.015,
+                },
+            },
+            "default_backend": "claude-opus",
+            "model_assignment": {
+                "code-manager": {
+                    "primary": "claude-opus",
+                    "fallback": "claude-sonnet",
+                },
+                "coder": {
+                    "primary": "claude-sonnet",
+                },
+            },
+        }
+
+    def test_valid_config_passes(self, backend_schema):
+        """A fully populated backend config validates successfully."""
+        validate(instance=self._valid_backend_config(), schema=backend_schema)
+
+    def test_minimal_config_passes(self, backend_schema):
+        """A config with only required fields validates."""
+        config = {
+            "backends": {
+                "default": {
+                    "model_id": "gpt-4o",
+                    "provider": "openai",
+                    "context_window": 128000,
+                },
+            },
+            "default_backend": "default",
+        }
+        validate(instance=config, schema=backend_schema)
+
+    def test_rejects_missing_backends(self, backend_schema):
+        """Config without 'backends' key is rejected."""
+        config = {"default_backend": "x"}
+        with pytest.raises(ValidationError):
+            validate(instance=config, schema=backend_schema)
+
+    def test_rejects_missing_default_backend(self, backend_schema):
+        """Config without 'default_backend' key is rejected."""
+        config = {
+            "backends": {
+                "x": {
+                    "model_id": "m",
+                    "provider": "anthropic",
+                    "context_window": 2048,
+                },
+            },
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=config, schema=backend_schema)
+
+    def test_rejects_invalid_provider(self, backend_schema):
+        """Backend with unsupported provider is rejected."""
+        config = {
+            "backends": {
+                "bad": {
+                    "model_id": "m",
+                    "provider": "unsupported-provider",
+                    "context_window": 2048,
+                },
+            },
+            "default_backend": "bad",
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=config, schema=backend_schema)
+
+    def test_rejects_context_window_too_small(self, backend_schema):
+        """Context window below 1024 is rejected."""
+        config = {
+            "backends": {
+                "tiny": {
+                    "model_id": "m",
+                    "provider": "openai",
+                    "context_window": 512,
+                },
+            },
+            "default_backend": "tiny",
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=config, schema=backend_schema)
+
+    def test_rejects_negative_cost(self, backend_schema):
+        """Negative cost values are rejected."""
+        config = {
+            "backends": {
+                "neg": {
+                    "model_id": "m",
+                    "provider": "openai",
+                    "context_window": 2048,
+                    "cost_per_1k_input_tokens": -0.01,
+                },
+            },
+            "default_backend": "neg",
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=config, schema=backend_schema)
+
+    def test_rejects_missing_backend_required_fields(self, backend_schema):
+        """Backend entry missing model_id is rejected."""
+        config = {
+            "backends": {
+                "incomplete": {
+                    "provider": "anthropic",
+                    "context_window": 2048,
+                },
+            },
+            "default_backend": "incomplete",
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=config, schema=backend_schema)
+
+    def test_all_providers_accepted(self, backend_schema):
+        """Each supported provider enum value is accepted."""
+        for provider in ["anthropic", "openai", "azure-openai", "github-copilot"]:
+            config = {
+                "backends": {
+                    "test": {
+                        "model_id": "test-model",
+                        "provider": provider,
+                        "context_window": 4096,
+                    },
+                },
+                "default_backend": "test",
+            }
+            validate(instance=config, schema=backend_schema)
+
+
+# ===========================================================================
+# Token count and cost fields in panel output
+# ===========================================================================
+
+
+class TestPanelOutputCostFields:
+    @pytest.fixture
+    def panel_schema(self):
+        with open(SCHEMAS_DIR / "panel-output.schema.json") as f:
+            return json.load(f)
+
+    @pytest.fixture
+    def valid_emission(self):
+        return make_emission()
+
+    def test_emission_with_token_count_and_cost(self, panel_schema, valid_emission):
+        """Emission with token_count and estimated_cost_usd in execution_context validates."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "model_version": "claude-opus-4-6",
+            "token_count": {
+                "input": 45200,
+                "output": 3800,
+            },
+            "estimated_cost_usd": 0.963,
+        }
+        validate(instance=emission, schema=panel_schema)
+
+    def test_emission_with_token_count_only(self, panel_schema, valid_emission):
+        """Emission with token_count but no cost validates (cost is optional)."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "model_version": "claude-opus-4-6",
+            "token_count": {
+                "input": 10000,
+                "output": 500,
+            },
+        }
+        validate(instance=emission, schema=panel_schema)
+
+    def test_emission_with_cost_only(self, panel_schema, valid_emission):
+        """Emission with estimated_cost_usd but no token_count validates."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "model_version": "claude-opus-4-6",
+            "estimated_cost_usd": 0.50,
+        }
+        validate(instance=emission, schema=panel_schema)
+
+    def test_emission_without_cost_fields_still_valid(self, panel_schema, valid_emission):
+        """Emission without any cost fields is backward compatible."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "model_version": "claude-opus-4-6",
+        }
+        validate(instance=emission, schema=panel_schema)
+
+    def test_emission_without_execution_context_still_valid(self, panel_schema, valid_emission):
+        """Emission without execution_context at all is backward compatible."""
+        emission = copy.deepcopy(valid_emission)
+        assert "execution_context" not in emission
+        validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_negative_estimated_cost(self, panel_schema, valid_emission):
+        """Negative estimated_cost_usd is rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "estimated_cost_usd": -1.0,
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_negative_token_count(self, panel_schema, valid_emission):
+        """Negative input token count is rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "token_count": {
+                "input": -100,
+                "output": 50,
+            },
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_string_token_count(self, panel_schema, valid_emission):
+        """String values for token counts are rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "token_count": {
+                "input": "many",
+                "output": 50,
+            },
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_partial_token_count_valid(self, panel_schema, valid_emission):
+        """Token count with only input or only output is valid."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "token_count": {
+                "input": 5000,
+            },
+        }
+        validate(instance=emission, schema=panel_schema)
+
+    def test_zero_cost_valid(self, panel_schema, valid_emission):
+        """Zero cost is valid (e.g., for free-tier providers)."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "estimated_cost_usd": 0,
+            "token_count": {
+                "input": 1000,
+                "output": 100,
+            },
+        }
+        validate(instance=emission, schema=panel_schema)
+
+
+# ===========================================================================
 # Escalation chain in run-manifest schema (Issue #436)
 # ===========================================================================
 

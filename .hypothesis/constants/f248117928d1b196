@@ -1,0 +1,4 @@
+# file: /Users/itsfwcp/.ai/.claude/worktrees/agent-a7c30596/governance/engine/naming.py
+# hypothesis_version: 6.141.1
+
+['-', '; ', '[-_]', '^[a-z]$', 'actual_length', 'allows_hyphens', 'errors', 'max_length', 'mini', 'pattern', 'prefix', 'resource_type', 'small', 'standard', 'valid', '{appName}', '{role}']

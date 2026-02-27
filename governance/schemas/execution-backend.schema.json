@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/ai-submodule/schemas/execution-backend.schema.json",
+  "title": "Execution Backend Configuration",
+  "description": "Defines available LLM backends, their capabilities and costs, and per-persona model routing. Consumed by the governance pipeline to select models, track token usage, and enforce cost budgets.",
+  "type": "object",
+  "required": ["backends", "default_backend"],
+  "properties": {
+    "backends": {
+      "type": "object",
+      "description": "Named backend definitions. Keys are backend identifiers referenced by default_backend and model_assignment.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["model_id", "provider", "context_window"],
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "description": "Provider-specific model identifier (e.g., 'claude-opus-4-6', 'gpt-4o-2024-08-06')."
+          },
+          "provider": {
+            "type": "string",
+            "description": "LLM provider.",
+            "enum": ["anthropic", "openai", "azure-openai", "github-copilot"]
+          },
+          "context_window": {
+            "type": "integer",
+            "description": "Maximum context window size in tokens.",
+            "minimum": 1024
+          },
+          "cost_per_1k_input_tokens": {
+            "type": "number",
+            "description": "Cost in USD per 1,000 input tokens.",
+            "minimum": 0
+          },
+          "cost_per_1k_output_tokens": {
+            "type": "number",
+            "description": "Cost in USD per 1,000 output tokens.",
+            "minimum": 0
+          },
+          "capabilities": {
+            "type": "array",
+            "description": "Model capabilities relevant for task routing (e.g., 'code-generation', 'reasoning', 'vision').",
+            "items": {
+              "type": "string"
+            }
+          },
+          "max_output_tokens": {
+            "type": "integer",
+            "description": "Maximum output tokens the model can generate in a single response.",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "default_backend": {
+      "type": "string",
+      "description": "Key into 'backends' used when no persona-specific assignment exists."
+    },
+    "model_assignment": {
+      "type": "object",
+      "description": "Per-persona model routing. Keys are persona identifiers (e.g., 'code-manager', 'coder', 'security-review').",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "primary": {
+            "type": "string",
+            "description": "Preferred backend key for this persona."
+          },
+          "fallback": {
+            "type": "string",
+            "description": "Backend key to use if the primary is unavailable or budget-exceeded."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

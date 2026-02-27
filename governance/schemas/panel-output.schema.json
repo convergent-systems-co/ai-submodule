@@ -196,6 +196,28 @@
         "triggered_by": {
           "type": "string",
           "enum": ["ci", "manual", "drift_detection", "incident_response", "scheduled"]
+        },
+        "token_count": {
+          "type": "object",
+          "description": "Token usage for this panel execution. Enables cost tracking and budget enforcement.",
+          "properties": {
+            "input": {
+              "type": "integer",
+              "description": "Number of input tokens consumed.",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "description": "Number of output tokens generated.",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "estimated_cost_usd": {
+          "type": "number",
+          "description": "Estimated cost in USD for this panel execution, derived from token_count and backend pricing.",
+          "minimum": 0
         }
       },
       "additionalProperties": false
