@@ -6,17 +6,37 @@ import { resolveGovernanceRoot } from "./utils.js";
 import { registerResources } from "./resources.js";
 import { registerTools } from "./tools.js";
 import { registerPrompts } from "./prompts.js";
+import { ENV } from "./fetch.js";
+
+/**
+ * Parsed CLI arguments for the MCP server.
+ */
+export interface CliArgs {
+  governanceRoot?: string;
+  noCache?: boolean;
+  refresh?: boolean;
+  validateHash?: boolean;
+  offline?: boolean;
+}
 
 /**
  * Parse CLI arguments.
  */
-function parseArgs(argv: string[]): { governanceRoot?: string } {
-  const args: { governanceRoot?: string } = {};
+export function parseArgs(argv: string[]): CliArgs {
+  const args: CliArgs = {};
 
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === "--governance-root" && argv[i + 1]) {
       args.governanceRoot = argv[i + 1];
       i++;
+    } else if (argv[i] === "--no-cache") {
+      args.noCache = true;
+    } else if (argv[i] === "--refresh") {
+      args.refresh = true;
+    } else if (argv[i] === "--validate-hash") {
+      args.validateHash = true;
+    } else if (argv[i] === "--offline") {
+      args.offline = true;
     }
   }
 
@@ -48,6 +68,15 @@ async function main(): Promise<void> {
   if (handled) return;
 
   const args = parseArgs(process.argv);
+
+  // Apply fetch-related CLI flags to environment
+  if (args.offline) {
+    process.env[ENV.OFFLINE] = "1";
+  }
+  if (args.noCache) {
+    // Set TTL to 0 to effectively disable caching
+    process.env[ENV.CACHE_TTL] = "0";
+  }
 
   let governanceRoot: string;
   try {
