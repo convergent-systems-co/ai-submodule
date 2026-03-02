@@ -161,6 +161,8 @@ The consolidated review prompts implement this Voting pattern directly.
 | Ralph Loop compatibility | Requires file-chasing | Self-contained per iteration | **Consolidation** |
 | Schema compliance | Preserved | Preserved | **Equivalent** |
 
+> **Current state:** Consolidation was implemented in Issue #220. The 60 non-agentic persona files were removed in Issue #257. Only 6 agentic personas remain in `governance/personas/agentic/`, alongside 21 consolidated review prompts in `governance/prompts/reviews/`.
+
 ---
 
 ## 5. MCP Skills vs. Self-Contained Prompts

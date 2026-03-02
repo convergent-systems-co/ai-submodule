@@ -387,7 +387,7 @@ Given the framework's goals (autonomous governance, prompt chaining loop, person
 
 5. **Wrap the governance review in a Ralph Wiggum-style loop** using Claude Code Stop hooks. The external validators are: schema validation on emissions, policy engine evaluation, CI checks. The harness decides completion, not the model. This directly achieves Goal #1 (agentic loop without human intervention) and Goal #4 (prompt chaining loop).
 
-6. **Each review cycle gets fresh context** (Ralph's stateless resampling). The self-contained review prompts make this possible — no file-chasing across 60 persona files per iteration.
+6. **Each review cycle gets fresh context** (Ralph's stateless resampling). The self-contained review prompts make this possible — no file-chasing across the formerly 60 persona files (now consolidated into 21 review prompts; only 6 agentic personas remain) per iteration.
 
 ### What to defer (Part 2 — True Multi-Agent)
 

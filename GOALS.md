@@ -54,9 +54,9 @@ This document tracks the maturity phases, completed work, and open enhancements 
 |-------|----|-------|--------|
 | #51 | #60 | Panel pass/fail criteria | Standardized scoring, schema, and local override system for all 15 panels |
 | #53 | #64 | Evaluate personas and panels | Added language, platform, and LLM review perspectives + Cost Analysis panel; all non-agentic personas later consolidated into 21 self-contained review prompts (Issue #220) and the 58 separate persona files removed (Issue #257). Only 6 agentic personas remain in `governance/personas/agentic/`. |
-| #5 | #13 | Agile Coach persona | Sprint planning, velocity, retrospective guidance |
-| #6 | #15 | FinOps group | FinOps Engineer and FinOps Analyst personas |
-| #7 | #16 | MITRE Specialist | Threat modeling panel and MITRE ATT&CK mapping |
+| #5 | #13 | Agile Coach persona | Sprint planning, velocity, retrospective guidance (consolidated into review prompts in #220; persona file removed in #257) |
+| #6 | #15 | FinOps group | FinOps Engineer and FinOps Analyst personas (consolidated into review prompts in #220; persona files removed in #257) |
+| #7 | #16 | MITRE Specialist | Threat modeling panel and MITRE ATT&CK mapping (consolidated into review prompts in #220; persona file removed in #257) |
 
 ### Governance Infrastructure
 

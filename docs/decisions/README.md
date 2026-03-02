@@ -167,7 +167,7 @@ At Phase 3 (2026-02-21), no multi-agent runtime existed. Claude Code and GitHub 
 
 ### Consequences
 
-- 60 persona files across 13 categories
+- 60 persona files across 13 categories (subsequently consolidated into 21 review prompts in Issue #220; deprecated files removed in Issue #257; only 6 agentic personas remain)
 - One model, sequential thinking, multiple hats
 - The file separation suggests a distributed system that doesn't exist at runtime
 - **This is the decision that ADR-010 and ADR-011 revisit**
