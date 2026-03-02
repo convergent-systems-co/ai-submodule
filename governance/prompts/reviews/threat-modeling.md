@@ -6,11 +6,62 @@ Systematic PR-level threat analysis mapping the attack surface introduced or mod
 
 **Scope:** Analyze ONLY the changes introduced by this PR. Do not re-assess the entire system — focus on new/modified attack surface, changed trust boundaries, and affected data flows.
 
+## Risk Classification (Tier Selection)
+
+Before beginning the full analysis, classify the PR into a threat model tier. This determines the depth of analysis required and avoids spending ~12K tokens on changes with negligible attack surface impact.
+
+### Tier 1: Standard (Abbreviated)
+
+**Criteria — ALL must be true:**
+- Change is documentation-only (`.md`, `.txt`, `.rst` files), OR
+- Change is configuration-only (`.yaml`, `.yml`, `.json`, `.toml` — but NOT workflow files, IAM configs, or network configs), OR
+- Change is fewer than 10 lines of code with no security-sensitive patterns
+
+**Security-sensitive patterns (any match → Tier 2):**
+- Authentication/authorization logic (`auth`, `login`, `token`, `session`, `jwt`, `oauth`, `rbac`, `permission`)
+- Infrastructure/networking (`iam`, `role`, `policy`, `firewall`, `network`, `tls`, `ssl`, `certificate`, `endpoint`)
+- Data handling (`encrypt`, `decrypt`, `hash`, `secret`, `credential`, `password`, `pii`, `redact`)
+- External communication (`http`, `https`, `api`, `webhook`, `callback`, `cors`)
+- Workflow/CI changes (`.github/workflows/`, `pipeline`, `deploy`)
+
+**Abbreviated output (4 sections):**
+1. **Risk Classification** — Tier justification with file list and line count
+2. **Attack Surface Summary** — Brief assessment of what changed and whether the attack surface expanded
+3. **Mitigation Recommendations** — Any advisory notes (may be empty for pure docs changes)
+4. **Structured Emission** — Standard JSON emission with the confidence score
+
+### Tier 2: Full
+
+**Criteria — ANY is true:**
+- Change touches authentication, authorization, or session management
+- Change modifies infrastructure, networking, or IAM configuration
+- Change handles sensitive data (PII, credentials, encryption)
+- Change modifies CI/CD workflows or deployment configuration
+- Change introduces new external communication or API endpoints
+- Change is >= 10 lines of code and does not qualify for Tier 1
+- Policy profile is `strict` or `security-critical`
+
+**Full output:** All 15 sections of the threat modeling template below.
+
+### Classification Procedure
+
+1. List all changed files with their extensions
+2. Count total lines changed
+3. Scan for security-sensitive patterns in the diff
+4. If ALL Tier 1 criteria are met and NO security-sensitive patterns are found → **Tier 1**
+5. Otherwise → **Tier 2**
+6. State the tier and justification at the top of the output
+
+> **Note:** When in doubt, use Tier 2. Under-classifying a security-relevant change is worse than over-analyzing a documentation change.
+
+---
+
 ## Context
 
-You are performing a **threat-modeling** review of a PR diff. Evaluate the provided code change from multiple security perspectives organized into 5 parallel review tracks. Each track has a sub-moderator coordinating its participants. The output must follow the standardized 15-section template exactly.
+You are performing a **threat-modeling** review of a PR diff. Classify the change risk tier first (see above), then evaluate from multiple security perspectives. For Tier 1 changes, produce the abbreviated 4-section output. For Tier 2 changes, use the full 15-section template with all 5 parallel review tracks.
 
 > **Baseline emission:** [`threat-modeling.json`](../../emissions/threat-modeling.json)
+> **Scope note:** This is the per-PR threat model. For comprehensive system-level threat assessments, use [`threat-model-system.md`](./threat-model-system.md) instead.
 
 ## Review Tracks and Participants
 

@@ -2,7 +2,9 @@
 
 ## Purpose
 
-Comprehensive system-level threat model producing a structured security assessment of the entire platform or application. This is an on-demand analysis — not a per-PR gate — that maps the full attack surface to MITRE ATT&CK, performs STRIDE analysis per trust boundary, constructs attack trees, validates detection coverage, and produces a prioritized mitigation roadmap with Sigma detection rules.
+Comprehensive system-level threat model producing a structured security assessment of the entire platform or application. This is an **on-demand** analysis — not a per-PR gate — that maps the full attack surface to MITRE ATT&CK, performs STRIDE analysis per trust boundary, constructs attack trees, validates detection coverage, and produces a prioritized mitigation roadmap with Sigma detection rules.
+
+> **Scope distinction:** This panel analyzes the **entire system** (or user-specified scope). For per-PR threat analysis with tiered depth selection, use [`threat-modeling.md`](./threat-modeling.md) instead. The per-PR panel has a fast-path classifier that abbreviates analysis for low-risk changes (docs, config, <10 lines).
 
 ## Context
 

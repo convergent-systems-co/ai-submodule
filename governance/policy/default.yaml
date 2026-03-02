@@ -208,6 +208,59 @@ override:
     cooldown_hours: 24
     post_override_review_required: true
 
+# Threat Model Tier Configuration
+# Controls when the abbreviated (Tier 1) vs full (Tier 2) threat model runs.
+threat_model_tiers:
+  enabled: true
+  tier_1:
+    description: "Abbreviated threat model for low-risk changes"
+    sections: 4  # Risk Classification, Attack Surface, Mitigations, Emission
+    criteria:
+      # All must be true for Tier 1
+      max_code_lines_changed: 10
+      allowed_extensions_only:
+        - ".md"
+        - ".txt"
+        - ".rst"
+        - ".yaml"
+        - ".yml"
+        - ".json"
+        - ".toml"
+      no_security_patterns: true
+  tier_2:
+    description: "Full threat model for security-relevant changes"
+    sections: 15
+    force_for_profiles:
+      - strict
+      - security-critical
+  # Patterns that always force Tier 2 regardless of line count
+  security_sensitive_patterns:
+    - "auth"
+    - "login"
+    - "token"
+    - "session"
+    - "jwt"
+    - "oauth"
+    - "rbac"
+    - "permission"
+    - "iam"
+    - "role"
+    - "policy"
+    - "firewall"
+    - "network"
+    - "tls"
+    - "ssl"
+    - "certificate"
+    - "encrypt"
+    - "decrypt"
+    - "hash"
+    - "secret"
+    - "credential"
+    - "password"
+    - "pii"
+    - "redact"
+    - ".github/workflows/"
+
 # Required Panels
 # Panels that must execute for a merge decision to be valid.
 required_panels:
