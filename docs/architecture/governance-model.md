@@ -94,49 +94,48 @@ It does NOT govern:
 
 The governance model operates on the following existing components:
 
-**Personas (60 across 13 categories):**
+**Agentic Personas (6):**
 
-| Category | Count | Directory |
-|----------|-------|-----------|
-| Architecture | 3 | `governance/personas/architecture/` |
-| Compliance | 4 | `governance/personas/compliance/` |
-| Documentation | 2 | `governance/personas/documentation/` |
-| Domain Specific | 6 | `governance/personas/domain/` |
-| Engineering | 6 | `governance/personas/engineering/` |
-| FinOps | 4 | `governance/personas/finops/` |
-| Governance | 2 | `governance/personas/governance/` |
-| Language Specific | 11 | `governance/personas/language/` |
-| Leadership | 5 | `governance/personas/leadership/` |
-| Operations & Reliability | 6 | `governance/personas/operations/` |
-| Platform Specific | 2 | `governance/personas/platform/` |
-| Code Quality | 3 | `governance/personas/quality/` |
-| Special Purpose | 4 | `governance/personas/specialist/` |
+| Persona | File |
+|---------|------|
+| Project Manager | `governance/personas/agentic/project-manager.md` |
+| DevOps Engineer | `governance/personas/agentic/devops-engineer.md` |
+| Code Manager | `governance/personas/agentic/code-manager.md` |
+| Coder | `governance/personas/agentic/coder.md` |
+| IaC Engineer | `governance/personas/agentic/iac-engineer.md` |
+| Tester | `governance/personas/agentic/tester.md` |
 
-> **Note:** As of Issue #220, personas and panels have been consolidated into self-contained
-> review prompts in `governance/prompts/reviews/`. The persona files and panel files in
-> `governance/personas/` are deprecated and will be removed in a future release.
-> See `docs/research/README.md` for the research supporting this architectural decision.
+> **History:** The framework previously contained 60 non-agentic persona files across 13
+> categories. Per Issue #220, these were consolidated into self-contained review prompts in
+> `governance/prompts/reviews/`. The deprecated persona files were removed in Issue #257.
+> The 6 agentic personas above are the only persona files that remain.
+> See `docs/research/README.md` for the research supporting the consolidation decision.
 
-**Panels (16 multi-persona panels):**
+**Review Panels (21 consolidated review prompts in `governance/prompts/reviews/`):**
 
-| Panel | Participants | Primary Governance Layer |
-|-------|-------------|------------------------|
-| AI Expert Review | 5 | Cognitive (L2) |
-| API Design Review | 5 | Cognitive (L2) |
-| Architecture Review | 5 | Cognitive (L2) / Execution (L3) |
-| Code Review | 5 | Execution (L3) |
-| Copilot Review | 5 | Execution (L3) |
-| Cost Analysis | 6 | Execution (L3) |
-| Data Design Review | 5 | Cognitive (L2) / Execution (L3) |
-| Documentation Review | 5 | Execution (L3) |
-| Incident Post-Mortem | 5 | Runtime (L4) |
-| Migration Review | 5 | Execution (L3) / Evolution (L5) |
-| Performance Review | 5 | Execution (L3) |
-| Production Readiness | 5 | Runtime (L4) |
-| Security Review | 5 | Execution (L3) |
-| Technical Debt Review | 5 | Evolution (L5) |
-| Testing Review | 5 | Execution (L3) |
-| Threat Modeling | 5 | Cognitive (L2) / Execution (L3) |
+| Panel | Primary Governance Layer |
+|-------|------------------------|
+| AI Expert Review | Cognitive (L2) |
+| API Design Review | Cognitive (L2) |
+| Architecture Review | Cognitive (L2) / Execution (L3) |
+| Code Review | Execution (L3) |
+| Copilot Review | Execution (L3) |
+| Cost Analysis | Execution (L3) |
+| Data Design Review | Cognitive (L2) / Execution (L3) |
+| Data Governance Review | Execution (L3) |
+| Documentation Review | Execution (L3) |
+| FinOps Review | Execution (L3) |
+| Governance Compliance Review | Execution (L3) |
+| JM Standards Compliance Review | Execution (L3) |
+| Migration Review | Execution (L3) / Evolution (L5) |
+| Performance Review | Execution (L3) |
+| Production Readiness Review | Runtime (L4) |
+| Security Review | Execution (L3) |
+| Technical Debt Review | Evolution (L5) |
+| Test Generation Review | Execution (L3) |
+| Testing Review | Execution (L3) |
+| Threat Model System | Cognitive (L2) / Execution (L3) |
+| Threat Modeling | Cognitive (L2) / Execution (L3) |
 
 **Workflows (8 end-to-end processes):**
 

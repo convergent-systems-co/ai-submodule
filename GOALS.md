@@ -53,7 +53,7 @@ This document tracks the maturity phases, completed work, and open enhancements 
 | Issue | PR | Title | Impact |
 |-------|----|-------|--------|
 | #51 | #60 | Panel pass/fail criteria | Standardized scoring, schema, and local override system for all 15 panels |
-| #53 | #64 | Evaluate personas and panels | 11 language, 2 platform, 1 LLM personas + Cost Analysis panel (42→57 personas, 15→16 panels) |
+| #53 | #64 | Evaluate personas and panels | Added 11 language, 2 platform, 1 LLM review perspectives + Cost Analysis panel (later consolidated into 21 review prompts per Issue #220; non-agentic persona files removed per Issue #257) |
 | #5 | #13 | Agile Coach persona | Sprint planning, velocity, retrospective guidance |
 | #6 | #15 | FinOps group | FinOps Engineer and FinOps Analyst personas |
 | #7 | #16 | MITRE Specialist | Threat modeling panel and MITRE ATT&CK mapping |
