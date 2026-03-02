@@ -54,7 +54,7 @@ You are performing a **threat-modeling** review of a PR diff. Evaluate the provi
 | Compliance Officer | Regulatory impact of changes (SOC 2, GDPR, NIST controls affected) |
 | Security Auditor | Data classification impact, access control changes, audit trail completeness |
 
-> **Shared perspectives:** Red Team Engineer, Blue Team Engineer, Purple Team Engineer, MITRE Analyst, Security Auditor, Infrastructure Engineer, Compliance Officer, and Systems Architect are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 
 ---
 

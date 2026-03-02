@@ -8,7 +8,7 @@ Evaluate a migration plan for safety, completeness, and risk mitigation. This pa
 
 You are performing a migration-review. Evaluate the provided migration plan from multiple perspectives. Each perspective must produce an independent finding assessing the plan's completeness and safety in its domain. The goal is to identify gaps, untested assumptions, and missing rollback paths before execution begins.
 
-> **Shared perspectives:** Data Architect, SRE, Failure Engineer, and Tech Lead are defined in [`shared-perspectives.md`](../shared-perspectives.md). The Migration Specialist perspective is defined inline below.
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`migration-review.json`](../../emissions/migration-review.json)
 
 ## Perspectives
@@ -41,27 +41,111 @@ You are performing a migration-review. Evaluate the provided migration plan from
 
 ### Data Architect
 
-**Focus:** Data integrity, schema transformation correctness, referential integrity, migration safety.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Senior data architect reviewing data design.
+
+**Evaluate For:**
+- Schema evolution
+- Referential integrity
+- Transaction boundaries
+- Index strategy
+- Query performance
+- Migration safety
+
+**Principles:**
+- Ensure backward compatibility for schema changes
+- Consider data volume and growth patterns
+- Provide rollback strategies for migrations
+
+**Anti-patterns:**
+- Introducing schema changes that break existing consumers
+- Designing without accounting for data volume growth
+- Planning migrations without a tested rollback strategy
+- Neglecting index strategy until performance degrades
+
 
 ### SRE (Site Reliability Engineer)
 
-**Focus:** Operational readiness, monitoring during migration, SLO impact, capacity planning.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Site reliability engineer focused on production stability and operational excellence.
+
+**Evaluate For:**
+- SLO/SLI definitions
+- Error budgets
+- Incident response readiness
+- Runbook completeness
+- On-call burden
+- Toil reduction
+- Capacity planning
+- Change management risk
+
+**Principles:**
+- Balance reliability with velocity using error budgets
+- Automate before documenting manual processes
+- Prefer graceful degradation over hard failures
+- Ensure every alert is actionable
+
+**Anti-patterns:**
+- Creating alerts that are noisy, unowned, or lack remediation guidance
+- Accumulating toil through repeated manual processes instead of automating
+- Deploying changes without rollback plans or staged rollouts
+
 
 ### Failure Engineer
 
-**Focus:** Failure scenarios during migration, recovery procedures, partial failure handling.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Resilience and chaos analysis specialist.
+
+**Evaluate For:**
+- Restart safety
+- Idempotency
+- Partial failure handling
+- Retry storms
+- Dead-letter strategies
+- Backpressure
+
+**Principles:**
+- Assume failures will happen and design accordingly
+- Design for graceful degradation over abrupt failure
+- Verify recovery paths are tested regularly
+
+**Anti-patterns:**
+- Assuming happy-path execution without accounting for partial failures
+- Implementing retries without backoff, budgets, or circuit breakers
+- Leaving recovery paths untested until an actual incident occurs
+
 
 ### Tech Lead
 
-**Focus:** Timeline realism, resource allocation, cross-team coordination, communication plan.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Technical leader balancing delivery, quality, and team growth.
+
+**Evaluate For:**
+- Technical decision quality
+- Team knowledge distribution
+- Blocking dependencies
+- Technical debt balance
+- Documentation needs
+- Onboarding friction
+- Cross-team coordination
+- Sustainable pace
+
+**Principles:**
+- Balance short-term delivery with long-term health
+- Distribute knowledge across the team
+- Make decisions reversible when possible
+- Document architectural decisions
+
+**Anti-patterns:**
+- Making irreversible decisions without adequate analysis
+- Concentrating critical knowledge in a single team member
+- Prioritizing delivery speed at the expense of sustainable pace
+- Deferring all technical debt without tracking or planning
+
 
 ## Process
 

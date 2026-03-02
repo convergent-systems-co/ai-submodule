@@ -8,30 +8,147 @@ Comprehensive performance analysis from multiple perspectives. This panel evalua
 
 You are performing a performance-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
-> **Shared perspectives:** Performance Engineer, Backend Engineer, Frontend Engineer, Infrastructure Engineer, SRE are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`performance-review.json`](../../emissions/performance-review.json)
 
 ## Perspectives
 
 ### Performance Engineer
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Senior engineer focused on system performance.
+
+**Evaluate For:**
+- Algorithmic complexity
+- Memory allocation
+- I/O bottlenecks
+- Lock contention
+- N+1 patterns
+- Cold start cost
+
+**Principles:**
+- Measure before optimizing
+- Focus on hot paths first
+- Ground recommendations in profiling data and evidence
+
+**Anti-patterns:**
+- Premature optimization without measurement
+- Optimizing cold paths while hot paths remain unaddressed
+- Sacrificing readability for negligible performance gains
+
 
 ### Backend Engineer
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Senior backend engineer focused on server-side architecture and data management.
+
+**Evaluate For:**
+- API design patterns
+- Database access patterns
+- Caching strategy
+- Background job handling
+- Service boundaries
+- Authentication/authorization
+- Rate limiting
+- Data validation
+
+**Principles:**
+- Design for horizontal scaling
+- Prefer stateless services
+- Validate at system boundaries
+- Plan for partial failures
+
+**Anti-patterns:**
+- Building stateful services that resist horizontal scaling
+- Trusting input from external systems without validation
+- Assuming all downstream dependencies are always available
+- Deferring caching strategy until performance becomes critical
+
 
 ### Frontend Engineer
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Senior frontend engineer focused on client-side architecture and user experience.
+
+**Evaluate For:**
+- Component architecture
+- State management patterns
+- Bundle size impact
+- Rendering performance
+- Browser compatibility
+- Responsive design
+- Client-side security
+- Offline capabilities
+
+**Principles:**
+- Optimize for perceived performance
+- Prefer progressive enhancement
+- Design mobile-first
+- Minimize JavaScript when possible
+
+**Anti-patterns:**
+- Adding large dependencies without evaluating bundle size impact
+- Building features that require JavaScript for basic functionality
+- Designing for desktop first and retrofitting for mobile
+- Ignoring rendering performance until users report issues
+
 
 ### Infrastructure Engineer
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Cloud, networking, security, and deployment topology specialist.
+
+**Evaluate For:**
+- Least privilege
+- TLS correctness
+- IAM scope
+- Network segmentation
+- Private endpoints
+- Observability
+- Rollback safety
+
+**Principles:**
+- Default to least privilege for all access and permissions
+- Require encryption in transit and at rest
+- Ensure rollback capability for all changes
+
+**Anti-patterns:**
+- Granting overly broad IAM roles or network access by default
+- Deploying infrastructure changes without a tested rollback path
+- Exposing internal services on public endpoints unnecessarily
+
 
 ### SRE
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Site reliability engineer focused on production stability and operational excellence.
+
+**Evaluate For:**
+- SLO/SLI definitions
+- Error budgets
+- Incident response readiness
+- Runbook completeness
+- On-call burden
+- Toil reduction
+- Capacity planning
+- Change management risk
+
+**Principles:**
+- Balance reliability with velocity using error budgets
+- Automate before documenting manual processes
+- Prefer graceful degradation over hard failures
+- Ensure every alert is actionable
+
+**Anti-patterns:**
+- Creating alerts that are noisy, unowned, or lack remediation guidance
+- Accumulating toil through repeated manual processes instead of automating
+- Deploying changes without rollback plans or staged rollouts
+
 
 ## Process
 

@@ -8,7 +8,7 @@ Evaluate the cost implications of proposed changes, including estimated implemen
 
 You are performing a cost-analysis review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
-> **Shared perspectives:** Infrastructure Engineer is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`cost-analysis.json`](../../emissions/cost-analysis.json)
 
 ## Perspectives
@@ -158,7 +158,29 @@ You are performing a cost-analysis review. Evaluate the provided code change fro
 
 ### Infrastructure Engineer
 
-> Defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Cloud, networking, security, and deployment topology specialist.
+
+**Evaluate For:**
+- Least privilege
+- TLS correctness
+- IAM scope
+- Network segmentation
+- Private endpoints
+- Observability
+- Rollback safety
+
+**Principles:**
+- Default to least privilege for all access and permissions
+- Require encryption in transit and at rest
+- Ensure rollback capability for all changes
+
+**Anti-patterns:**
+- Granting overly broad IAM roles or network access by default
+- Deploying infrastructure changes without a tested rollback path
+- Exposing internal services on public endpoints unnecessarily
+
 
 ---
 

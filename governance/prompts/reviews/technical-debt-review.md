@@ -8,26 +8,116 @@ Assess and prioritize technical debt for strategic remediation. This panel inven
 
 You are performing a technical-debt-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
-> **Shared perspectives:** Refactor Specialist, Systems Architect, Test Engineer, Tech Lead are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`technical-debt-review.json`](../../emissions/technical-debt-review.json)
 
 ## Perspectives
 
 ### Refactor Specialist
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Specialist in structural clarity and long-term maintainability.
+
+**Evaluate For:**
+- Excessive nesting
+- Responsibility leakage
+- Abstraction inversion
+- Duplicate logic
+- Dead code
+
+**Principles:**
+- Preserve behavior during refactoring
+- Provide incremental steps
+- Ensure test coverage before making changes
+
+**Anti-patterns:**
+- Big-bang rewrites that change behavior and structure simultaneously
+- Refactoring without adequate test coverage as a safety net
+- Introducing new abstractions that increase complexity rather than reduce it
+
 
 ### Systems Architect
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Principal-level architect reviewing system-level design.
+
+**Evaluate For:**
+- Scalability
+- Failure domains
+- Blast radius
+- Observability
+- Idempotency
+- State management
+- Dependency coupling
+- Migration strategy
+
+**Principles:**
+- Prefer composability over monolithic design
+- Require explicit contracts between components
+- Surface complexity visibly rather than hiding it in implicit behavior
+
+**Anti-patterns:**
+- Monolithic designs that resist decomposition and independent deployment
+- Implicit contracts or undocumented assumptions between components
+- Hidden complexity buried in shared state or side effects
+- Tightly coupled dependencies that increase blast radius of failures
+
 
 ### Test Engineer
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Senior test engineer reviewing test strategy.
+
+**Evaluate For:**
+- Unit coverage gaps
+- Integration boundaries
+- Mock misuse
+- Flaky test risks
+- Determinism
+- Edge conditions
+
+**Principles:**
+- Prefer deterministic, isolated tests over broad mocks
+- Focus on behavior, not implementation
+- Prioritize critical path coverage
+
+**Anti-patterns:**
+- Writing tests tightly coupled to implementation details
+- Over-reliance on mocks that hide real integration failures
+- Ignoring flaky tests instead of fixing their root cause
+
 
 ### Tech Lead
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Technical leader balancing delivery, quality, and team growth.
+
+**Evaluate For:**
+- Technical decision quality
+- Team knowledge distribution
+- Blocking dependencies
+- Technical debt balance
+- Documentation needs
+- Onboarding friction
+- Cross-team coordination
+- Sustainable pace
+
+**Principles:**
+- Balance short-term delivery with long-term health
+- Distribute knowledge across the team
+- Make decisions reversible when possible
+- Document architectural decisions
+
+**Anti-patterns:**
+- Making irreversible decisions without adequate analysis
+- Concentrating critical knowledge in a single team member
+- Prioritizing delivery speed at the expense of sustainable pace
+- Deferring all technical debt without tracking or planning
+
 
 ### Minimalist Engineer
 

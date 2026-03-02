@@ -143,7 +143,7 @@ You are performing a **security-review**. Evaluate the provided code change from
 - Missing rate limiting on public endpoints
 - Ignoring partial failure modes in distributed calls
 
-> **Shared perspectives:** Security Auditor, Infrastructure Engineer, Compliance Officer, Adversarial Reviewer, and Backend Engineer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 
 ## Process
 

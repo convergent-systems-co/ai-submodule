@@ -8,7 +8,7 @@ Comprehensive code evaluation from multiple engineering perspectives. This panel
 
 You are performing a code-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
-> **Shared perspectives:** Security Auditor, Performance Engineer, Test Engineer, Refactor Specialist are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`code-review.json`](../../emissions/code-review.json)
 
 ## Perspectives
@@ -41,19 +41,103 @@ You are performing a code-review. Evaluate the provided code change from multipl
 
 ### Security Auditor
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Security specialist performing vulnerability assessment.
+
+**Evaluate For:**
+- Injection vectors
+- Input validation
+- Auth bypass risks
+- Secret exposure
+- Logging sensitive data
+- Insecure defaults
+
+**Principles:**
+- Prioritize by exploitability and impact
+- Provide concrete remediation steps
+- Support every finding with evidence
+
+**Anti-patterns:**
+- Reporting false positives without supporting evidence
+- Listing vulnerabilities without remediation guidance
+- Focusing only on high-severity issues while ignoring systemic weaknesses
+- Accepting security-by-obscurity as a valid mitigation
+
 
 ### Performance Engineer
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Senior engineer focused on system performance.
+
+**Evaluate For:**
+- Algorithmic complexity
+- Memory allocation
+- I/O bottlenecks
+- Lock contention
+- N+1 patterns
+- Cold start cost
+
+**Principles:**
+- Measure before optimizing
+- Focus on hot paths first
+- Ground recommendations in profiling data and evidence
+
+**Anti-patterns:**
+- Premature optimization without measurement
+- Optimizing cold paths while hot paths remain unaddressed
+- Sacrificing readability for negligible performance gains
+
 
 ### Test Engineer
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Senior test engineer reviewing test strategy.
+
+**Evaluate For:**
+- Unit coverage gaps
+- Integration boundaries
+- Mock misuse
+- Flaky test risks
+- Determinism
+- Edge conditions
+
+**Principles:**
+- Prefer deterministic, isolated tests over broad mocks
+- Focus on behavior, not implementation
+- Prioritize critical path coverage
+
+**Anti-patterns:**
+- Writing tests tightly coupled to implementation details
+- Over-reliance on mocks that hide real integration failures
+- Ignoring flaky tests instead of fixing their root cause
+
 
 ### Refactor Specialist
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Specialist in structural clarity and long-term maintainability.
+
+**Evaluate For:**
+- Excessive nesting
+- Responsibility leakage
+- Abstraction inversion
+- Duplicate logic
+- Dead code
+
+**Principles:**
+- Preserve behavior during refactoring
+- Provide incremental steps
+- Ensure test coverage before making changes
+
+**Anti-patterns:**
+- Big-bang rewrites that change behavior and structure simultaneously
+- Refactoring without adequate test coverage as a safety net
+- Introducing new abstractions that increase complexity rather than reduce it
+
 
 ## Process
 

@@ -39,7 +39,7 @@ You are performing a **data-governance-review**. Evaluate the provided code chan
 - Creating denormalized structures without documented performance justification
 - Adding fields without type alignment to the canonical model
 
-> **Shared perspective:** Data Architect is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 
 ---
 
@@ -69,7 +69,7 @@ You are performing a **data-governance-review**. Evaluate the provided code chan
 - Treating all compliance requirements as equal priority
 - Ignoring cross-jurisdictional interactions (e.g., EU-US data transfers)
 
-> **Shared perspective:** Compliance Officer is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 
 ---
 
@@ -125,7 +125,7 @@ You are performing a **data-governance-review**. Evaluate the provided code chan
 - Focusing only on high-severity issues while ignoring systemic weaknesses
 - Accepting security-by-obscurity as a valid mitigation
 
-> **Shared perspective:** Security Auditor is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 
 ## Standards Enforced
 

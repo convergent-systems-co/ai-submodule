@@ -40,7 +40,7 @@ You are performing a **jm-standards-compliance-review**. Evaluate the provided p
 
 ### 2. Infrastructure Engineer
 
-**Role:** Evaluates infrastructure patterns against JM Paved Roads for IaC. *(Shared perspective — see [`shared-perspectives.md`](../shared-perspectives.md) for base definition.)*
+**Role:** Evaluates infrastructure patterns against JM Paved Roads for IaC. *(Source: shared-perspectives.md)*
 
 **Evaluate For:**
 - Approved IaC tools (Bicep preferred, Terraform accepted)

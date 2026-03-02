@@ -53,7 +53,7 @@ You are performing a **system-level threat model**. Analyze the entire system (o
 | Compliance Officer | SOC 2 Type II, GDPR/privacy, NIST 800-53 control families |
 | Security Auditor | Data classification, access controls, audit trail completeness |
 
-> **Shared perspectives:** Red Team Engineer, Blue Team Engineer, Purple Team Engineer, MITRE Analyst, Security Auditor, Infrastructure Engineer, Compliance Officer, and Systems Architect are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 
 ---
 

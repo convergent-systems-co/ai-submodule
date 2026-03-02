@@ -8,7 +8,7 @@ Evaluate test coverage, verification requirements, and proof-of-correctness crit
 
 You are performing a test-generation-review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
-> **Shared perspectives:** Security Auditor is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`test-generation-review.json`](../../emissions/test-generation-review.json)
 
 ## Scope
@@ -42,7 +42,29 @@ You are performing a test-generation-review. Evaluate the provided code change f
 
 ### Security Auditor
 
-See [`shared-perspectives.md`](../shared-perspectives.md) for the canonical definition.
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Security specialist performing vulnerability assessment.
+
+**Evaluate For:**
+- Injection vectors
+- Input validation
+- Auth bypass risks
+- Secret exposure
+- Logging sensitive data
+- Insecure defaults
+
+**Principles:**
+- Prioritize by exploitability and impact
+- Provide concrete remediation steps
+- Support every finding with evidence
+
+**Anti-patterns:**
+- Reporting false positives without supporting evidence
+- Listing vulnerabilities without remediation guidance
+- Focusing only on high-severity issues while ignoring systemic weaknesses
+- Accepting security-by-obscurity as a valid mitigation
+
 
 ### Domain Expert
 

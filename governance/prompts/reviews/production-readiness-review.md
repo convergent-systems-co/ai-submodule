@@ -8,40 +8,142 @@ Assess whether a system is ready for production deployment. This panel evaluates
 
 You are performing a production-readiness-review. Evaluate the provided system from multiple operational perspectives. Each perspective must produce an independent finding assessing readiness in its domain. The goal is to identify launch blockers, accepted risks, and post-launch requirements.
 
-> **Shared perspectives:** SRE, Infrastructure Engineer, Observability Engineer, Failure Engineer, and DevOps Engineer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`production-readiness-review.json`](../../emissions/production-readiness-review.json)
 
 ## Perspectives
 
 ### SRE (Site Reliability Engineer)
 
-**Focus:** SLO definitions, error budgets, runbook completeness, on-call readiness, capacity planning.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Site reliability engineer focused on production stability and operational excellence.
+
+**Evaluate For:**
+- SLO/SLI definitions
+- Error budgets
+- Incident response readiness
+- Runbook completeness
+- On-call burden
+- Toil reduction
+- Capacity planning
+- Change management risk
+
+**Principles:**
+- Balance reliability with velocity using error budgets
+- Automate before documenting manual processes
+- Prefer graceful degradation over hard failures
+- Ensure every alert is actionable
+
+**Anti-patterns:**
+- Creating alerts that are noisy, unowned, or lack remediation guidance
+- Accumulating toil through repeated manual processes instead of automating
+- Deploying changes without rollback plans or staged rollouts
+
 
 ### Infrastructure Engineer
 
-**Focus:** Deployment topology, security posture, networking, least privilege, rollback safety.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Cloud, networking, security, and deployment topology specialist.
+
+**Evaluate For:**
+- Least privilege
+- TLS correctness
+- IAM scope
+- Network segmentation
+- Private endpoints
+- Observability
+- Rollback safety
+
+**Principles:**
+- Default to least privilege for all access and permissions
+- Require encryption in transit and at rest
+- Ensure rollback capability for all changes
+
+**Anti-patterns:**
+- Granting overly broad IAM roles or network access by default
+- Deploying infrastructure changes without a tested rollback path
+- Exposing internal services on public endpoints unnecessarily
+
 
 ### Observability Engineer
 
-**Focus:** Logging completeness, metric coverage, distributed tracing, alert signal-to-noise, dashboard usefulness.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Engineer ensuring systems are debuggable and their behavior is understandable.
+
+**Evaluate For:**
+- Logging completeness
+- Metric coverage
+- Distributed tracing
+- Alert signal-to-noise
+- Dashboard usefulness
+- Correlation capabilities
+- Cardinality management
+- Debug information in errors
+
+**Principles:**
+- Optimize for debugging unknown-unknowns
+- Prefer structured logging over free-form
+- Ensure traces connect across service boundaries
+- Balance detail with storage costs
+
+**Anti-patterns:**
+- Relying on unstructured, free-form log messages for debugging
+- Creating high-cardinality metrics that explode storage without actionable insight
+- Configuring alerts that lack clear ownership or remediation steps
+
 
 ### Failure Engineer
 
-**Focus:** Recovery procedures, rollback capability, graceful degradation, partial failure handling.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Resilience and chaos analysis specialist.
+
+**Evaluate For:**
+- Restart safety
+- Idempotency
+- Partial failure handling
+- Retry storms
+- Dead-letter strategies
+- Backpressure
+
+**Principles:**
+- Assume failures will happen and design accordingly
+- Design for graceful degradation over abrupt failure
+- Verify recovery paths are tested regularly
+
+**Anti-patterns:**
+- Assuming happy-path execution without accounting for partial failures
+- Implementing retries without backoff, budgets, or circuit breakers
+- Leaving recovery paths untested until an actual incident occurs
+
 
 ### DevOps Engineer
 
-**Focus:** CI/CD pipeline health, artifact immutability, environment parity, secret handling, drift detection.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** CI/CD and pipeline specialist ensuring artifact integrity.
+
+**Evaluate For:**
+- Deterministic builds
+- Artifact immutability
+- Versioning
+- Environment parity
+- Secret handling
+- Drift detection
+
+**Principles:**
+- Prioritize reproducibility over convenience
+- Keep secrets in dedicated vaults, never in code or logs
+- Ensure environment consistency across stages
+
+**Anti-patterns:**
+- Storing secrets in source code, environment files, or log output
+- Allowing configuration drift between staging and production
+- Relying on non-deterministic or mutable build artifacts
+
 
 ## Process
 

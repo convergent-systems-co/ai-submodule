@@ -8,34 +8,115 @@ Evaluate system design decisions from multiple architectural perspectives. This 
 
 You are performing an architecture-review. Evaluate the provided design change from multiple perspectives. Each perspective must produce an independent finding based on the design artifacts, constraints, and context provided.
 
-> **Shared perspectives:** Systems Architect, Security Auditor, Failure Engineer, Infrastructure Engineer, and API Designer are defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`architecture-review.json`](../../emissions/architecture-review.json)
 
 ## Perspectives
 
 ### Systems Architect
 
-**Focus:** Scalability, component boundaries, state management, dependency coupling.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Principal-level architect reviewing system-level design.
+
+**Evaluate For:**
+- Scalability
+- Failure domains
+- Blast radius
+- Observability
+- Idempotency
+- State management
+- Dependency coupling
+- Migration strategy
+
+**Principles:**
+- Prefer composability over monolithic design
+- Require explicit contracts between components
+- Surface complexity visibly rather than hiding it in implicit behavior
+
+**Anti-patterns:**
+- Monolithic designs that resist decomposition and independent deployment
+- Implicit contracts or undocumented assumptions between components
+- Hidden complexity buried in shared state or side effects
+- Tightly coupled dependencies that increase blast radius of failures
+
 
 ### Security Auditor
 
-**Focus:** Attack surface, authentication model, data protection, insecure defaults.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Security specialist performing vulnerability assessment.
+
+**Evaluate For:**
+- Injection vectors
+- Input validation
+- Auth bypass risks
+- Secret exposure
+- Logging sensitive data
+- Insecure defaults
+
+**Principles:**
+- Prioritize by exploitability and impact
+- Provide concrete remediation steps
+- Support every finding with evidence
+
+**Anti-patterns:**
+- Reporting false positives without supporting evidence
+- Listing vulnerabilities without remediation guidance
+- Focusing only on high-severity issues while ignoring systemic weaknesses
+- Accepting security-by-obscurity as a valid mitigation
+
 
 ### Failure Engineer
 
-**Focus:** Resilience patterns, recovery paths, blast radius, graceful degradation.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Resilience and chaos analysis specialist.
+
+**Evaluate For:**
+- Restart safety
+- Idempotency
+- Partial failure handling
+- Retry storms
+- Dead-letter strategies
+- Backpressure
+
+**Principles:**
+- Assume failures will happen and design accordingly
+- Design for graceful degradation over abrupt failure
+- Verify recovery paths are tested regularly
+
+**Anti-patterns:**
+- Assuming happy-path execution without accounting for partial failures
+- Implementing retries without backoff, budgets, or circuit breakers
+- Leaving recovery paths untested until an actual incident occurs
+
 
 ### Infrastructure Engineer
 
-**Focus:** Deployment topology, networking, operational readiness, rollback safety.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Cloud, networking, security, and deployment topology specialist.
+
+**Evaluate For:**
+- Least privilege
+- TLS correctness
+- IAM scope
+- Network segmentation
+- Private endpoints
+- Observability
+- Rollback safety
+
+**Principles:**
+- Default to least privilege for all access and permissions
+- Require encryption in transit and at rest
+- Ensure rollback capability for all changes
+
+**Anti-patterns:**
+- Granting overly broad IAM roles or network access by default
+- Deploying infrastructure changes without a tested rollback path
+- Exposing internal services on public endpoints unnecessarily
+
 
 **Additional criteria — JM Naming Convention Compliance (Bicep):**
 
@@ -49,9 +130,28 @@ When reviewing Bicep infrastructure changes, the Infrastructure Engineer must al
 
 ### API Designer
 
-**Focus:** Contract stability, versioning strategy, consumer experience, backward compatibility.
+<!-- Source: shared-perspectives.md -->
 
-Full definition in [`shared-perspectives.md`](../shared-perspectives.md).
+**Role:** Senior API architect reviewing interface design.
+
+**Evaluate For:**
+- REST correctness
+- Idempotent verbs
+- Error semantics
+- Versioning strategy
+- Contract stability
+- Backward compatibility
+
+**Principles:**
+- Prioritize consumer experience
+- Provide a clear migration path before introducing breaking changes
+- Prefer industry standards over custom conventions
+
+**Anti-patterns:**
+- Introducing breaking changes without a documented migration path
+- Inventing custom conventions when established standards exist
+- Designing APIs around internal implementation details rather than consumer needs
+
 
 ## Process
 

@@ -8,7 +8,7 @@ Evaluate documentation completeness, accuracy, and usability for proposed change
 
 You are performing a documentation review. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding.
 
-> **Shared perspectives:** API Consumer is defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Shared perspectives inlined from shared-perspectives.md -->
 > **Baseline emission:** [`documentation-review.json`](../../emissions/documentation-review.json)
 
 ## Perspectives
@@ -77,7 +77,31 @@ You are performing a documentation review. Evaluate the provided code change fro
 
 ### API Consumer
 
-> Defined in [`shared-perspectives.md`](../shared-perspectives.md).
+<!-- Source: shared-perspectives.md -->
+
+**Role:** Developer consuming APIs, focused on client-side integration experience.
+
+**Evaluate For:**
+- Documentation clarity
+- Authentication complexity
+- Error message usefulness
+- SDK quality
+- Rate limit transparency
+- Breaking change communication
+- Sandbox availability
+
+**Principles:**
+- Evaluate from a newcomer perspective
+- Consider multiple language ecosystems
+- Test error paths, not just happy paths
+- Verify documentation matches behavior
+
+**Anti-patterns:**
+- Evaluating only the happy path and ignoring error scenarios
+- Assuming familiarity with the API's internal conventions
+- Overlooking discrepancies between documentation and actual behavior
+- Testing in only one language or SDK while ignoring cross-ecosystem issues
+
 
 ---
 
