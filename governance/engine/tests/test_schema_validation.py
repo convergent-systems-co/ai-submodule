@@ -53,7 +53,7 @@ class TestSchemaRejection:
     @pytest.mark.parametrize("field", [
         "panel_name", "panel_version", "confidence_score", "risk_level",
         "compliance_score", "policy_flags", "requires_human_review",
-        "timestamp", "findings",
+        "timestamp", "findings", "aggregate_verdict",
     ])
     def test_rejects_missing_required_field(self, panel_schema, valid_emission, field):
         emission = copy.deepcopy(valid_emission)
@@ -425,6 +425,99 @@ class TestPanelOutputCostFields:
             "token_count": {
                 "input": 1000,
                 "output": 100,
+            },
+        }
+        validate(instance=emission, schema=panel_schema)
+
+
+# ===========================================================================
+# Model provenance fields in panel output (Issue #560)
+# ===========================================================================
+
+
+class TestPanelOutputProvenanceFields:
+    @pytest.fixture
+    def panel_schema(self):
+        with open(SCHEMAS_DIR / "panel-output.schema.json") as f:
+            return json.load(f)
+
+    @pytest.fixture
+    def valid_emission(self):
+        return make_emission()
+
+    def test_rejects_temperature_above_max(self, panel_schema, valid_emission):
+        """Temperature above 2.0 is rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "inference_config": {
+                "temperature": 2.1,
+            },
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_temperature_below_min(self, panel_schema, valid_emission):
+        """Temperature below 0.0 is rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "inference_config": {
+                "temperature": -0.1,
+            },
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_top_p_above_max(self, panel_schema, valid_emission):
+        """top_p above 1.0 is rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "inference_config": {
+                "top_p": 1.1,
+            },
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_invalid_system_prompt_hash_wrong_length(self, panel_schema, valid_emission):
+        """system_prompt_hash with wrong length is rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "system_prompt_hash": "abcdef1234",
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_invalid_system_prompt_hash_non_hex(self, panel_schema, valid_emission):
+        """system_prompt_hash with non-hex characters is rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "system_prompt_hash": "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_rejects_extra_properties_on_inference_config(self, panel_schema, valid_emission):
+        """Extra properties on inference_config are rejected."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "inference_config": {
+                "temperature": 0.7,
+                "unknown_param": True,
+            },
+        }
+        with pytest.raises(ValidationError):
+            validate(instance=emission, schema=panel_schema)
+
+    def test_valid_provenance_fields(self, panel_schema, valid_emission):
+        """Emission with all provenance fields validates successfully."""
+        emission = copy.deepcopy(valid_emission)
+        emission["execution_context"] = {
+            "model_id": "claude-opus-4-6",
+            "system_prompt_hash": "a" * 64,
+            "inference_config": {
+                "temperature": 0.7,
+                "max_tokens": 4096,
+                "top_p": 0.9,
             },
         }
         validate(instance=emission, schema=panel_schema)

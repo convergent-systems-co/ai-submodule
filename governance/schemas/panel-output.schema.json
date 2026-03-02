@@ -187,9 +187,13 @@
         "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
         "pr_number": { "type": "integer" },
         "policy_profile": { "type": "string" },
+        "model_id": {
+          "type": "string",
+          "description": "Canonical model identifier from the model registry (e.g., 'claude-opus-4-6', 'gpt-4-turbo'). Preferred over model_version for provenance tracking."
+        },
         "model_version": {
           "type": "string",
-          "description": "Model identifier (e.g., 'gpt-4-turbo-2024-04-09', 'claude-3-opus'). Free-form string — no format constraint, as model naming conventions vary by provider."
+          "description": "Model version string for fine-grained version details (e.g., training date suffixes, deployment variants). Retained for backward compatibility."
         },
         "model_hash": {
           "type": "string",
@@ -203,6 +207,35 @@
           "type": "string",
           "format": "date",
           "description": "Model version or training cutoff date."
+        },
+        "system_prompt_hash": {
+          "type": "string",
+          "description": "SHA-256 hash of the system prompt used for this panel execution. Enables detection of prompt drift.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "inference_config": {
+          "type": "object",
+          "description": "Inference parameters used for this panel execution.",
+          "properties": {
+            "temperature": {
+              "type": "number",
+              "description": "Sampling temperature.",
+              "minimum": 0.0,
+              "maximum": 2.0
+            },
+            "max_tokens": {
+              "type": "integer",
+              "description": "Maximum output tokens requested.",
+              "minimum": 1
+            },
+            "top_p": {
+              "type": "number",
+              "description": "Nucleus sampling parameter.",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": false
         },
         "triggered_by": {
           "type": "string",
@@ -260,7 +293,7 @@
       "type": "string",
       "description": "Schema version this emission conforms to. Defaults to 1.0.0 if omitted.",
       "pattern": "^\\d+\\.\\d+\\.\\d+$",
-      "default": "1.0.0"
+      "default": "1.2.0"
     },
     "duration_ms": {
       "type": "integer",

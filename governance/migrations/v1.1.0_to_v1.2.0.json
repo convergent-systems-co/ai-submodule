@@ -1,0 +1,35 @@
+{
+  "from_version": "1.1.0",
+  "to_version": "1.2.0",
+  "description": "Add model provenance fields (model_id, system_prompt_hash, inference_config) to execution_context; add aggregate_verdict to required array",
+  "transforms": [
+    {
+      "type": "add_field",
+      "field": "execution_context.model_id",
+      "default_value": null,
+      "condition": "field_missing"
+    },
+    {
+      "type": "add_field",
+      "field": "execution_context.system_prompt_hash",
+      "default_value": null,
+      "condition": "field_missing"
+    },
+    {
+      "type": "add_field",
+      "field": "execution_context.inference_config",
+      "default_value": null,
+      "condition": "field_missing"
+    },
+    {
+      "type": "add_required",
+      "field": "aggregate_verdict",
+      "condition": "field_present"
+    },
+    {
+      "type": "set_field",
+      "field": "schema_version",
+      "value": "1.2.0"
+    }
+  ]
+}
