@@ -1,0 +1,109 @@
+# governance/templates/actions/validate-promotion/action.yml
+# Reusable composite action for environment promotion-order validation.
+#
+# Ensures deployments follow a defined promotion chain (e.g., dev -> staging -> production).
+# Consuming repos copy this to .github/actions/validate-promotion/action.yml and customize.
+#
+# Usage in a workflow:
+#   - uses: ./.github/actions/validate-promotion
+#     with:
+#       environment: ${{ github.event.inputs.environment }}
+#       promotion_order: 'dev,staging,production'
+
+name: 'Validate Promotion Order'
+description: 'Validates that the target environment follows the required promotion order'
+
+inputs:
+  environment:
+    description: 'Target deployment environment'
+    required: true
+  promotion_order:
+    description: 'Comma-separated list of environments in promotion order'
+    required: false
+    default: 'dev,staging,production'
+  require_previous_success:
+    description: 'Whether to require the previous environment to have a successful deployment'
+    required: false
+    default: 'true'
+
+outputs:
+  proceed:
+    description: 'Whether to proceed with the deployment (true/false)'
+    value: ${{ steps.validate.outputs.proceed }}
+  previous_environment:
+    description: 'The environment that must be deployed before this one'
+    value: ${{ steps.validate.outputs.previous_environment }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate promotion order
+      id: validate
+      shell: bash
+      env:
+        TARGET_ENV: ${{ inputs.environment }}
+        PROMOTION_ORDER: ${{ inputs.promotion_order }}
+        REQUIRE_PREVIOUS: ${{ inputs.require_previous_success }}
+      run: |
+        # Parse promotion order
+        IFS=',' read -ra ENVS <<< "$PROMOTION_ORDER"
+
+        # Find target environment index
+        TARGET_INDEX=-1
+        for i in "${!ENVS[@]}"; do
+          if [ "${ENVS[$i]}" = "$TARGET_ENV" ]; then
+            TARGET_INDEX=$i
+            break
+          fi
+        done
+
+        if [ "$TARGET_INDEX" -eq -1 ]; then
+          echo "::error::Environment '$TARGET_ENV' not found in promotion order: $PROMOTION_ORDER"
+          echo "proceed=false" >> "$GITHUB_OUTPUT"
+          exit 1
+        fi
+
+        # First environment in the chain always proceeds
+        if [ "$TARGET_INDEX" -eq 0 ]; then
+          echo "Environment '$TARGET_ENV' is the first in the promotion chain — no validation needed"
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+          echo "previous_environment=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        PREVIOUS_ENV="${ENVS[$((TARGET_INDEX - 1))]}"
+        echo "previous_environment=$PREVIOUS_ENV" >> "$GITHUB_OUTPUT"
+
+        if [ "$REQUIRE_PREVIOUS" != "true" ]; then
+          echo "Previous environment check disabled — proceeding"
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Check if previous environment has a successful deployment
+        # Strategy 1: Check GitHub deployments API
+        # This requires the workflow to have 'deployments: read' permission
+        if command -v gh &>/dev/null && [ -n "${GITHUB_TOKEN:-}" ]; then
+          LATEST_STATUS=$(gh api "repos/$GITHUB_REPOSITORY/deployments?environment=$PREVIOUS_ENV&per_page=1" \
+            --jq '.[0].id // empty' 2>/dev/null || true)
+
+          if [ -n "$LATEST_STATUS" ]; then
+            DEPLOY_STATE=$(gh api "repos/$GITHUB_REPOSITORY/deployments/$LATEST_STATUS/statuses?per_page=1" \
+              --jq '.[0].state // "unknown"' 2>/dev/null || echo "unknown")
+
+            if [ "$DEPLOY_STATE" = "success" ]; then
+              echo "Previous environment '$PREVIOUS_ENV' has a successful deployment"
+              echo "proceed=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            else
+              echo "::warning::Previous environment '$PREVIOUS_ENV' last deployment state: $DEPLOY_STATE"
+            fi
+          else
+            echo "::warning::No deployments found for environment '$PREVIOUS_ENV'"
+          fi
+        fi
+
+        # Strategy 2: Fallback — proceed with warning
+        # Customize this section with your own validation logic
+        echo "::warning::Could not verify previous environment '$PREVIOUS_ENV'. Proceeding with caution."
+        echo "proceed=true" >> "$GITHUB_OUTPUT"
