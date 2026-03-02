@@ -320,7 +320,7 @@ This is a **separate follow-up issue**, independent of the consolidation work.
 2. **`shared-perspectives.md`** — Canonical definitions for 19 perspectives appearing in 2+ panels (authoring-time DRY)
 3. **Per-persona emission structure preserved** — `findings[].persona` labels unchanged
 4. **Workflow references updated** — All 7 workflow files + startup.md point to new prompts
-5. **Deprecation notices** — 77 files (58 personas + 19 panels) marked deprecated; 4 agentic personas excluded
+5. **Deprecation notices** — 77 files (58 personas + 19 panels) marked deprecated; agentic personas excluded (4 at the time of #220; now 6 after Project Manager #464 and IaC Engineer additions)
 
 ### Deferred
 
