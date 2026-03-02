@@ -13,7 +13,8 @@
     "policy_flags",
     "requires_human_review",
     "timestamp",
-    "findings"
+    "findings",
+    "aggregate_verdict"
   ],
   "properties": {
     "panel_name": {

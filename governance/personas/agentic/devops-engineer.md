@@ -29,8 +29,8 @@ In **background mode**, the DevOps Engineer is spawned by the Project Manager as
 
 | Signal | Green (< 60%) | Yellow (60-70%) | Orange (70-80%) | Red (>= 80%) |
 |--------|---------------|-----------------|-----------------|---------------|
-| Tool calls in session | < 40 | 40-55 | 55-80 | > 80 |
-| Chat turns (exchanges) | < 60 | 60-100 | 100-150 | > 150 |
+| Tool calls in session | < 50 | 50-65 | 65-80 | > 80 |
+| Chat turns (exchanges) | < 60 | 60-100 | 100-140 | > 140 |
 | Issues completed (N = `parallel_coders`; N/A when N = -1) | < N-2 | N-2 | N-1 | N (cap reached) |
 | Claude Code token counter | < 60% | 60-70% | 70-80% | >= 80% |
 | Copilot context meter | < 60% | 60-70% | 70-80% | >= 80% |

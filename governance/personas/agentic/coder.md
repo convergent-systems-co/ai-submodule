@@ -30,7 +30,7 @@ This persona operates as a **Worker** in Anthropic's Orchestrator-Workers patter
   - **Yellow (60-70%)**: Proceed with current task but notify Code Manager that capacity is building. Do not accept additional ASSIGN messages after this task.
   - **Orange (70-80%)**: Do not start the task. Commit any in-progress work, emit a partial RESULT to Code Manager with `"capacity_tier": "orange"`, and stop.
   - **Red (>= 80%)**: Stop immediately. Commit current state, emit a partial RESULT with `"capacity_tier": "red"`, and stop. Do not finish current step.
-  - **Detection signals**: Track tool call count (>=55 = Orange, >80 = Red), check for degraded recall (re-reading files already processed), and monitor for system warnings about context limits. Any single signal at a higher tier escalates the classification.
+  - **Detection signals**: Track tool call count (>=65 = Orange, >80 = Red), check for degraded recall (re-reading files already processed), and monitor for system warnings about context limits. Any single signal at a higher tier escalates the classification.
 - **Respond to CANCEL messages** — on receiving a CANCEL from the Code Manager: (1) commit current in-progress changes to the branch to avoid dirty state, (2) emit a partial RESULT to the Code Manager summarizing what was completed and what remains, (3) stop all work immediately — do not begin any new implementation steps
 
 ## Containment Policy

@@ -49,8 +49,8 @@ This persona implements Anthropic's **Orchestrator-Workers** pattern at the port
 
 | Signal | Green (< 60%) | Yellow (60-70%) | Orange (70-80%) | Red (>= 80%) |
 |--------|---------------|-----------------|-----------------|---------------|
-| Tool calls in session | < 40 | 40-55 | 55-80 | > 80 |
-| Chat turns (exchanges) | < 60 | 60-100 | 100-150 | > 150 |
+| Tool calls in session | < 50 | 50-65 | 65-80 | > 80 |
+| Chat turns (exchanges) | < 60 | 60-100 | 100-140 | > 140 |
 | Active Code Managers | < M-1 | M-1 | M | M (cap) |
 | Claude Code token counter | < 60% | 60-70% | 70-80% | >= 80% |
 

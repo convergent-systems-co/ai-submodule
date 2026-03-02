@@ -395,7 +395,7 @@ Verify the repository supports the agentic workflow. All checks are **non-blocki
 
 ### 1c: Resolve Open PRs
 
-**All open PRs must be resolved before new issues.** Each resolved PR counts toward the 3-issue session cap.
+**All open PRs must be resolved before new issues.** Each resolved PR counts toward the N-issue session cap (N = `governance.parallel_coders`).
 
 ```bash
 gh pr list --state open --json number,title,author,headRefName,createdAt,reviews --limit 20

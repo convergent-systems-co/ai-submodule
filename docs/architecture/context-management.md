@@ -220,8 +220,8 @@ Each signal maps independently to a tier. The agent's current tier is the **maxi
 
 | Signal | Green (< 60%) | Yellow (60-70%) | Orange (70-80%) | Red (>= 80%) |
 |--------|---------------|-----------------|-----------------|---------------|
-| Tool calls in session | < 40 | 40-55 | 55-80 | > 80 |
-| Chat turns (exchanges) | < 60 | 60-100 | 100-150 | > 150 |
+| Tool calls in session | < 50 | 50-65 | 65-80 | > 80 |
+| Chat turns (exchanges) | < 60 | 60-100 | 100-140 | > 140 |
 | Issues completed (N = `parallel_coders`; N/A when N = -1) | < N-2 | N-2 | N-1 | N (cap reached) |
 | Claude Code token counter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
 | Copilot context meter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
@@ -602,11 +602,11 @@ Checkpoint files use the naming convention `{timestamp}-{branch}.json` and are s
 
 ## Enforcement Architecture
 
-The context capacity system has three layers of defense:
+The context capacity system has three layers of defense, now backed by a **deterministic Python orchestrator** (`governance/engine/orchestrator/`) that enforces tier classification and gate actions in code rather than relying on agent self-governance. See `docs/architecture/orchestrator.md` for the full architecture.
 
 ### Layer 1: Proactive Prevention (Context Gate)
 
-The agent outputs a `--- CONTEXT GATE ---` block at every phase boundary with explicit tool call counts and tier classification. Conservative thresholds (Green < 50, Yellow 50-65, Orange 65-80, Red > 80 tool calls) ensure the agent stops well before compaction.
+The agent outputs a `--- CONTEXT GATE ---` block at every phase boundary with explicit tool call counts and tier classification. Conservative thresholds (Green < 50, Yellow 50-65, Orange 65-80, Red > 80 tool calls) ensure the agent stops well before compaction. The orchestrator's `state_machine.py` enforces these gates programmatically — `transition()` raises `ShutdownRequired` on Orange/Red, which cannot be bypassed by the agent.
 
 ### Layer 2: Compact Instructions (Post-Compaction Recovery)
 
