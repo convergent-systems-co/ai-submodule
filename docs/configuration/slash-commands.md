@@ -11,6 +11,7 @@ The Dark Factory Governance Framework provides slash commands for initiating and
 | `/threat-model` | Runs threat model analysis (system-level or PR-level) | Claude Code, GitHub Copilot |
 | `/review` | Review panel router — list, run, and inspect governance review panels | Claude Code, GitHub Copilot |
 | `/plan` | Governance plan management — list, create, and show plans | Claude Code, GitHub Copilot |
+| `/governance` | Pipeline dashboard — status, policy, and emissions | Claude Code, GitHub Copilot |
 
 ## `/startup` - Agentic Loop
 
@@ -364,6 +365,81 @@ The `create <N>` mode:
 | Plan template | `governance/prompts/templates/plan-template.md` | `.ai/governance/prompts/templates/plan-template.md` |
 | Plans directory | `.governance/plans/` | `.governance/plans/` |
 
+## `/governance` - Pipeline Dashboard
+
+The `/governance` command displays a read-only dashboard view of the governance pipeline state, including policy configuration, required panels, and panel emission results.
+
+### Modes
+
+| Argument | Mode | Description |
+|----------|------|-------------|
+| `status` | Pipeline status | Shows policy profile, required vs present panels, compliance gaps |
+| `policy` | Policy details | Shows active policy profile requirements, thresholds, scoring |
+| `emissions` | List emissions | Lists all emissions in `.governance/panels/` with verdicts and scores |
+| *(no args)* | Pipeline status | Defaults to `status` mode |
+
+### Usage
+
+=== "Claude Code"
+
+    ```bash
+    /governance status       # Pipeline status dashboard
+    /governance policy       # Active policy profile details
+    /governance emissions    # List all panel emissions
+    /governance              # Defaults to status mode
+    ```
+
+=== "GitHub Copilot"
+
+    ```bash
+    /governance status       # Pipeline status dashboard
+    /governance policy       # Active policy profile details
+    /governance emissions    # List all panel emissions
+    /governance              # Defaults to status mode
+    ```
+
+### What Each Mode Shows
+
+#### `status` (default)
+
+Reads `project.yaml` to determine the active policy profile, loads the policy to get `required_panels`, scans `.governance/panels/` for existing emissions, and displays:
+
+- **Profile**: active policy profile name and version
+- **Required Panels**: table showing each panel's presence status, confidence score, risk level, and verdict
+- **Compliance Summary**: count of present vs required panels and aggregate compliance state
+
+#### `policy`
+
+Reads and displays the full active policy profile configuration:
+
+- **Profile Identity**: name, version, description
+- **Required Panels**: list of mandatory panels
+- **Confidence Weighting**: weighting model and per-panel weight table
+- **Auto-Merge Conditions**: enabled status and required conditions
+- **Escalation Rules**: triggers and actions for human review
+- **Block Rules**: hard-block conditions
+
+#### `emissions`
+
+Scans `.governance/panels/*.json` for structured emissions and displays:
+
+- **Emissions Table**: Panel | Version | Confidence | Risk Level | Compliance | Findings | Verdict | Human Review
+- **Highlights**: flags panels with `risk_level` of `critical` or `high`
+- Reports if no emissions exist yet
+
+### Output
+
+This is a read-only command. No files are written or modified. All output is displayed in the conversation.
+
+### Policy Profile Resolution
+
+The command resolves the active policy profile:
+
+1. `governance.policy_profile` in `project.yaml` (project root)
+2. Falls back to `default` if not configured
+
+Policy files are read from `governance/policy/{profile}.yaml` (submodule) or `.ai/governance/policy/{profile}.yaml` (consuming repo).
+
 ## Context Capacity Protocol
 
 Both commands integrate with the framework's context management system. The protocol enforces a hard stop at 80% context capacity to prevent instruction loss during compaction.
@@ -408,6 +484,7 @@ The slash commands are implemented in these files:
   - `.claude/commands/threat-model.md` - Threat model command definition
   - `.claude/commands/review.md` - Review panel router command definition
   - `.claude/commands/plan.md` - Plan management command definition
+  - `.claude/commands/governance.md` - Governance dashboard command definition
 
 - **GitHub Copilot:**
   - `.github/copilot-chat/startup.md` - Startup command definition
@@ -415,6 +492,7 @@ The slash commands are implemented in these files:
   - `.github/copilot-chat/threat-model.md` - Threat model command definition
   - `.github/copilot-chat/review.md` - Review panel router command definition
   - `.github/copilot-chat/plan.md` - Plan management command definition
+  - `.github/copilot-chat/governance.md` - Governance dashboard command definition
 
 - **Core workflow:**
   - `governance/prompts/startup.md` - Agentic loop specification
