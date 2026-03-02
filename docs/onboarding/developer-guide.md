@@ -49,46 +49,39 @@ Run `/startup` in your AI tool (Claude Code or GitHub Copilot). This activates t
 /startup
 ```
 
-The pipeline chains six agents through five phases, looping until the session cap is hit. An optional Project Manager mode (`governance.use_project_manager: true`) enables multiplexed Code Managers for higher throughput.
+The Python orchestrator is the sole control plane — it holds the program counter and persists state to disk. The LLM calls the orchestrator CLI between phases; state survives context resets. An optional Project Manager mode (`governance.use_project_manager: true`) enables multiplexed Code Managers for higher throughput.
 
 ```mermaid
 flowchart TD
-    START([/startup]) --> PF[Phase 1: Pre-flight & Triage<br/>DevOps Engineer]
-    PF -->|Submodule check, repo config,<br/>resolve open PRs| SCAN[Scan & prioritize issues]
-    SCAN -->|ASSIGN highest priority| INTENT[Phase 2: Intent & Planning<br/>Code Manager]
-    INTENT -->|Validate intent, ensure project.yaml,<br/>select panels, create plan| IMPL[Phase 3: Implementation<br/>Coder]
-    INTENT -->|Infrastructure changes only| IAC[Phase 3: Infrastructure<br/>IaC Engineer]
-    IMPL -->|Code, tests, structured RESULT| EVAL[Phase 4: Evaluation & Review<br/>Tester + Code Manager]
-    IAC -->|Infrastructure RESULT| EVAL
+    START([/startup]) --> INIT["python -m governance.engine.orchestrator init"]
+    INIT --> PF[Phase 1: Pre-flight & Triage]
+    PF -->|step --complete 1| PLAN[Phase 2: Planning]
+    PLAN -->|step --complete 2| DISPATCH[Phase 3: Parallel Dispatch]
+    DISPATCH -->|Spawn Coder agents| COLLECT[Phase 4: Collect & Review]
+    COLLECT -->|Tester evaluates| MERGE[Phase 5: Merge & Loop]
 
-    EVAL --> TEST{Tester evaluates}
-    TEST -->|FEEDBACK| IMPL
-    TEST -->|APPROVE| SEC[Security Review]
-    SEC --> CTX[Context-Specific Reviews]
-    CTX --> PR[Push PR → CI + Copilot loop]
-    PR --> POLICY{Policy Engine}
-
-    POLICY -->|auto_merge| MERGE[Phase 5: Merge & Loop<br/>Code Manager + DevOps Engineer]
-    POLICY -->|human_review| HUMAN[Escalate to human]
-    POLICY -->|block| BLOCK[Block — notify user]
-
-    MERGE --> RETRO[Retrospective]
-    RETRO --> DECIDE{Hard-stop?}
-    DECIDE -->|Yes — session cap or context pressure| EXIT([Checkpoint → Exit — request /clear])
-    DECIDE -->|No — more issues| SCAN
-    DECIDE -->|No — no issues| GOALS[GOALS.md fallback]
-    GOALS -->|Actionable item?| INTENT
-    GOALS -->|Nothing left| EXIT
+    MERGE --> DECIDE{Orchestrator decides}
+    DECIDE -->|Green + work remaining| PF
+    DECIDE -->|Orange+ or cap hit| EXIT([Checkpoint → shutdown])
+    DECIDE -->|No work remaining| DONE([Done])
 ```
 
 **What happens when you run `/startup`:**
 
-1. **DevOps Engineer** checks submodule freshness, verifies repo configuration, resolves any open PRs, then scans and prioritizes issues
-2. **Code Manager** validates the issue's intent, auto-manages `project.yaml`, selects review panels based on codebase type, and creates a plan
-3. **Coder** implements the plan, writes tests, and emits a structured RESULT. **IaC Engineer** handles infrastructure changes (conditional — infrastructure changes only)
-4. **Tester** independently evaluates the work — sends FEEDBACK (up to 3 cycles) or APPROVE
-5. **Code Manager** runs security review, context-specific panels, pushes the PR, monitors CI/Copilot
-6. After merge, loops back to Phase 1 for the next batch — checkpoints only on hard-stop (max 5 per session)
+1. The LLM calls `python -m governance.engine.orchestrator init` — the orchestrator checks for existing sessions/checkpoints and returns the first phase instruction as JSON
+2. **Phase 1 (Pre-flight):** Scan Dependabot alerts and open issues, triage, select work batch → report back via `step --complete 1`
+3. **Phase 2 (Planning):** Create plans for each issue → report via `step --complete 2`
+4. **Phase 3 (Dispatch):** Spawn Coder agents per the orchestrator's `tasks` list → report via `step --complete 3`
+5. **Phase 4 (Collect):** Wait for agents, run Tester evaluation (up to 3 FEEDBACK cycles) → report via `step --complete 4`
+6. **Phase 5 (Merge):** Merge approved PRs → report via `step --complete 5`
+7. The orchestrator decides: Green + work remaining → loop to Phase 1; Orange+ → shutdown with checkpoint; no work → done
+
+The LLM reports capacity signals (`signal --type tool_call`) as it works. All state is on disk — if context is reset, `init` auto-resumes.
+
+For continuous unattended operation, use the auto-clear wrapper:
+```bash
+bash bin/auto-clear.sh
+```
 
 See [startup.md](../../governance/prompts/startup.md) for the full protocol and [agent-protocol.md](../../governance/prompts/agent-protocol.md) for inter-agent communication.
 

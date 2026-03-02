@@ -13,11 +13,25 @@ from governance.engine.orchestrator.circuit_breaker import (
     CircuitBreakerTripped,
     WorkUnit,
 )
+from governance.engine.orchestrator.claude_code_dispatcher import (
+    ClaudeCodeDispatcher,
+)
+from governance.engine.orchestrator.session import (
+    PersistedSession,
+    SessionStore,
+)
 from governance.engine.orchestrator.state_machine import (
     InvalidTransition,
     PhaseState,
     ShutdownRequired,
     StateMachine,
+)
+from governance.engine.orchestrator.step_result import (
+    DispatchInstruction,
+    StepResult,
+)
+from governance.engine.orchestrator.step_runner import (
+    StepRunner,
 )
 
 __all__ = [
@@ -25,10 +39,16 @@ __all__ = [
     "CapacitySignals",
     "CircuitBreaker",
     "CircuitBreakerTripped",
+    "ClaudeCodeDispatcher",
+    "DispatchInstruction",
     "InvalidTransition",
+    "PersistedSession",
     "PhaseState",
+    "SessionStore",
     "ShutdownRequired",
     "StateMachine",
+    "StepResult",
+    "StepRunner",
     "Tier",
     "WorkUnit",
     "classify_tier",

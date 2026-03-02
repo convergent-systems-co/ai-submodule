@@ -209,7 +209,7 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
 
 ### Agentic Pipeline (5-Phase Parallel Workflow)
 
-The platform uses a 6-agent prompt-chained pipeline implementing Anthropic's orchestration patterns. The Code Manager dispatches **parallel Coder agents** — each running in an isolated git worktree with its own context window — enabling concurrent work on multiple issues per session.
+The platform uses a Python orchestrator as the sole control plane, dispatching **parallel Coder agents** — each running in an isolated git worktree with its own context window — enabling concurrent work on multiple issues per session. The orchestrator persists state to disk between CLI invocations, surviving context resets and process death.
 
 | Agent | Pattern | Role |
 |-------|---------|------|
@@ -301,7 +301,7 @@ The framework uses JIT (Just-In-Time) loading to minimize AI context window usag
 3. Write a checkpoint to `.governance/checkpoints/` with current task, completed work, remaining work, and git state
 4. Report to user and request `/clear`
 
-Checkpoints enable session continuity — the next `/startup` auto-restores from the latest checkpoint, re-validates issue state, and resumes the pipeline.
+Checkpoints and session state enable continuity — the next `/startup` auto-restores from the latest session (via `python -m governance.engine.orchestrator init`), re-validates issue state, and resumes the pipeline. For continuous unattended operation, use `bash bin/auto-clear.sh`.
 
 See `docs/architecture/context-management.md` for the full strategy including checkpoint-based reset protection and instruction decomposition.
 

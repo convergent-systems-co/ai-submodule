@@ -20,11 +20,16 @@ The `/startup` command begins the autonomous improvement loop, executing the ful
 
 ### What It Does
 
-1. **Phase 1: Pre-flight & Triage** - Validates repository configuration, resolves open PRs, scans and prioritizes GitHub issues
-2. **Phase 2: Planning** - Validates issue state, selects review panels, creates implementation plans
-3. **Phase 3: Implementation** - Executes code changes, writes tests, updates documentation
-4. **Phase 4: Review & PR** - Runs security and context-specific reviews, creates pull requests, monitors CI
-5. **Phase 5: Merge & Loop** - Merges approved PRs, closes issues, loops or shuts down based on capacity
+The `/startup` command instructs the LLM to read `startup.md`, which directs it to call the Python orchestrator CLI (`python -m governance.engine.orchestrator`). The orchestrator is the sole control plane — it holds the program counter, enforces capacity gates, and persists all state to disk.
+
+1. **Init** — `python -m governance.engine.orchestrator init` checks for existing sessions/checkpoints and returns the first phase instruction
+2. **Phase 1: Pre-flight & Triage** — Scan and prioritize issues, select work batch
+3. **Phase 2: Planning** — Create implementation plans for each selected issue
+4. **Phase 3: Dispatch** — Spawn parallel Coder agents per orchestrator's task list
+5. **Phase 4: Collect & Review** — Wait for agents, run Tester evaluation (up to 3 FEEDBACK cycles)
+6. **Phase 5: Merge & Loop** — Merge approved PRs; orchestrator decides to loop or finish
+
+The LLM reports capacity signals as it works. The orchestrator enforces gate checks at every phase boundary and triggers shutdown when Orange+ tier is reached.
 
 ### Usage
 
@@ -36,10 +41,16 @@ The `/startup` command begins the autonomous improvement loop, executing the ful
 
     The agent will:
     - Read and execute `governance/prompts/startup.md`
-    - Follow the Code Manager persona orchestration
+    - Call the Python orchestrator CLI between each phase
     - Dispatch parallel Coder agents (up to N = `governance.parallel_coders`, default 5; all issues when N = -1)
     - Process up to N issues per session (unlimited when N = -1)
-    - Execute shutdown protocol at 80% context capacity
+    - Orchestrator triggers shutdown at 80% context capacity
+    - All state persists to disk — survives context resets
+
+    For continuous unattended operation:
+    ```bash
+    bash bin/auto-clear.sh
+    ```
 
 === "GitHub Copilot"
 
@@ -49,6 +60,7 @@ The `/startup` command begins the autonomous improvement loop, executing the ful
 
     The agent will:
     - Read and execute `.ai/governance/prompts/startup.md`
+    - Call the Python orchestrator CLI between each phase
     - Follow sequential Coder execution (Copilot does not support parallel Task dispatch)
     - Process up to N issues per session (N = `parallel_coders`, default 5; unlimited when N = -1)
     - Prompt for new chat thread at context capacity threshold

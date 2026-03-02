@@ -129,7 +129,53 @@ gh pr list --state open --json number,title,author,headRefName,createdAt,reviews
 - **Non-agent PRs**: evaluate through review classification only; post summary comment, do not merge
 - Process oldest first. Return to `main` after each PR.
 
-### 1d: Scan, Filter, Prioritize Issues
+### 1d: Scan Dependabot Alerts
+
+Query open Dependabot alerts for the repository. These are treated as work items alongside issues — each actionable alert becomes a task for a Coder agent.
+
+```bash
+gh api repos/{owner}/{repo}/dependabot/alerts --jq '[.[] | select(.state == "open") | {number, dependency: .security_vulnerability.package.name, severity: .security_advisory.severity, summary: .security_advisory.summary, vulnerable_range: .security_vulnerability.vulnerable_version_range, patched_version: .security_vulnerability.first_patched_version.identifier}]'
+```
+
+#### Filter Actionable Alerts
+
+An alert is **actionable** if:
+- State is `open` (not dismissed or fixed)
+- A `first_patched_version` exists (there is a known fix)
+- The dependency is in the project's direct or transitive dependency tree
+
+**Skip** alerts where:
+- The alert has been dismissed (state != `open`)
+- No patched version exists (requires manual evaluation — label the alert for human review)
+- The dependency is only in a lockfile of a sub-project the Coder cannot access
+
+#### Prioritize Alerts
+
+Dependabot alerts are prioritized by severity, then by age:
+
+| Priority | Severity |
+|----------|----------|
+| P0 | critical |
+| P1 | high |
+| P2 | medium |
+| P3 | low |
+
+**Dependabot alerts are interleaved with issues in the final work queue.** A critical/high dependabot alert takes priority over a P2+ issue. Medium/low alerts are treated as equivalent to P2/P3 issues respectively.
+
+#### Create Synthetic Issue References
+
+For each actionable alert, create a synthetic work item reference in the format `dependabot-{number}` (e.g., `dependabot-1`). This reference is used in:
+- Plan filenames: `.governance/plans/dependabot-1-fix-esbuild.md`
+- Branch names: `NETWORK_ID/fix/dependabot-1/bump-esbuild`
+- RESULT messages: `"correlation_id": "dependabot-1"`
+
+Include the following in the work item passed to Phase 2:
+- Package name and current vulnerable version range
+- Patched version (target)
+- Advisory summary
+- Severity level
+
+### 1e: Scan, Filter, Prioritize Issues
 
 ```bash
 gh issue list --state open --json number,title,labels,assignees,body --limit 50
@@ -216,6 +262,6 @@ An issue is **actionable** if:
 
 **Prioritize:** P0 > P1 > P2 > P3 > P4, then creation date. Bugs take precedence over enhancements at the same priority.
 
-### 1e: Route to Code Manager
+### 1f: Route to Code Manager
 
-Emit an ASSIGN message per `governance/prompts/agent-protocol.md` for **all actionable issues up to the session cap** (max N, where N = `governance.parallel_coders`; all actionable issues when N = -1). If no actionable issues remain, fall back to GOALS.md (see Phase 5 fallback).
+Emit an ASSIGN message per `governance/prompts/agent-protocol.md` for **all actionable work items (issues + dependabot alerts) up to the session cap** (max N, where N = `governance.parallel_coders`; all actionable items when N = -1). Dependabot alerts use the same ASSIGN format with `"source": "dependabot"` in the payload metadata. If no actionable work remains, fall back to GOALS.md (see Phase 5 fallback).

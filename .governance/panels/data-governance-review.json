@@ -1,0 +1,109 @@
+{
+  "panel_name": "data-governance-review",
+  "panel_version": "1.0.0",
+  "confidence_score": 0.83,
+  "risk_level": "negligible",
+  "compliance_score": 1.0,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-03-02T16:37:58Z",
+  "findings": [
+    {
+      "persona": "domain/data-architect",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "No schema, entity, or data model changes in this PR. The change is limited to pyproject.toml build configuration (Python version requirement and test dependencies). No canonical model alignment required.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "groundedness_score": 1.0,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "compliance/compliance-officer",
+      "verdict": "approve",
+      "confidence": 0.82,
+      "rationale": "No PII introduced or affected. Session state files in .governance/state/ contain only operational metadata (issue numbers, branch names, timestamps) — no data subject rights implications. Partial gitignore coverage for state/sessions/ noted as low-severity observation. No regulatory compliance concerns (GDPR, SOC2, HIPAA, PCI-DSS).",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 1,
+        "info": 2
+      },
+      "evidence": {
+        "file": ".governance/.gitignore",
+        "line_start": 5,
+        "line_end": 5,
+        "snippet": "state/agent-log/*.jsonl"
+      },
+      "groundedness_score": 0.9,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "domain/domain-expert",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "Build tooling change with no impact on domain models, business logic, or domain vocabulary. Python version broadening and test HTML reporting are infrastructure concerns only.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "groundedness_score": 1.0,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "compliance/security-auditor",
+      "verdict": "approve",
+      "confidence": 0.83,
+      "rationale": "No PII, secrets, or credentials in the diff. Session state files reviewed contain only operational metadata (session UUIDs, issue numbers, branch names). Directory permissions are standard (755/644). pytest-html output could leak environment details if committed — low-severity recommendation to gitignore the output path.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 1,
+        "info": 3
+      },
+      "evidence": {
+        "file": "governance/engine/pyproject.toml",
+        "line_start": 25,
+        "line_end": 25,
+        "snippet": "addopts = \"--html=tests/naming-report.html --self-contained-html\""
+      },
+      "groundedness_score": 0.95,
+      "hallucination_indicators": []
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "branch": "feat/retire-prompt-chaining",
+    "commit_sha": "f3c7d18b6d6af376cce384598ac37e905d5a5b9d",
+    "model_id": "claude-opus-4-6",
+    "provider": "anthropic",
+    "triggered_by": "manual"
+  },
+  "data_classification": {
+    "level": "internal",
+    "contains_sensitive_evidence": false,
+    "redaction_applied": false
+  },
+  "execution_trace": {
+    "files_read": [
+      "governance/engine/pyproject.toml",
+      ".governance/state/sessions/session-e54ec306.json",
+      ".governance/state/agent-log/session-e54ec306.jsonl",
+      ".governance/state/agent-log/smoke-test.jsonl",
+      ".governance/.gitignore"
+    ],
+    "diff_lines_analyzed": 22
+  },
+  "schema_version": "1.2.0"
+}

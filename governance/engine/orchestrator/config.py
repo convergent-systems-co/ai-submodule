@@ -26,6 +26,7 @@ class OrchestratorConfig:
     # Paths
     checkpoint_dir: str = ".governance/checkpoints"
     audit_log_dir: str = ".governance/state/agent-log"
+    session_dir: str = ".governance/state/sessions"
     plans_dir: str = ".governance/plans"
     panels_dir: str = ".governance/panels"
 

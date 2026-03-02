@@ -258,3 +258,91 @@ class TestGateHistory:
         record = sm.gates_passed[0]
         assert record.tool_calls == 25
         assert record.turns == 30
+
+
+# ---------------------------------------------------------------------------
+# Serialization (to_dict / from_dict)
+# ---------------------------------------------------------------------------
+
+
+class TestStateMachineSerialization:
+    def test_to_dict_initial_state(self):
+        sm = StateMachine(parallel_coders=6)
+        d = sm.to_dict()
+        assert d["phase"] == 0
+        assert d["signals"]["parallel_coders"] == 6
+        assert d["signals"]["tool_calls"] == 0
+        assert d["gates_passed"] == []
+        assert d["started"] is False
+
+    def test_to_dict_after_transitions(self):
+        sm = StateMachine()
+        sm.transition(1)
+        sm.signals.tool_calls = 25
+        sm.transition(2)
+        d = sm.to_dict()
+        assert d["phase"] == 2
+        assert d["signals"]["tool_calls"] == 25
+        assert len(d["gates_passed"]) == 2
+        assert d["started"] is True
+
+    def test_round_trip(self):
+        original = StateMachine(parallel_coders=8)
+        original.transition(1)
+        original.signals.tool_calls = 30
+        original.signals.turns = 15
+        original.signals.issues_completed = 2
+        original.transition(2)
+
+        d = original.to_dict()
+        restored = StateMachine.from_dict(d)
+
+        assert restored.phase == original.phase
+        assert restored.signals.tool_calls == original.signals.tool_calls
+        assert restored.signals.turns == original.signals.turns
+        assert restored.signals.issues_completed == original.signals.issues_completed
+        assert restored.signals.parallel_coders == 8
+        assert len(restored.gates_passed) == 2
+        assert restored._started is True
+
+    def test_round_trip_preserves_tier(self):
+        sm = StateMachine()
+        sm.signals.tool_calls = 55  # Yellow
+        d = sm.to_dict()
+        restored = StateMachine.from_dict(d)
+        assert restored.tier == Tier.YELLOW
+
+    def test_round_trip_continues_transitions(self):
+        """Restored state machine should allow valid transitions from restored phase."""
+        sm = StateMachine()
+        sm.transition(1)
+        sm.transition(2)
+        d = sm.to_dict()
+
+        restored = StateMachine.from_dict(d)
+        action = restored.transition(3)  # Phase 2 → 3
+        assert action == Action.PROCEED
+        assert restored.phase == 3
+
+    def test_from_dict_defaults(self):
+        restored = StateMachine.from_dict({})
+        assert restored.phase == 0
+        assert restored.signals.tool_calls == 0
+        assert restored._started is False
+
+    def test_gate_records_preserved(self):
+        sm = StateMachine()
+        sm.signals.tool_calls = 10
+        sm.transition(1)
+        d = sm.to_dict()
+        restored = StateMachine.from_dict(d)
+        assert restored.gates_passed[0].tool_calls == 10
+        assert restored.gates_passed[0].tier == "green"
+
+    def test_system_warning_preserved(self):
+        sm = StateMachine()
+        sm.signals.system_warning = True
+        d = sm.to_dict()
+        restored = StateMachine.from_dict(d)
+        assert restored.signals.system_warning is True
+        assert restored.tier == Tier.RED

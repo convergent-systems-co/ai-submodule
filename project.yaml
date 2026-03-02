@@ -10,6 +10,10 @@ governance:
   use_project_manager: false        # opt-in: set to true to enable PM-multiplexed pipeline
   parallel_code_managers: 3         # max concurrent Code Managers when PM is enabled (default 3)
 
+repository:
+  codeowners:
+    enabled: false                        # Do not generate or modify CODEOWNERS
+
 conventions:
   git:
     branch_pattern: "{network_id}/{type}/{number}/{name}"

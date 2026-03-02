@@ -12,6 +12,17 @@ Guidance for Claude Code working in this repository.
 # Tests (policy engine)
 python -m pytest governance/engine/ -x --tb=short
 
+# Orchestrator CLI (step-based control plane)
+python -m governance.engine.orchestrator init --config project.yaml
+python -m governance.engine.orchestrator step --complete 1 --result '{"issues_selected": ["#42"]}'
+python -m governance.engine.orchestrator signal --type tool_call --count 5
+python -m governance.engine.orchestrator gate --phase 3
+python -m governance.engine.orchestrator status
+
+# Auto-clear wrapper (continuous operation)
+bash bin/auto-clear.sh                          # Default: 50 retries
+bash bin/auto-clear.sh --max-retries 10         # Custom limit
+
 # Bootstrap (consuming repos)
 bash .ai/bin/init.sh                            # Shell bootstrap
 bash .ai/bin/init.sh --refresh                  # Re-apply after submodule update
@@ -61,11 +72,14 @@ Six agentic personas in `governance/personas/agentic/`: Project Manager, DevOps 
 | `.governance/plans/` | Implementation plans (emitted) |
 | `.governance/panels/` | Panel review reports (emitted) |
 | `.governance/checkpoints/` | Session checkpoints (emitted) |
+| `.governance/state/sessions/` | Orchestrator session state (persisted) |
 | `docs/` | Architecture, compliance, guides, onboarding |
 | `mcp-server/` | MCP server + skills |
 | `prompts/global/` | 12 developer prompts |
 
 ## Agentic Startup
+
+The Python orchestrator is the sole control plane. The LLM calls `python -m governance.engine.orchestrator` between phases; state survives context resets on disk.
 
 Standard mode phases: Pre-flight → Plan all → Parallel dispatch (N Coders in worktrees) → Collect + Review → Merge. N = `governance.parallel_coders` (default 5, -1 for unlimited). See `governance/prompts/startup.md`.
 

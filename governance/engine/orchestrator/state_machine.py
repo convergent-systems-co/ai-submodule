@@ -191,3 +191,58 @@ class StateMachine:
             {"phase": g.phase, "tier": g.tier, "action": g.action}
             for g in self.gates_passed
         ]
+
+    def to_dict(self) -> dict:
+        """Serialize state machine for persistence across CLI invocations."""
+        return {
+            "phase": self.state.phase,
+            "sub_phase": self.state.sub_phase,
+            "signals": {
+                "tool_calls": self.signals.tool_calls,
+                "turns": self.signals.turns,
+                "issues_completed": self.signals.issues_completed,
+                "parallel_coders": self.signals.parallel_coders,
+                "system_warning": self.signals.system_warning,
+                "degraded_recall": self.signals.degraded_recall,
+            },
+            "gates_passed": [
+                {
+                    "phase": g.phase,
+                    "tier": g.tier,
+                    "action": g.action,
+                    "tool_calls": g.tool_calls,
+                    "turns": g.turns,
+                    "issues_completed": g.issues_completed,
+                }
+                for g in self.gates_passed
+            ],
+            "started": self._started,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> StateMachine:
+        """Restore state machine from persisted dict."""
+        signals = data.get("signals", {})
+        sm = cls(parallel_coders=signals.get("parallel_coders", 5))
+        sm.state = PhaseState(
+            phase=data.get("phase", 0),
+            sub_phase=data.get("sub_phase"),
+        )
+        sm.signals.tool_calls = signals.get("tool_calls", 0)
+        sm.signals.turns = signals.get("turns", 0)
+        sm.signals.issues_completed = signals.get("issues_completed", 0)
+        sm.signals.system_warning = signals.get("system_warning", False)
+        sm.signals.degraded_recall = signals.get("degraded_recall", False)
+        sm.gates_passed = [
+            GateRecord(
+                phase=g["phase"],
+                tier=g["tier"],
+                action=g["action"],
+                tool_calls=g.get("tool_calls", 0),
+                turns=g.get("turns", 0),
+                issues_completed=g.get("issues_completed", 0),
+            )
+            for g in data.get("gates_passed", [])
+        ]
+        sm._started = data.get("started", False)
+        return sm

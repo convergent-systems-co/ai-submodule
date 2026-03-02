@@ -257,31 +257,14 @@ When `governance.parallel_coders` is set to -1 in `project.yaml`, the pipeline o
 
 Full auto-clear (automatic context resets without human intervention) requires external tooling because current AI platforms do not support programmatic self-initiated context resets. The pipeline's checkpoint and Phase 0 recovery handle the agent-side logic; the reset trigger must come from outside the session.
 
-**Claude Code:** Use a shell wrapper to restart the agent after each session exit:
+**Claude Code:** Use the materialized auto-clear wrapper:
 
 ```bash
-MAX_RETRIES=50
-RETRY_COUNT=0
-while [ "$RETRY_COUNT" -lt "$MAX_RETRIES" ]; do
-  START_TIME=$(date +%s)
-  claude --prompt "/startup"
-  EXIT_CODE=$?
-  ELAPSED=$(( $(date +%s) - START_TIME ))
-
-  # If session ran for less than 30 seconds, it likely errored — back off
-  if [ "$ELAPSED" -lt 30 ]; then
-    RETRY_COUNT=$((RETRY_COUNT + 1))
-    echo "Session exited quickly (${ELAPSED}s, exit $EXIT_CODE). Backing off (attempt $RETRY_COUNT/$MAX_RETRIES)..."
-    sleep $((RETRY_COUNT * 5))
-  else
-    RETRY_COUNT=0  # Reset on successful session
-    echo "Session ended normally. Restarting..."
-  fi
-done
-echo "Max retries reached. Exiting wrapper."
+bash bin/auto-clear.sh                    # Default: 50 retries
+bash bin/auto-clear.sh --max-retries 10   # Custom limit
 ```
 
-Each invocation starts a fresh context window. Phase 0 auto-detects the checkpoint written by the previous session's shutdown protocol and resumes where it left off. The shell wrapper provides the external restart trigger that the agent cannot provide for itself. The backoff logic prevents tight spin loops if the agent exits immediately (e.g., auth failure, rate limit).
+Each invocation starts a fresh context window. The orchestrator CLI (`python -m governance.engine.orchestrator init`) auto-detects the existing session and resumes where it left off — all state is persisted to `.governance/state/sessions/`. The wrapper provides exponential backoff on fast exits (< 30s) to prevent tight spin loops.
 
 **GitHub Copilot:** Auto-clear is not programmatically available. When the agent's shutdown protocol triggers, the user must manually start a new chat thread and paste the checkpoint path. Document this process in team onboarding materials. Future Copilot API extensions may enable programmatic thread creation.
 
