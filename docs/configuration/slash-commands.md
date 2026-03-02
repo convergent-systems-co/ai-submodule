@@ -9,6 +9,7 @@ The Dark Factory Governance Framework provides slash commands for initiating and
 | `/startup` | Initiates the autonomous agentic loop | Claude Code, GitHub Copilot |
 | `/checkpoint` | Saves session state and executes context capacity shutdown protocol | Claude Code, GitHub Copilot |
 | `/threat-model` | Runs threat model analysis (system-level or PR-level) | Claude Code, GitHub Copilot |
+| `/review` | Review panel router — list, run, and inspect governance review panels | Claude Code, GitHub Copilot |
 
 ## `/startup` - Agentic Loop
 
@@ -238,9 +239,75 @@ The PR-level variant (`threat-modeling`) is included in `required_panels` for al
 | System | `governance/prompts/reviews/threat-model-system.md` | `.ai/governance/prompts/reviews/threat-model-system.md` |
 | PR | `governance/prompts/reviews/threat-modeling.md` | `.ai/governance/prompts/reviews/threat-modeling.md` |
 
+## `/review` - Review Panel Router
+
+The `/review` command makes governance review panels discoverable and runnable on-demand. It can list available panels, display shared perspectives, run any panel against a PR diff, and show the status of existing panel emissions.
+
+### Modes
+
+| Argument | Mode | Description |
+|----------|------|-------------|
+| `list` | List panels | List all review prompts with name, purpose, and participant count |
+| `perspectives` | List perspectives | List shared perspectives with role and focus area |
+| `run <panel>` | Run panel (current branch) | Run a specific panel against the current branch's PR diff |
+| `run <panel> pr=N` | Run panel (specific PR) | Run a specific panel against PR #N's diff (e.g., `run code-review pr=345`) |
+| `status` | Emission status | Show current panel emissions with verdicts and scores |
+| *(no args)* | List panels | Defaults to `list` mode |
+
+### Usage
+
+=== "Claude Code"
+
+    ```bash
+    /review                          # List all available panels
+    /review list                     # List all available panels
+    /review perspectives             # List shared perspectives
+    /review run code-review          # Run code-review against current branch PR
+    /review run security-review pr=42  # Run security-review against PR #42
+    /review status                   # Show emission verdicts and scores
+    ```
+
+=== "GitHub Copilot"
+
+    ```bash
+    /review                          # List all available panels
+    /review list                     # List all available panels
+    /review perspectives             # List shared perspectives
+    /review run code-review          # Run code-review against current branch PR
+    /review run security-review pr=42  # Run security-review against PR #42
+    /review status                   # Show emission verdicts and scores
+    ```
+
+### Output
+
+| Mode | Output Location | Emission Location |
+|------|----------------|-------------------|
+| `list` | Displayed in conversation | N/A |
+| `perspectives` | Displayed in conversation | N/A |
+| `run <panel>` / `run <panel> pr=N` | `.governance/panels/<panel>.md` | `.governance/panels/<panel>.json` |
+| `status` | Displayed in conversation | N/A |
+
+### Available Panels
+
+The 21 review panels in `governance/prompts/reviews/` cover:
+
+- **Code quality:** `code-review`, `testing-review`, `test-generation-review`, `technical-debt-review`
+- **Security:** `security-review`, `threat-modeling`, `threat-model-system`
+- **Architecture:** `architecture-review`, `api-design-review`, `data-design-review`
+- **Operations:** `performance-review`, `production-readiness-review`, `cost-analysis`, `finops-review`
+- **Governance:** `documentation-review`, `data-governance-review`, `governance-compliance-review`, `migration-review`
+- **Specialized:** `ai-expert-review`, `copilot-review`, `jm-standards-compliance-review`
+
+### Prompt Files
+
+| Resource | Prompt Location (submodule) | Prompt Location (consuming repo) |
+|----------|---------------------------|--------------------------------|
+| Review prompts | `governance/prompts/reviews/*.md` | `.ai/governance/prompts/reviews/*.md` |
+| Shared perspectives | `governance/prompts/shared-perspectives.md` | `.ai/governance/prompts/shared-perspectives.md` |
+
 ## Context Capacity Protocol
 
-Both commands integrate with the framework's context management system. The protocol enforces a hard stop at 80% context capacity to prevent instruction loss during compaction.
+All commands integrate with the framework's context management system. The protocol enforces a hard stop at 80% context capacity to prevent instruction loss during compaction.
 
 ### Warning Signs
 
@@ -280,11 +347,13 @@ The slash commands are implemented in these files:
   - `.claude/commands/startup.md` - Startup command definition
   - `.claude/commands/checkpoint.md` - Checkpoint command definition
   - `.claude/commands/threat-model.md` - Threat model command definition
+  - `.claude/commands/review.md` - Review panel router command definition
 
 - **GitHub Copilot:**
   - `.github/copilot-chat/startup.md` - Startup command definition
   - `.github/copilot-chat/checkpoint.md` - Checkpoint command definition
   - `.github/copilot-chat/threat-model.md` - Threat model command definition
+  - `.github/copilot-chat/review.md` - Review panel router command definition
 
 - **Core workflow:**
   - `governance/prompts/startup.md` - Agentic loop specification

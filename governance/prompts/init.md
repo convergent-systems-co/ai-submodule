@@ -4,7 +4,7 @@ Execute this prompt to bootstrap the `.ai` governance submodule in a consuming p
 
 **When to use this:** After adding the Dark Factory Governance submodule to a project (`git submodule add git@github.com:SET-Apps/ai-submodule.git .ai`), run this prompt to configure the project.
 
-**Canonical implementation:** `init.sh` (bash) and `init.ps1` (PowerShell) are the source of truth for bootstrap logic. This prompt mirrors their behavior but adds interactive configuration. If this prompt and the shell scripts diverge, the shell scripts are authoritative.
+**Canonical implementation:** This prompt is the primary bootstrap method. Shell scripts in `bin/` are utilities for specific operations (e.g., `--check-branch-protection`, `--verify`). If this prompt and the shell scripts diverge, this prompt is authoritative for interactive setup.
 
 ---
 
@@ -23,12 +23,12 @@ Before starting, verify the environment:
    ```
    Then re-run this prompt.
 
-2. **Check if already initialized** (symlinks exist):
+2. **Check if already initialized** (instruction files exist):
    ```bash
-   test -L CLAUDE.md && echo "CLAUDE.md symlink exists" || echo "Not initialized"
-   test -L .github/copilot-instructions.md && echo "copilot-instructions symlink exists" || echo "Not initialized"
+   test -s CLAUDE.md && echo "CLAUDE.md exists" || echo "Not initialized"
+   test -s .github/copilot-instructions.md && echo "copilot-instructions exists" || echo "Not initialized"
    ```
-   If all symlinks exist, skip to Step 3 (Repository Configuration) — the project may already be initialized but need configuration updates.
+   If both files exist and contain the ANCHOR marker, skip to Step 3 (Repository Configuration) — the project may already be initialized but need configuration updates.
 
 3. **Detect platform:**
    ```bash
@@ -66,23 +66,41 @@ Then tell the user: "I've copied the template to `project.yaml` (project root). 
 
 ---
 
-## Step 2: Create Symlinks
+## Step 2: Install Instructions
 
-Create the symlinks that connect the `.ai` submodule's instructions to each AI tool's expected location:
+Write instruction files directly (not symlinks) to each AI tool's expected location. Direct files are more portable across platforms and avoid symlink resolution issues.
 
-```bash
-# CLAUDE.md -> .ai/instructions.md (Claude Code)
-ln -sf .ai/instructions.md CLAUDE.md
+1. **Read the source content:**
+   ```bash
+   cat .ai/instructions.md
+   ```
 
-# .github/copilot-instructions.md -> .ai/instructions.md (GitHub Copilot)
-mkdir -p .github
-ln -sf ../.ai/instructions.md .github/copilot-instructions.md
-```
+2. **Write CLAUDE.md** (Claude Code):
+   - If `CLAUDE.md` is a symlink, migrate it: read the target content, remove the symlink, write the file
+     ```bash
+     if [ -L CLAUDE.md ]; then
+       content=$(cat CLAUDE.md)
+       rm CLAUDE.md
+       echo "$content" > CLAUDE.md
+       echo "Migrated CLAUDE.md from symlink to file"
+     fi
+     ```
+   - If `CLAUDE.md` does not exist or is empty, write the content from `.ai/instructions.md`
+   - If `CLAUDE.md` exists as a regular file with content, check if it matches source; update if stale
 
-Verify each symlink was created:
-```bash
-ls -la CLAUDE.md .github/copilot-instructions.md
-```
+3. **Write .github/copilot-instructions.md** (GitHub Copilot):
+   ```bash
+   mkdir -p .github
+   ```
+   - Apply the same symlink migration and content write logic as CLAUDE.md
+   - If a symlink, migrate: read target, remove symlink, write file
+   - If missing or empty, write from `.ai/instructions.md`
+
+4. **Verify both files exist and have content:**
+   ```bash
+   test -s CLAUDE.md && echo "CLAUDE.md: OK" || echo "CLAUDE.md: MISSING"
+   test -s .github/copilot-instructions.md && echo "copilot-instructions.md: OK" || echo "copilot-instructions.md: MISSING"
+   ```
 
 ---
 
@@ -213,20 +231,64 @@ If no: "Skipping Python dependencies. You can install later with `bash .ai/bin/i
 
 ---
 
+## Step 7: Install Hooks
+
+Configure the PreCompact hook to auto-checkpoint before context compaction. This prevents losing work when context windows fill up.
+
+1. **Check for existing settings:**
+   ```bash
+   test -f .claude/settings.json && echo "EXISTS" || echo "NEW"
+   ```
+
+2. **If `.claude/settings.json` does not exist**, create it:
+   ```bash
+   mkdir -p .claude
+   ```
+   Write `.claude/settings.json`:
+   ```json
+   {
+     "hooks": {
+       "PreCompact": [
+         {
+           "type": "command",
+           "command": "bash .ai/governance/bin/pre-compact-checkpoint.sh"
+         }
+       ]
+     }
+   }
+   ```
+
+3. **If `.claude/settings.json` exists**, merge the hooks section:
+   - Read the existing file
+   - If it already has a `hooks.PreCompact` entry, skip (already installed)
+   - If it has a `hooks` section but no `PreCompact`, add the PreCompact entry
+   - If it has no `hooks` section, add the entire hooks block
+
+4. **Verify hook installation:**
+   ```bash
+   grep -q "PreCompact" .claude/settings.json 2>/dev/null && echo "HOOKS_OK" || echo "HOOKS_MISSING"
+   ```
+
+---
+
 ## Post-flight: Verify & Summary
 
 Run a final verification:
 
 ```bash
 echo "=== Verification ==="
-echo "Symlinks:"
-ls -la CLAUDE.md .github/copilot-instructions.md 2>/dev/null
+echo "Instruction files:"
+test -s CLAUDE.md && echo "CLAUDE.md: OK" || echo "CLAUDE.md: MISSING"
+test -s .github/copilot-instructions.md && echo "copilot-instructions.md: OK" || echo "copilot-instructions.md: MISSING"
 echo ""
 echo "Project config:"
 test -f project.yaml && echo "project.yaml: OK" || echo "project.yaml: not configured"
 echo ""
 echo "CODEOWNERS:"
 test -s CODEOWNERS && echo "CODEOWNERS: OK" || echo "CODEOWNERS: not configured"
+echo ""
+echo "Hooks:"
+grep -q "PreCompact" .claude/settings.json 2>/dev/null && echo "PreCompact hook: OK" || echo "PreCompact hook: not installed"
 echo ""
 echo "Python venv:"
 test -d .ai/.venv && echo ".venv: OK" || echo ".venv: not installed"
@@ -238,10 +300,11 @@ Present a summary to the user:
 Setup complete. Here's what was configured:
 
 - [x/skip] Language template: {selection}
-- [x/skip] Symlinks: CLAUDE.md, copilot-instructions.md
+- [x/skip] Instruction files: CLAUDE.md, copilot-instructions.md
 - [x/skip] Repository settings: auto_merge={value}, delete_branch={value}
 - [x/skip] Issue templates copied
 - [x/skip] CODEOWNERS generated
+- [x/skip] PreCompact hook installed
 - [x/skip] Python dependencies installed
 
 Next steps:
@@ -255,11 +318,24 @@ Next steps:
 ## Re-running This Prompt
 
 This prompt is idempotent. Running it again will:
-- Skip symlinks that already exist
+- Update instruction files if source has changed (content comparison)
 - Skip templates if `project.yaml` is already present (ask before overwriting)
 - Re-apply repository settings (safe — PATCH is idempotent)
 - Skip issue templates that already exist
 - Skip CODEOWNERS if populated
+- Skip hooks if already installed
 - Skip Python venv if `.ai/.venv` exists
 
-**After a submodule update**, run `bash .ai/bin/init.sh --refresh` (or `-Refresh` on Windows) to re-apply structural setup without the submodule freshness check. The agentic startup loop does this automatically.
+**After a submodule update**, re-run this prompt or run `bash .ai/bin/init.sh --refresh` to re-apply structural setup. The agentic startup loop auto-repairs instruction files and hooks on every session (see below).
+
+---
+
+## Self-Repair
+
+This prompt auto-repairs on `/startup`. The agentic startup loop (Phase 1a-bis) checks instruction file freshness and hook installation on every session. Specifically:
+
+1. **Instruction files** — verifies `CLAUDE.md` and `.github/copilot-instructions.md` exist, have content, and contain the ANCHOR marker. Rewrites from `.ai/instructions.md` if stale or missing.
+2. **PreCompact hook** — verifies `.claude/settings.json` contains the PreCompact hook. Installs if missing.
+3. **Governance directories** — verifies `.governance/plans/`, `.governance/panels/`, `.governance/checkpoints/`, and `.governance/state/` exist. Creates if missing.
+
+All repairs are non-blocking — the startup loop warns and continues if any repair fails.

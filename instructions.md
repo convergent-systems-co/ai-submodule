@@ -88,6 +88,14 @@ If required panel emissions are not present in `governance/emissions/`:
 - Run the required panels or escalate to human review.
 - See `governance/policy/default.yaml` for the list of required panels.
 
+## Compact Instructions
+
+After compaction, conversation context may be lost. Immediately:
+1. Check for emergency checkpoints: `ls -t .governance/checkpoints/*emergency* 2>/dev/null | head -1`
+2. If an emergency checkpoint exists (written in last 5 minutes), an agentic loop was interrupted
+3. Report to user: "Context was compacted mid-session. Emergency checkpoint saved at {path}. Run `/startup` to resume."
+4. Do NOT continue previous work without `/startup` — the checkpoint has the recovery state
+
 <!-- /ANCHOR -->
 
 *Domain-specific guidance in `instructions/`. Project-specific instructions extend this.*

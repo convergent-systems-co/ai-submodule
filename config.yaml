@@ -9,15 +9,24 @@ defaults:
   architecture: true
   prompts: true
 
-# Tool-specific symlinks to create
+# Instructions delivery: prefer direct file writes (init.md) over symlinks (init.sh)
+# Symlinks are maintained for backward compatibility with consuming repos using init.sh
 symlinks:
   - source: instructions.md
     targets:
       - .github/copilot-instructions.md
       - CLAUDE.md
+    prefer_copy: true  # init.md writes files directly; init.sh creates symlinks as fallback
   - source: .claude/commands
     targets:
       - .claude/commands
+
+# Hooks installed in consuming repos during init
+# These are written to .claude/settings.json (or merged into existing)
+hooks:
+  PreCompact:
+    - type: command
+      command: "bash .ai/governance/bin/pre-compact-checkpoint.sh"
 
 # Governance workflows to symlink into consuming repos during init
 # Only applied in submodule context; existing regular files are not overwritten

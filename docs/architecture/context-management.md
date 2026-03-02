@@ -600,6 +600,29 @@ Checkpoint files use the naming convention `{timestamp}-{branch}.json` and are s
    3. Loads only the Tier 1 + Tier 2 context needed for the current phase
    4. Continues from the checkpoint
 
+## Enforcement Architecture
+
+The context capacity system has three layers of defense:
+
+### Layer 1: Proactive Prevention (Context Gate)
+
+The agent outputs a `--- CONTEXT GATE ---` block at every phase boundary with explicit tool call counts and tier classification. Conservative thresholds (Green < 50, Yellow 50-65, Orange 65-80, Red > 80 tool calls) ensure the agent stops well before compaction.
+
+### Layer 2: Compact Instructions (Post-Compaction Recovery)
+
+The `instructions.md` file includes a "Compact Instructions" section that survives compaction (it's part of the system context). After compaction, the agent immediately checks for emergency checkpoints and reports to the user.
+
+### Layer 3: PreCompact Hook (Circuit Breaker)
+
+The `governance/bin/pre-compact-checkpoint.sh` script is registered as a Claude Code PreCompact hook. If the agent fails to stop before compaction:
+1. The hook fires before compaction occurs
+2. It auto-commits any dirty git state
+3. It writes an emergency checkpoint
+4. Compaction proceeds safely (state is preserved)
+5. The next `/startup` auto-recovers from the checkpoint
+
+**Design principle:** The user should never see "compacting" during normal agentic loop operation. Layer 1 prevents it. Layers 2 and 3 recover from it if Layer 1 fails.
+
 ## Implementation Requirements
 
 ### For Persona Authors

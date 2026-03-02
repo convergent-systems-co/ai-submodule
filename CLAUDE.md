@@ -12,9 +12,12 @@ Current maturity: **Phase 4b (Autonomous Remediation)** — all governance artif
 
 There is no build system or linter. The policy engine has a pytest test suite in `governance/engine/tests/`.
 
-**Bootstrap (for consuming repos):**
+**Bootstrap (for consuming repos — recommended: agentic):**
+Tell your AI assistant: "Read and execute `.ai/governance/prompts/init.md`" — this is the primary bootstrap method. It interactively configures the project, writes instruction files directly (not symlinks), installs hooks, and sets up governance directories.
+
+**Bootstrap (shell script alternative):**
 ```bash
-bash .ai/bin/init.sh                          # Symlinks only
+bash .ai/bin/init.sh                          # Symlinks + directories
 bash .ai/bin/init.sh --install-deps           # Symlinks + Python venv + dependencies
 bash .ai/bin/init.sh --refresh                # Re-apply structural setup after submodule update
 bash .ai/bin/init.sh --check-branch-protection  # Query if default branch requires PRs
@@ -129,6 +132,8 @@ Operational CLI commands via `bin/ado-sync.py`: `health` (6-point check battery 
 
 18 GitHub Actions workflows across five categories: Governance (dark-factory-governance, jm-compliance, plan-archival, prompt-eval), Agentic (agentic-issue-worker, agentic-loop, event-trigger, issue-monitor), Self-Repair (auto-rebase, branch-cleanup, self-repair-lint), ADO Sync (ado-sync, ado-reverse-sync), and Publishing/Automation (propagate-submodule, deploy-docs, publish-dashboard, prompt-catalog, publish-mcp). See `docs/architecture/ci-workflows.md`.
 
+The `dark-factory-governance` workflow auto-detects consuming repos via `.gitmodules` when the `.ai` submodule content is unavailable in CI (private submodule without credentials). In consuming repo mode: the test job is skipped, the policy engine falls back to lightweight emission-only validation reading from `.governance/panels/`, and the `skip_panel_validation` setting is read from the PR merge commit (not the base branch). See `docs/configuration/repository-setup.md` for details.
+
 ### Policy Engine
 
 Four deterministic YAML profiles in `governance/policy/`:
@@ -209,12 +214,14 @@ When enabled, the Project Manager replaces the DevOps Engineer as the session en
 
 Total concurrent agents = M Code Managers x N Coders per CM. The DevOps Engineer runs in background polling mode, emitting WATCH messages when new actionable issues are discovered. See `docs/architecture/project-manager-architecture.md` for the full architecture.
 
-## Symlink Configuration
+## Instruction Delivery
 
-`config.yaml` defines symlinks created by `init.sh` for consuming repos:
-- `instructions.md` → `CLAUDE.md`, `.github/copilot-instructions.md`
+`config.yaml` declares how instructions reach consuming repos. Two delivery methods exist:
 
-This ensures Claude Code and GitHub Copilot receive the same base instructions in consuming projects.
+- **Direct file writes (preferred)** — `init.md` (agentic bootstrap) reads `.ai/instructions.md` and writes it to `CLAUDE.md` and `.github/copilot-instructions.md` as regular files. More portable, no symlink resolution issues.
+- **Symlinks (fallback)** — `init.sh` (shell bootstrap) creates symlinks: `CLAUDE.md` → `.ai/instructions.md`. Works but fragile on some platforms.
+
+The agentic startup loop (`/startup`) auto-repairs instruction files on every session, migrating symlinks to files and rewriting stale content. See `governance/prompts/startup.md` Phase 1a-bis.
 
 ## Project Directories
 
@@ -241,6 +248,6 @@ Emitted output uses identical `.governance/` paths everywhere. Read-only governa
 | Review prompts | `governance/prompts/reviews/` | `.ai/governance/prompts/reviews/` (read-only) |
 | Policy profiles | `governance/policy/` | `.ai/governance/policy/` (read-only) |
 | Schemas | `governance/schemas/` | `.ai/governance/schemas/` (read-only) |
-| Instructions | `instructions.md` | `CLAUDE.md` → `.ai/instructions.md` (symlink) |
+| Instructions | `instructions.md` | `CLAUDE.md` ← `.ai/instructions.md` (file copy, preferred) or symlink (legacy) |
 
 See `docs/onboarding/project-structure.md` for a full breakdown of what `init.sh` creates and what to expect in each directory.

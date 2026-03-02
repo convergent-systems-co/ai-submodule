@@ -30,14 +30,14 @@ The pipeline uses a four-tier capacity model. Tier boundaries are evaluated at e
 
 **Platform-specific detection for tier classification:**
 
-| Signal | Green (< 60%) | Yellow (60-70%) | Orange (70-80%) | Red (>= 80%) |
+| Signal | Green (< 50%) | Yellow (50-65%) | Orange (65-80%) | Red (>= 80%) |
 |--------|---------------|-----------------|-----------------|---------------|
-| Tool calls in session | < 40 | 40-55 | 55-80 | > 80 |
-| Chat turns (exchanges) | < 60 | 60-100 | 100-150 | > 150 |
+| Tool calls in session | < 50 | 50-65 | 65-80 | > 80 |
+| Chat turns (exchanges) | < 60 | 60-100 | 100-140 | > 140 |
 | Issues completed (N/A when N = -1) | < N-2 | N-2 | N-1 | N (cap) |
-| Claude Code token counter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
-| Copilot context meter | < 60% shown | 60-70% shown | 70-80% shown | >= 80% shown |
-| Copilot character count | < 150K chars | 150-200K chars | 200-250K chars | > 250K chars |
+| Claude Code token counter | < 50% shown | 50-65% shown | 65-80% shown | >= 80% shown |
+| Copilot context meter | < 50% shown | 50-65% shown | 65-80% shown | >= 80% shown |
+| Copilot character count | < 120K chars | 120-170K chars | 170-220K chars | > 220K chars |
 | Degraded recall | None | None | Possible | Likely |
 
 **Any single signal reaching a tier is sufficient to classify at that tier.** Use the highest tier indicated by any signal.
@@ -118,34 +118,34 @@ flowchart TD
 
 **Every phase boundary requires a context capacity check.** Before entering any phase (0-5), the active persona must evaluate the current capacity tier and act accordingly. This gate is mandatory and cannot be skipped.
 
-### Gate Protocol
+### Gate Protocol (Enforced)
+
+At every phase boundary, the agent MUST output this block in the conversation:
 
 ```
-CONTEXT GATE — Phase {N} Entry
-1. Evaluate all capacity signals (see Capacity Tiers table above)
-2. Classify current tier: Green / Yellow / Orange / Red
-3. Act on tier:
-   - Green  → Proceed to Phase {N}
-   - Yellow → Proceed only if Phase {N} does not dispatch new Coders.
-              If Phase {N} is Phase 3 (Parallel Dispatch), skip new dispatches
-              and proceed to Phase 4 for in-flight work only.
-   - Orange → Do not enter Phase {N}. Complete current PR if mid-Phase 4,
-              then execute Shutdown Protocol (checkpoint + request /clear).
-   - Red    → Do not enter Phase {N}. Execute Shutdown Protocol immediately.
-              Do not finish current step.
-4. Log gate result in checkpoint metadata:
-   {
-     "context_gate": {
-       "phase": N,
-       "tier": "green|yellow|orange|red",
-       "tool_calls": <count>,
-       "turn_count": <count>,
-       "issues_completed": <count>,
-       "platform": "claude-code|copilot|unknown",
-       "action": "proceed|skip-dispatch|finish-current|merge-no-loop|checkpoint|emergency-stop"
-     }
-   }
+--- CONTEXT GATE ---
+Phase: {N}
+Tool calls this session: {count}
+Estimated turns: {count}
+Tier: {Green|Yellow|Orange|Red}
+Action: {proceed|skip-dispatch|finish-current|checkpoint|emergency-stop}
+---
 ```
+
+**This output is mandatory.** Skipping the gate block is a protocol violation. The agent must count tool calls by reviewing the conversation history if uncertain.
+
+**Tier classification (conservative thresholds):**
+- Green (< 50 tool calls, < 60 turns): proceed normally
+- Yellow (50-65 tool calls, 60-100 turns): no new Coder dispatches
+- Orange (65-80 tool calls, 100-140 turns): finish current PR only, then checkpoint
+- Red (> 80 tool calls, > 140 turns, OR system warning): emergency stop
+
+**Actions by tier:**
+- `proceed` (Green): enter the phase normally
+- `skip-dispatch` (Yellow): enter phase but skip new Coder agent spawns in Phase 3
+- `finish-current` (Orange): if in Phase 4, complete current PR. Otherwise, checkpoint immediately.
+- `checkpoint` (Orange): write checkpoint and request /clear
+- `emergency-stop` (Red): write checkpoint immediately. Do not finish current step.
 
 ### Platform-Specific Gate Detection
 
@@ -154,6 +154,18 @@ CONTEXT GATE — Phase {N} Entry
 **GitHub Copilot:** Check the context meter in the chat input area (hover for exact count). If operating programmatically, use `vscode.lm.countTokens()` on the assembled payload. Auto-summarization of conversation history indicates Red tier.
 
 **Both platforms:** Track tool call count and chat turn count internally. These heuristics are always available regardless of platform. If platform-specific signals are unavailable, rely on heuristic signals alone.
+
+### Enforcement: PreCompact Hook (Circuit Breaker)
+
+If the agent fails to checkpoint before context reaches compaction, the PreCompact hook (`governance/bin/pre-compact-checkpoint.sh`) fires automatically. This is the last-resort circuit breaker:
+
+1. The hook writes an emergency checkpoint to `.governance/checkpoints/`
+2. If there are uncommitted changes, the hook auto-commits with `wip:` prefix
+3. Compaction proceeds (instructions are preserved via Compact Instructions in CLAUDE.md)
+4. After compaction, the agent reads Compact Instructions and reports the emergency to the user
+5. User runs `/startup` → Phase 0 auto-recovers from the emergency checkpoint
+
+**The PreCompact hook is a safety net, not normal operation.** The context gate should prevent reaching compaction. If the hook fires, the agent's gate checks were insufficient.
 
 ---
 
@@ -338,6 +350,36 @@ Generate a unique session identifier for the agent audit log. This ID is used by
    **Note:** Step 7 runs first conceptually (before step 4), but is listed after step 6 for
    readability. The DevOps Engineer should execute branch protection detection before any
    commit that targets the default branch.
+
+### 1a-bis: Instruction Freshness Check
+
+Verify instructions are properly installed and current. This runs on every startup to auto-repair drift.
+
+1. **Check CLAUDE.md exists and has content:**
+   ```bash
+   test -s CLAUDE.md && echo "OK" || echo "MISSING_OR_EMPTY"
+   ```
+   If missing or empty: read `.ai/instructions.md` and write to `CLAUDE.md`.
+
+2. **Check instruction content matches source:**
+   If CLAUDE.md is a symlink, it's auto-current. If it's a file, compare key markers:
+   ```bash
+   grep -q "ANCHOR: Base instructions" CLAUDE.md && echo "CURRENT" || echo "STALE"
+   ```
+   If stale: rewrite from `.ai/instructions.md`.
+
+3. **Check hooks are installed:**
+   Verify PreCompact hook is configured. Check for `.claude/settings.json` (project-level) or consuming repo's settings:
+   ```bash
+   grep -q "PreCompact" .claude/settings.json 2>/dev/null && echo "HOOKS_OK" || echo "HOOKS_MISSING"
+   ```
+   If missing: install per `config.yaml` hooks section. This requires creating or merging into the project's `.claude/settings.json`:
+   ```bash
+   mkdir -p .claude
+   ```
+   If `.claude/settings.json` does not exist, create it with the hooks configuration. If it exists, merge the PreCompact hook into the existing hooks section.
+
+All checks are non-blocking — warn and continue if repair fails.
 
 ### 1b: Repository Configuration
 

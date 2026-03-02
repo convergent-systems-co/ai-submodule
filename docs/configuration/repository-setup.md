@@ -2,6 +2,30 @@
 
 The governance framework can configure GitHub repository settings to support the autonomous agentic workflow. Settings are declared in `config.yaml` (defaults) and overridden per-project in `project.yaml`.
 
+## Installation Methods
+
+### Recommended: Agentic Bootstrap
+
+Tell your AI assistant: "Read and execute `.ai/governance/prompts/init.md`"
+
+This interactively configures the project with zero shell commands. The agent reads the repo, asks about configuration, and sets everything up — including writing instruction files directly (not symlinks), installing PreCompact hooks, and creating governance directories.
+
+### Alternative: Shell Script
+
+```bash
+bash .ai/bin/init.sh                    # Basic setup
+bash .ai/bin/init.sh --install-deps     # Full setup with Python deps
+```
+
+### Self-Repair
+
+The agentic startup loop (`/startup`) automatically detects and repairs:
+- Missing or stale CLAUDE.md / copilot-instructions.md
+- Missing PreCompact hooks
+- Missing .governance/ directories
+
+See `governance/prompts/startup.md` Phase 1a-bis for details.
+
 ## Why This Exists
 
 The agentic loop (startup.md) requires specific GitHub repository settings to function: auto-merge must be enabled so PRs merge after CI + approval, CODEOWNERS must be populated so `require_code_owner_review` rulesets work, and branch protection rulesets must be configured for governance enforcement. Without these settings, the autonomous workflow breaks silently.
@@ -230,7 +254,7 @@ Emitted output uses identical `.governance/` paths everywhere. Read-only governa
 | Review prompts | `governance/prompts/reviews/` | `.ai/governance/prompts/reviews/` (read-only) |
 | Policy profiles | `governance/policy/` | `.ai/governance/policy/` (read-only) |
 | Schemas | `governance/schemas/` | `.ai/governance/schemas/` (read-only) |
-| Instructions | `instructions.md` | `CLAUDE.md` → `.ai/instructions.md` (symlink) |
+| Instructions | `instructions.md` | `CLAUDE.md` ← `.ai/instructions.md` (file copy, preferred) or symlink (legacy) |
 
 See [Project Structure](../onboarding/project-structure.md) for a detailed breakdown of every directory and file created by `init.sh`.
 
@@ -303,6 +327,49 @@ The Dark Factory Governance repository itself uses `require_code_owner_review: t
 ### Bot Identity
 
 The governance workflow runs as `github-actions[bot]`, which is a GitHub system account. It cannot be renamed. If a custom bot identity (e.g., "Dark Factory Governance") is desired, a custom GitHub App would need to be created and configured as the workflow's authentication mechanism. This is outside the scope of the governance framework.
+
+## Consuming Repo CI
+
+The `dark-factory-governance.yml` workflow automatically detects consuming repositories and adapts its behavior accordingly.
+
+### Auto-Detection
+
+The workflow uses a three-tier detection strategy:
+
+1. **Directory check** -- looks for `governance/emissions/` (ai-submodule repo) or `.ai/governance/emissions/` (consuming repo with cloned submodule)
+2. **`.gitmodules` fallback** -- if directory checks fail, the workflow checks `.gitmodules` for a `.ai` submodule entry. This handles the common case where the `.ai` submodule is a private repo and CI lacks credentials to clone it (the submodule appears as a gitlink, not a directory).
+3. **Local emissions path** -- consuming repos detected via `.gitmodules` have their emissions checked in `.governance/panels/` (the standard local emissions directory created by `init.sh`).
+
+The workflow sets `is_consuming_repo=true` when detection falls through to the `.gitmodules` check.
+
+### Behavior Differences for Consuming Repos
+
+| Feature | AI Submodule Repo | Consuming Repo |
+|---------|------------------|----------------|
+| Policy engine tests | Runs `pytest governance/engine/tests/` | Skipped (submodule content unavailable) |
+| Policy engine evaluation | Full `policy-engine.py` execution | Lightweight emission-only validation |
+| Emission location | `governance/emissions/` | `.governance/panels/` |
+| Policy profiles | Resolved from `governance/policy/` | Fallback to lightweight validation |
+
+### Lightweight Emission Validation
+
+When the full policy engine is unavailable (consuming repo without submodule content), the workflow falls back to a lightweight validator that:
+
+1. Reads JSON emission files from `.governance/panels/`
+2. Validates required fields (`panel_name`, `verdict`, `confidence_score`) in each emission
+3. Computes average confidence across all panels
+4. Produces an `auto_merge` decision if all panels pass and average confidence is at or above 0.70, otherwise `human_review_required`
+
+### Configuration Options
+
+Consuming repos have two options for the governance workflow:
+
+- **Provide local emissions** -- run governance panels locally (via the agentic loop or MCP skills) and commit emission JSON files to `.governance/panels/`. The workflow will validate them using the lightweight fallback.
+- **Opt out of panel validation** -- set `governance.skip_panel_validation: true` in `project.yaml` (project root). The workflow will auto-approve with a warning instead of blocking.
+
+### skip_panel_validation in PRs
+
+The `skip_panel_validation` setting is read from the PR merge commit (not the base branch). This means adding `skip_panel_validation: true` to `project.yaml` in a PR takes effect immediately on that PR -- no need to merge the setting first.
 
 ## Backward Compatibility
 
