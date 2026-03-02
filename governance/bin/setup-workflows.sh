@@ -1,5 +1,6 @@
 #!/bin/bash
 # governance/bin/setup-workflows.sh — Issue templates, governance workflow copies, GOALS.md template.
+# Replaces legacy symlinks with copies and uses diff-based staleness detection.
 # Only runs in submodule context (consuming repo has .gitmodules with .ai entry).
 
 set -euo pipefail
@@ -21,7 +22,7 @@ if [ "$IS_SUBMODULE" != "true" ]; then
   return 0 2>/dev/null || exit 0
 fi
 
-# --- Issue templates ---
+# --- Issue templates (copy with diff-based staleness detection) ---
 TEMPLATE_SRC="$AI_DIR/.github/ISSUE_TEMPLATE"
 TEMPLATE_DST="$PROJECT_ROOT/.github/ISSUE_TEMPLATE"
 if [ -d "$TEMPLATE_SRC" ]; then
@@ -29,16 +30,11 @@ if [ -d "$TEMPLATE_SRC" ]; then
   for tmpl in "$TEMPLATE_SRC"/*.yml; do
     [ -f "$tmpl" ] || continue
     TMPL_NAME=$(basename "$tmpl")
-    if [ ! -f "$TEMPLATE_DST/$TMPL_NAME" ]; then
-      run_cmd "Copy issue template $TMPL_NAME" cp "$tmpl" "$TEMPLATE_DST/$TMPL_NAME"
-      echo "  Copied issue template $TMPL_NAME"
-    else
-      echo "  Issue template $TMPL_NAME already exists, skipping"
-    fi
+    copy_with_diff "$tmpl" "$TEMPLATE_DST/$TMPL_NAME"
   done
 fi
 
-# --- Governance workflows ---
+# --- Governance workflows (copy with diff-based staleness detection) ---
 WORKFLOW_SRC="$AI_DIR/.github/workflows"
 WORKFLOW_DST="$PROJECT_ROOT/.github/workflows"
 if [ -d "$WORKFLOW_SRC" ]; then
@@ -100,20 +96,6 @@ print('OPTIONAL=' + ' '.join(opt))
     fi
   fi
 
-  # --- Helper: copy workflow file only if content changed ---
-  copy_with_diff() {
-    local src="$1" dst="$2"
-    if [ -L "$dst" ]; then
-      # Replace existing symlink with a real copy
-      rm -f "$dst"
-    fi
-    if [ -f "$dst" ] && diff -q "$src" "$dst" &>/dev/null; then
-      return 1  # no change needed
-    fi
-    cp "$src" "$dst"
-    return 0  # file was copied
-  }
-
   # --- Helper: patch branch triggers to match consuming repo's default branch ---
   patch_branch_triggers() {
     local file="$1" branch="$2"
@@ -126,12 +108,8 @@ print('OPTIONAL=' + ' '.join(opt))
   # Copy required workflows (warn if source is missing)
   for wf_name in $REQUIRED_WORKFLOWS; do
     if [ -f "$WORKFLOW_SRC/$wf_name" ]; then
-      if copy_with_diff "$WORKFLOW_SRC/$wf_name" "$WORKFLOW_DST/$wf_name"; then
-        patch_branch_triggers "$WORKFLOW_DST/$wf_name" "$DEFAULT_BRANCH"
-        echo "  Copied $wf_name (default branch: $DEFAULT_BRANCH)"
-      else
-        echo "  Workflow $wf_name already up to date"
-      fi
+      copy_with_diff "$WORKFLOW_SRC/$wf_name" "$WORKFLOW_DST/$wf_name"
+      patch_branch_triggers "$WORKFLOW_DST/$wf_name" "$DEFAULT_BRANCH"
     else
       log_warn "Required workflow $wf_name not found in .ai/.github/workflows/"
     fi
@@ -140,12 +118,8 @@ print('OPTIONAL=' + ' '.join(opt))
   # Copy optional workflows (skip silently if source is missing)
   for wf_name in $OPTIONAL_WORKFLOWS; do
     if [ -f "$WORKFLOW_SRC/$wf_name" ]; then
-      if copy_with_diff "$WORKFLOW_SRC/$wf_name" "$WORKFLOW_DST/$wf_name"; then
-        patch_branch_triggers "$WORKFLOW_DST/$wf_name" "$DEFAULT_BRANCH"
-        echo "  Copied $wf_name (optional, default branch: $DEFAULT_BRANCH)"
-      else
-        echo "  Workflow $wf_name already up to date (optional)"
-      fi
+      copy_with_diff "$WORKFLOW_SRC/$wf_name" "$WORKFLOW_DST/$wf_name"
+      patch_branch_triggers "$WORKFLOW_DST/$wf_name" "$DEFAULT_BRANCH"
     fi
   done
 fi

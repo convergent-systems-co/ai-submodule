@@ -1,5 +1,6 @@
 #!/bin/bash
-# governance/bin/create-symlinks.sh — Create CLAUDE.md, copilot-instructions.md, and .claude/commands symlinks.
+# governance/bin/create-symlinks.sh — Copy CLAUDE.md, copilot-instructions.md, and .claude/commands from .ai/.
+# Replaces legacy symlinks with copies and uses diff-based staleness detection.
 
 set -euo pipefail
 
@@ -7,44 +8,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/lib/common.sh"
 resolve_ai_dir
 
-echo "Initializing .ai submodule symlinks..."
+echo "Initializing .ai submodule files..."
 
-# instructions.md -> CLAUDE.md
-for target in "CLAUDE.md"; do
-  if [ ! -L "$PROJECT_ROOT/$target" ] || [ "$(readlink "$PROJECT_ROOT/$target")" != ".ai/instructions.md" ]; then
-    run_cmd "Symlink $target" ln -sf .ai/instructions.md "$PROJECT_ROOT/$target"
-    echo "  Linked $target -> .ai/instructions.md"
-  else
-    echo "  $target already linked"
-  fi
-done
+# instructions.md -> CLAUDE.md (copy with diff detection)
+copy_with_diff "$AI_DIR/instructions.md" "$PROJECT_ROOT/CLAUDE.md"
 
-# GitHub Copilot instructions
+# GitHub Copilot instructions (copy with diff detection)
 mkdir -p "$PROJECT_ROOT/.github"
-COPILOT_TARGET=".github/copilot-instructions.md"
-if [ ! -L "$PROJECT_ROOT/$COPILOT_TARGET" ] || [ "$(readlink "$PROJECT_ROOT/$COPILOT_TARGET")" != "../.ai/instructions.md" ]; then
-  run_cmd "Symlink $COPILOT_TARGET" ln -sf ../.ai/instructions.md "$PROJECT_ROOT/$COPILOT_TARGET"
-  echo "  Linked $COPILOT_TARGET -> .ai/instructions.md"
-else
-  echo "  $COPILOT_TARGET already linked"
-fi
+copy_with_diff "$AI_DIR/instructions.md" "$PROJECT_ROOT/.github/copilot-instructions.md"
 
-# Claude Code slash commands (.claude/commands/)
+# Claude Code slash commands (.claude/commands/) — sync directory
 if [ -d "$AI_DIR/.claude/commands" ]; then
-  run_cmd "Create .claude directory" mkdir -p "$PROJECT_ROOT/.claude"
-  COMMANDS_LINK="$PROJECT_ROOT/.claude/commands"
-  COMMANDS_TARGET="../.ai/.claude/commands"
-  if [ ! -L "$COMMANDS_LINK" ] || [ "$(readlink "$COMMANDS_LINK")" != "$COMMANDS_TARGET" ]; then
-    # Do not overwrite an existing regular directory
-    if [ -d "$COMMANDS_LINK" ] && [ ! -L "$COMMANDS_LINK" ]; then
-      echo "  [WARN] .claude/commands/ exists as a regular directory; skipping symlink"
-    else
-      run_cmd "Symlink .claude/commands" ln -sf "$COMMANDS_TARGET" "$COMMANDS_LINK"
-      echo "  Linked .claude/commands -> $COMMANDS_TARGET"
-    fi
-  else
-    echo "  .claude/commands already linked"
-  fi
+  mkdir -p "$PROJECT_ROOT/.claude"
+  sync_dir_with_diff "$AI_DIR/.claude/commands" "$PROJECT_ROOT/.claude/commands"
 else
-  log_debug ".ai/.claude/commands/ not found; skipping commands symlink"
+  log_debug ".ai/.claude/commands/ not found; skipping commands sync"
 fi

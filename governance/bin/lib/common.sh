@@ -73,6 +73,76 @@ find_python() {
   return 1
 }
 
+# --- File copy with diff-based staleness detection ---
+# Replaces symlinks with copies; updates stale copies; skips unchanged files.
+# Usage: copy_with_diff <source> <destination>
+copy_with_diff() {
+  local src="$1" dst="$2"
+  if [ ! -f "$src" ]; then
+    log_warn "Source file not found: $src"
+    return 1
+  fi
+  if [ -L "$dst" ]; then
+    if [ "$DRY_RUN" = "true" ]; then
+      echo "  [DRY-RUN] Would replace symlink with copy: $dst"
+      return 0
+    fi
+    rm "$dst"
+    echo "  [MIGRATE] Replacing symlink with copy: $dst"
+  fi
+  if [ ! -f "$dst" ]; then
+    if [ "$DRY_RUN" = "true" ]; then
+      echo "  [DRY-RUN] Would copy: $src -> $dst"
+      return 0
+    fi
+    cp "$src" "$dst"
+    echo "  [COPY] $dst"
+  elif ! diff -q "$src" "$dst" >/dev/null 2>&1; then
+    if [ "$DRY_RUN" = "true" ]; then
+      echo "  [DRY-RUN] Would update (content differs): $dst"
+      return 0
+    fi
+    cp "$src" "$dst"
+    echo "  [UPDATE] $dst"
+  else
+    echo "  [SKIP] $dst (unchanged)"
+  fi
+}
+
+# Syncs a source directory to a destination directory using copy_with_diff.
+# Replaces directory symlinks with real directories. Preserves user-added files.
+# Usage: sync_dir_with_diff <source_dir> <destination_dir>
+sync_dir_with_diff() {
+  local src_dir="$1" dst_dir="$2"
+  if [ ! -d "$src_dir" ]; then
+    log_warn "Source directory not found: $src_dir"
+    return 1
+  fi
+  if [ -L "$dst_dir" ]; then
+    if [ "$DRY_RUN" = "true" ]; then
+      echo "  [DRY-RUN] Would replace directory symlink with copy: $dst_dir"
+      for src_file in "$src_dir"/*; do
+        [ -f "$src_file" ] || continue
+        local fname
+        fname=$(basename "$src_file")
+        echo "  [DRY-RUN] Would copy: $src_file -> $dst_dir/$fname"
+      done
+      return 0
+    fi
+    rm "$dst_dir"
+    mkdir -p "$dst_dir"
+    echo "  [MIGRATE] Replacing directory symlink with copy: $dst_dir"
+  else
+    mkdir -p "$dst_dir"
+  fi
+  for src_file in "$src_dir"/*; do
+    [ -f "$src_file" ] || continue
+    local fname
+    fname=$(basename "$src_file")
+    copy_with_diff "$src_file" "$dst_dir/$fname"
+  done
+}
+
 # --- Config parsing helper ---
 # Reads a YAML field from config files using Python.
 # Usage: parse_yaml_field "repository.auto_merge" "true"
