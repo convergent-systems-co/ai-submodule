@@ -28,6 +28,11 @@ class OrchestratorConfig:
     # Model routing configuration (from governance.models in project.yaml)
     models: ModelConfig = field(default_factory=ModelConfig)
 
+    # Coder scaling (from project.yaml governance section)
+    coder_min: int = 1
+    coder_max: int = 5
+    require_worktree: bool = True
+
     # Paths
     checkpoint_dir: str = ".governance/checkpoints"
     audit_log_dir: str = ".governance/state/agent-log"
@@ -49,6 +54,13 @@ class OrchestratorConfig:
     # Git conventions (from project.yaml)
     branch_pattern: str = "{network_id}/{type}/{number}/{name}"
     commit_style: str = "conventional"
+
+    def __post_init__(self) -> None:
+        """Validate coder_min <= coder_max (unless coder_max is -1 for unlimited)."""
+        if self.coder_max != -1 and self.coder_min > self.coder_max:
+            raise ValueError(
+                f"coder_min ({self.coder_min}) must be <= coder_max ({self.coder_max})"
+            )
 
 
 def load_config(project_yaml_path: str | Path) -> OrchestratorConfig:
