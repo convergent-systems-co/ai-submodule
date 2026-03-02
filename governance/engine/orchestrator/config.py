@@ -38,6 +38,9 @@ class OrchestratorConfig:
     max_issue_body_chars: int = 15000
     max_issue_comments: int = 50
 
+    # APPROVE verification thresholds
+    min_coverage: float = 80.0
+
     # Git conventions (from project.yaml)
     branch_pattern: str = "{network_id}/{type}/{number}/{name}"
     commit_style: str = "conventional"

@@ -1,5 +1,11 @@
 """Dark Factory Orchestrator — deterministic control plane for agentic governance."""
 
+from governance.engine.orchestrator.approve_verification import (
+    VerificationFailure,
+    VerificationResult,
+    VerificationStatus,
+    verify_approve_payload,
+)
 from governance.engine.orchestrator.capacity import (
     Action,
     CapacitySignals,
@@ -36,6 +42,10 @@ from governance.engine.orchestrator.step_runner import (
 
 __all__ = [
     "Action",
+    "VerificationFailure",
+    "VerificationResult",
+    "VerificationStatus",
+    "verify_approve_payload",
     "CapacitySignals",
     "CircuitBreaker",
     "CircuitBreakerTripped",

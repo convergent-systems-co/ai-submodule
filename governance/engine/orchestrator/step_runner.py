@@ -17,6 +17,10 @@ import subprocess
 import uuid
 from pathlib import Path
 
+from governance.engine.orchestrator.approve_verification import (
+    VerificationResult,
+    verify_approve_payload,
+)
 from governance.engine.orchestrator.audit import AuditEvent, AuditLog
 from governance.engine.orchestrator.capacity import (
     Action,
@@ -223,6 +227,48 @@ class StepRunner:
             "gate_block": block,
             "would_shutdown": action in (Action.EMERGENCY_STOP, Action.CHECKPOINT),
         }
+
+    def verify_approve(
+        self,
+        approve_payload: dict,
+        diff_files: list[str],
+        issue_acceptance_criteria: list[str] | None = None,
+        ci_test_passed: bool | None = None,
+    ) -> VerificationResult:
+        """Deterministic APPROVE verification for the step-based interface.
+
+        This is the sole merge gate — the orchestrator validates the APPROVE
+        payload against independent data sources before allowing merge.
+
+        Args:
+            approve_payload: The APPROVE message payload from the Tester.
+            diff_files: File paths from ``git diff --name-only``.
+            issue_acceptance_criteria: Acceptance criteria from the issue.
+            ci_test_passed: Whether CI tests passed.
+
+        Returns:
+            VerificationResult with pass/fail and detailed check results.
+        """
+        result = verify_approve_payload(
+            payload=approve_payload,
+            diff_files=diff_files,
+            issue_acceptance_criteria=issue_acceptance_criteria,
+            ci_test_passed=ci_test_passed,
+            min_coverage=self.config.min_coverage,
+        )
+
+        phase = self._session.current_phase if self._session else 4
+        self._record_audit(
+            "approve_verification",
+            phase,
+            detail={
+                "status": result.status.value,
+                "checks_passed": result.checks_passed,
+                "failure_count": len(result.failures),
+            },
+        )
+
+        return result
 
     def get_status(self) -> dict:
         """Dump current session state."""

@@ -17,6 +17,10 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from governance.engine.orchestrator.approve_verification import (
+    VerificationResult,
+    verify_approve_payload,
+)
 from governance.engine.orchestrator.audit import AuditEvent, AuditLog
 from governance.engine.orchestrator.capacity import (
     Action,
@@ -344,6 +348,48 @@ class OrchestratorRunner:
             correlation_id=correlation_id,
             detail=detail or {},
         ))
+
+    def verify_approve(
+        self,
+        approve_payload: dict,
+        diff_files: list[str],
+        issue_acceptance_criteria: list[str] | None = None,
+        ci_test_passed: bool | None = None,
+    ) -> VerificationResult:
+        """Deterministic APPROVE verification — the sole merge gate.
+
+        This replaces the prompt-based verification in the Code Manager
+        persona. The orchestrator is now the single decision authority
+        for whether an APPROVE payload is structurally valid.
+
+        Args:
+            approve_payload: The APPROVE message payload from the Tester.
+            diff_files: File paths from ``git diff --name-only``.
+            issue_acceptance_criteria: Acceptance criteria from the issue.
+            ci_test_passed: Whether CI tests passed (from API).
+
+        Returns:
+            VerificationResult with pass/fail and detailed check results.
+        """
+        result = verify_approve_payload(
+            payload=approve_payload,
+            diff_files=diff_files,
+            issue_acceptance_criteria=issue_acceptance_criteria,
+            ci_test_passed=ci_test_passed,
+            min_coverage=self.config.min_coverage,
+        )
+
+        self._audit(
+            "approve_verification",
+            self.machine.phase,
+            detail={
+                "status": result.status.value,
+                "checks_passed": result.checks_passed,
+                "failure_count": len(result.failures),
+            },
+        )
+
+        return result
 
     @staticmethod
     def _get_current_branch() -> str:
