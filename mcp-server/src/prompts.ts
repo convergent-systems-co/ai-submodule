@@ -1,8 +1,14 @@
-import { join } from "node:path";
+import { join, basename } from "node:path";
 import { readdir } from "node:fs/promises";
 import { z } from "zod";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { readTextFile, parseMarkdownWithFrontmatter } from "./utils.js";
+import {
+  readTextFile,
+  parseMarkdownWithFrontmatter,
+  scanMarkdownFiles,
+  extractTitle,
+  pathToSlug,
+} from "./utils.js";
 
 /**
  * Register all MCP prompts with the server.
@@ -11,7 +17,7 @@ export function registerPrompts(
   server: McpServer,
   governanceRoot: string
 ): void {
-  // Prompt: governance_review
+  // Prompt: governance_review — generic panel runner with panel_name param
   server.prompt(
     "governance_review",
     "Run a governance review panel against code changes",
@@ -141,6 +147,53 @@ export function registerPrompts(
       }
     }
   );
+
+  // Prompt: assume_persona — activate a persona for the session
+  server.prompt(
+    "assume_persona",
+    "Assume an agentic persona for the current session",
+    {
+      persona: z.string().describe(
+        "Persona name (e.g., coder, tester, devops-engineer, code-manager, iac-engineer, project-manager)"
+      ),
+    },
+    async ({ persona }) => {
+      const personaPath = join(
+        governanceRoot,
+        "governance",
+        "personas",
+        "agentic",
+        `${persona}.md`
+      );
+
+      try {
+        const content = await readTextFile(personaPath);
+        return {
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: `You are now operating as the following persona. Read and adopt these instructions:\n\n${content}`,
+              },
+            },
+          ],
+        };
+      } catch {
+        return {
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: `Error: Persona "${persona}" not found. Available personas: coder, tester, devops-engineer, code-manager, iac-engineer, project-manager`,
+              },
+            },
+          ],
+        };
+      }
+    }
+  );
 }
 
 /**
@@ -169,6 +222,103 @@ async function scanPromptFiles(dir: string): Promise<string[]> {
 
   await walk(dir);
   return results.sort();
+}
+
+/**
+ * Discover and register all review panels as individual MCP prompts.
+ * Each panel becomes a named prompt like "review_security_review", "review_code_review", etc.
+ */
+export async function discoverAndRegisterReviewPrompts(
+  server: McpServer,
+  governanceRoot: string
+): Promise<number> {
+  const reviewsDir = join(governanceRoot, "governance", "prompts", "reviews");
+  const files = await scanMarkdownFiles(reviewsDir);
+  let registered = 0;
+
+  for (const filePath of files) {
+    try {
+      const slug = pathToSlug(basename(filePath));
+      const content = await readTextFile(filePath);
+      const title = extractTitle(content, basename(filePath));
+
+      // Register as "review_{slug}" prompt (e.g., "review_security-review")
+      const promptName = `review_${slug}`;
+
+      server.prompt(
+        promptName,
+        `Run the ${title} panel`,
+        async () => ({
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: content,
+              },
+            },
+          ],
+        })
+      );
+
+      registered++;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[ai-submodule-mcp] Failed to register review prompt from ${filePath}: ${message}`
+      );
+    }
+  }
+
+  return registered;
+}
+
+/**
+ * Discover and register persona definitions as MCP prompts.
+ * Each persona becomes a named prompt like "persona_coder", "persona_tester", etc.
+ */
+export async function discoverAndRegisterPersonaPrompts(
+  server: McpServer,
+  governanceRoot: string
+): Promise<number> {
+  const personasDir = join(governanceRoot, "governance", "personas", "agentic");
+  const files = await scanMarkdownFiles(personasDir);
+  let registered = 0;
+
+  for (const filePath of files) {
+    try {
+      const slug = pathToSlug(basename(filePath));
+      const content = await readTextFile(filePath);
+      const title = extractTitle(content, basename(filePath));
+
+      const promptName = `persona_${slug}`;
+
+      server.prompt(
+        promptName,
+        `Assume the ${title} persona`,
+        async () => ({
+          messages: [
+            {
+              role: "user" as const,
+              content: {
+                type: "text" as const,
+                text: `You are now operating as the following persona. Read and adopt these instructions:\n\n${content}`,
+              },
+            },
+          ],
+        })
+      );
+
+      registered++;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[ai-submodule-mcp] Failed to register persona prompt from ${filePath}: ${message}`
+      );
+    }
+  }
+
+  return registered;
 }
 
 /**

@@ -118,6 +118,22 @@ export async function discoverResources(
     }
   }
 
+  // Developer prompts: prompts/global/*.prompt.md
+  const devPromptsDir = join(governanceRoot, "prompts", "global");
+  const devPromptFiles = await scanMarkdownFiles(devPromptsDir);
+  for (const filePath of devPromptFiles) {
+    const slug = pathToSlug(basename(filePath));
+    const content = await readTextFile(filePath);
+    const title = extractTitle(content, basename(filePath));
+    resources.push({
+      name: `prompt-${slug}`,
+      uri: `governance://prompts/${slug}`,
+      description: title,
+      mimeType: "text/markdown",
+      filePath,
+    });
+  }
+
   // Panel output schema
   const schemaPath = join(
     governanceRoot,

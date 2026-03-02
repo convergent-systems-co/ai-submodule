@@ -5,7 +5,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { resolveGovernanceRoot } from "./utils.js";
 import { registerResources } from "./resources.js";
 import { registerTools } from "./tools.js";
-import { registerPrompts, discoverAndRegisterPrompts } from "./prompts.js";
+import {
+  registerPrompts,
+  discoverAndRegisterPrompts,
+  discoverAndRegisterReviewPrompts,
+  discoverAndRegisterPersonaPrompts,
+} from "./prompts.js";
 import { ENV } from "./fetch.js";
 
 /**
@@ -109,6 +114,14 @@ async function main(): Promise<void> {
     server,
     governanceRoot
   );
+  const reviewPrompts = await discoverAndRegisterReviewPrompts(
+    server,
+    governanceRoot
+  );
+  const personaPrompts = await discoverAndRegisterPersonaPrompts(
+    server,
+    governanceRoot
+  );
 
   // Log to stderr (stdout is reserved for MCP protocol)
   console.error(
@@ -119,6 +132,9 @@ async function main(): Promise<void> {
   );
   console.error(
     `[ai-submodule-mcp] Discovered ${discoveredPrompts} prompt(s) from prompts/`
+  );
+  console.error(
+    `[ai-submodule-mcp] Registered ${reviewPrompts} review panel prompt(s), ${personaPrompts} persona prompt(s)`
   );
 
   // Connect via STDIO transport

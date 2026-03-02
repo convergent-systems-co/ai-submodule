@@ -275,6 +275,86 @@ export async function registerTools(
     }
   );
 
+  // Tool: list_personas
+  server.tool(
+    "list_personas",
+    "List all available agentic personas with their descriptions",
+    {},
+    async () => {
+      const resources = await discoverResources(governanceRoot);
+      const personas = resources
+        .filter((r) => r.uri.startsWith("governance://personas/"))
+        .map((r) => ({
+          name: r.uri.replace("governance://personas/", ""),
+          description: r.description,
+          uri: r.uri,
+          prompt: `persona_${r.uri.replace("governance://personas/", "")}`,
+        }));
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(personas, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
+  // Tool: search_catalog
+  server.tool(
+    "search_catalog",
+    "Search the governance prompt and resource catalog by keyword. Returns matching reviews, personas, policies, and developer prompts.",
+    {
+      query: z.string().describe("Search keyword(s) to match against names and descriptions"),
+      category: z.string().optional().describe("Filter by category: reviews, personas, policies, workflows, prompts (optional)"),
+    },
+    async ({ query, category }) => {
+      const resources = await discoverResources(governanceRoot);
+      const queryLower = query.toLowerCase();
+
+      let filtered = resources.filter((r) => {
+        const searchable = `${r.name} ${r.description}`.toLowerCase();
+        return searchable.includes(queryLower);
+      });
+
+      if (category) {
+        const categoryMap: Record<string, string> = {
+          reviews: "governance://reviews/",
+          personas: "governance://personas/",
+          policies: "governance://policy/",
+          workflows: "governance://workflows/",
+          schemas: "governance://schemas/",
+        };
+        const prefix = categoryMap[category];
+        if (prefix) {
+          filtered = filtered.filter((r) => r.uri.startsWith(prefix));
+        }
+      }
+
+      const results = filtered.map((r) => ({
+        name: r.name,
+        description: r.description,
+        uri: r.uri,
+        category: r.uri.split("/")[2] || "other",
+      }));
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify({
+              query,
+              count: results.length,
+              results,
+            }, null, 2),
+          },
+        ],
+      };
+    }
+  );
+
   // --- Skill auto-discovery and registration ---
   const skillsDir = getDefaultSkillsDir();
   const skills = await discoverSkills(skillsDir);
