@@ -1,16 +1,24 @@
 #!/usr/bin/env python3
-"""Generate a machine-readable prompt catalog from *.prompt.md files.
+"""Generate a machine-readable prompt catalog from prompt markdown files.
 
-Scans a prompts directory recursively for ``*.prompt.md`` files, parses
-YAML frontmatter from each, computes SHA-256 content hashes, and writes
-a JSON catalog validated against ``governance/schemas/prompt-catalog.schema.json``.
+Scans multiple prompt directories recursively for ``*.md`` files (including
+the legacy ``*.prompt.md`` naming convention), parses YAML frontmatter from
+each, computes SHA-256 content hashes, and writes a JSON catalog validated
+against ``governance/schemas/prompt-catalog.schema.json``.
+
+Prompt directories scanned by default:
+- ``governance/prompts/`` — operational and review prompts
+- ``prompts/global/`` — developer prompts (``*.prompt.md``)
+
+Non-prompt markdown files (README, CHANGELOG, templates, index files) are
+excluded automatically.
 
 Requires Python 3.9+ and PyYAML (``pip install pyyaml``).
 
 Usage::
 
     python bin/generate-prompt-catalog.py
-    python bin/generate-prompt-catalog.py --prompts-dir prompts/ --output catalog/prompt-catalog.json
+    python bin/generate-prompt-catalog.py --output catalog/prompt-catalog.json
     python bin/generate-prompt-catalog.py --validate
 """
 
@@ -31,13 +39,24 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_PROMPTS_DIR = REPO_ROOT / "prompts"
 DEFAULT_OUTPUT = REPO_ROOT / "catalog" / "prompt-catalog.json"
 SCHEMA_PATH = REPO_ROOT / "governance" / "schemas" / "prompt-catalog.schema.json"
 CATALOG_VERSION = "1.0.0"
 
+# All directories that contain prompt files, scanned in order
+DEFAULT_PROMPT_DIRS: list[Path] = [
+    REPO_ROOT / "governance" / "prompts",
+    REPO_ROOT / "prompts" / "global",
+]
+
 # Valid frontmatter status values (matches schema enum)
 VALID_STATUSES = {"concept", "beta", "production"}
+
+# Filename patterns to exclude (case-insensitive match against the filename)
+EXCLUDED_FILENAMES = {"readme.md", "changelog.md", "index.md"}
+
+# Directory names whose contents should be excluded entirely
+EXCLUDED_DIRS = {"templates"}
 
 # ---------------------------------------------------------------------------
 # YAML frontmatter parsing
@@ -134,17 +153,25 @@ def compute_sha256(file_path: Path) -> str:
 def derive_id(file_path: Path, prompts_dir: Path) -> str:
     """Derive a unique prompt ID from the relative file path.
 
-    Example: ``prompts/global/summarize.prompt.md`` -> ``global/summarize``
+    Examples::
+
+        governance/prompts/startup.md        -> startup
+        governance/prompts/reviews/code-review.md -> reviews/code-review
+        prompts/global/global-dev-debug.prompt.md -> global-dev-debug
     """
     rel = file_path.relative_to(prompts_dir)
-    # Remove the .prompt.md suffix
-    stem = str(rel).replace(".prompt.md", "")
+    # Remove the .prompt.md or .md suffix
+    stem = str(rel)
+    if stem.endswith(".prompt.md"):
+        stem = stem[: -len(".prompt.md")]
+    elif stem.endswith(".md"):
+        stem = stem[: -len(".md")]
     # Normalize separators
     return stem.replace("\\", "/").lower()
 
 
 def build_prompt_entry(file_path: Path, prompts_dir: Path) -> dict:
-    """Build a single prompt catalog entry from a ``*.prompt.md`` file."""
+    """Build a single prompt catalog entry from a prompt markdown file."""
     content = file_path.read_text(encoding="utf-8")
     fm = parse_frontmatter(content)
 
@@ -182,14 +209,35 @@ def build_prompt_entry(file_path: Path, prompts_dir: Path) -> dict:
     }
 
 
+def _is_excluded(file_path: Path) -> bool:
+    """Return True if the file should be excluded from the catalog.
+
+    Excludes README, CHANGELOG, index files, and anything inside
+    excluded directories (e.g., templates/).
+    """
+    if file_path.name.lower() in EXCLUDED_FILENAMES:
+        return True
+    for part in file_path.parts:
+        if part.lower() in EXCLUDED_DIRS:
+            return True
+    return False
+
+
 def scan_prompts(prompts_dir: Path) -> list[dict]:
-    """Recursively scan for ``*.prompt.md`` files and build catalog entries."""
+    """Recursively scan for ``*.md`` files and build catalog entries.
+
+    Both ``*.md`` and the legacy ``*.prompt.md`` naming convention are
+    discovered.  Non-prompt markdown files are filtered via
+    :func:`_is_excluded`.
+    """
     entries = []
     if not prompts_dir.exists():
         return entries
 
-    for file_path in sorted(prompts_dir.rglob("*.prompt.md")):
+    for file_path in sorted(prompts_dir.rglob("*.md")):
         if not file_path.is_file():
+            continue
+        if _is_excluded(file_path):
             continue
         try:
             entry = build_prompt_entry(file_path, prompts_dir)
@@ -199,9 +247,28 @@ def scan_prompts(prompts_dir: Path) -> list[dict]:
     return entries
 
 
-def build_catalog(prompts_dir: Path) -> dict:
-    """Build the full prompt catalog dictionary."""
-    prompts = scan_prompts(prompts_dir)
+def build_catalog(prompt_dirs: list[Path]) -> dict:
+    """Build the full prompt catalog dictionary.
+
+    Scans each directory in *prompt_dirs* and merges the results into a
+    single catalog.  Duplicate prompt IDs are detected and warned about;
+    the first occurrence wins.
+    """
+    prompts: list[dict] = []
+    seen_ids: set[str] = set()
+
+    for prompts_dir in prompt_dirs:
+        for entry in scan_prompts(prompts_dir):
+            if entry["id"] in seen_ids:
+                print(
+                    f"  WARNING: duplicate prompt id '{entry['id']}' "
+                    f"from {entry['file_path']}, skipping",
+                    file=sys.stderr,
+                )
+                continue
+            seen_ids.add(entry["id"])
+            prompts.append(entry)
+
     return {
         "version": CATALOG_VERSION,
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
@@ -285,14 +352,22 @@ def _basic_validate(catalog: dict, schema: dict) -> bool:
 
 
 def main() -> int:
+    default_dirs_display = ", ".join(
+        str(d.relative_to(REPO_ROOT)) for d in DEFAULT_PROMPT_DIRS
+    )
     parser = argparse.ArgumentParser(
-        description="Generate a machine-readable prompt catalog from *.prompt.md files."
+        description="Generate a machine-readable prompt catalog from prompt markdown files."
     )
     parser.add_argument(
         "--prompts-dir",
         type=Path,
-        default=DEFAULT_PROMPTS_DIR,
-        help=f"Directory to scan for *.prompt.md files (default: {DEFAULT_PROMPTS_DIR.relative_to(REPO_ROOT)})",
+        action="append",
+        default=None,
+        dest="prompt_dirs",
+        help=(
+            "Directory to scan for prompt *.md files.  Can be specified "
+            f"multiple times.  Default: {default_dirs_display}"
+        ),
     )
     parser.add_argument(
         "--output",
@@ -307,16 +382,22 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # Resolve relative paths against repo root
-    prompts_dir = args.prompts_dir
-    if not prompts_dir.is_absolute():
-        prompts_dir = REPO_ROOT / prompts_dir
+    # Resolve prompt directories
+    if args.prompt_dirs:
+        prompt_dirs = [
+            (REPO_ROOT / d) if not d.is_absolute() else d
+            for d in args.prompt_dirs
+        ]
+    else:
+        prompt_dirs = list(DEFAULT_PROMPT_DIRS)
+
     output = args.output
     if not output.is_absolute():
         output = REPO_ROOT / output
 
-    print(f"Scanning: {prompts_dir}")
-    catalog = build_catalog(prompts_dir)
+    for d in prompt_dirs:
+        print(f"Scanning: {d}")
+    catalog = build_catalog(prompt_dirs)
     print(f"  Found {catalog['prompt_count']} prompt(s)")
 
     # Ensure output directory exists
