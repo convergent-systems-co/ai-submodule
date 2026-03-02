@@ -402,7 +402,7 @@ ADR-010 decided on self-contained review prompts. This ADR documents the impleme
 
 - 58 persona files across 13 categories — deprecation notice added, pointing to `governance/prompts/reviews/` and `shared-perspectives.md`
 - 21 panel files — deprecation notice added, pointing to corresponding review prompt
-- Excluded: `governance/personas/agentic/code-manager.md` and `governance/personas/agentic/coder.md` (these define decision authority, not evaluation checklists)
+- Excluded: All agentic personas in `governance/personas/agentic/` (these define decision authority, not evaluation checklists). At the time of #220, 4 agentic personas existed; the current count is 6 (Project Manager added in #464, IaC Engineer added separately).
 
 #### Updated (15+ files)
 

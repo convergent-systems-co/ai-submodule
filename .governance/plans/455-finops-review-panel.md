@@ -53,7 +53,7 @@ None.
 1. Create `governance/prompts/reviews/finops-review.md` following the cost-analysis.md pattern with 5 perspectives: FinOps Strategist, Resource Optimizer, Shutdown/Decommission Analyst, Savings Plan Advisor, Cost Allocation Auditor
 2. Add optional `destruction_recommended` (boolean) and `requires_human_approval` (boolean) fields to `panel-output.schema.json`
 3. Create baseline emission `governance/emissions/finops-review.json`
-4. Add `finops-review` to `required_panels` in all 4 policy profiles
+4. Add `finops-review` to `required_panels` in all 5 policy profiles (excluding fast-track)
 5. Add `finops-review` weight (0.04) to `default.yaml` weighting model
 6. Add destruction safety block rule to `default.yaml`: when `destruction_recommended == true`, block auto-merge
 7. Write policy engine tests for destruction blocking and FinOps panel requirement
