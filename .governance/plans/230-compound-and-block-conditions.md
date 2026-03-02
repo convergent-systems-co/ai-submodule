@@ -14,7 +14,7 @@ Fix the policy engine so that compound `and` conditions in block rules are corre
 
 ## 2. Rationale
 
-The current implementation at line 374 returns False for ANY condition containing " and ", which silently disables 6+ block rules across all 4 policy profiles. This is a P1 security bug — critical policy violations can bypass the block gate.
+The current implementation at line 374 returns False for ANY condition containing " and ", which silently disables 6+ block rules across all 5 policy profiles. This is a P1 security bug — critical policy violations can bypass the block gate.
 
 | Alternative | Considered | Rejected Because |
 |-------------|-----------|------------------|

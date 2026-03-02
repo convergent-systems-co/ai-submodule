@@ -350,13 +350,14 @@ Context-specific panels (triggered by file paths or keywords):
 
 ### Policy Profiles
 
-Four deterministic profiles in `governance/policy/`:
+Five deterministic profiles in `governance/policy/`:
 
 | Profile | Use Case | Auto-Merge |
 |---------|----------|------------|
 | `default.yaml` | Standard repositories | Enabled with conditions |
 | `fin_pii_high.yaml` | SOC2/PCI-DSS/HIPAA/GDPR | Disabled (3-approver override) |
 | `infrastructure_critical.yaml` | Production stability | Enabled with mandatory reviews |
+| `fast-track.yaml` | Trivial changes (docs, typos, chores) | Enabled with minimal panels |
 | `reduced_touchpoint.yaml` | Near-full autonomy (Phase 5e) | Enabled except overrides/dismissals |
 
 This repository uses `default.yaml`.

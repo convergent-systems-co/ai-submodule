@@ -78,7 +78,7 @@ Serve governance files as MCP resources:
 - Scan `governance/prompts/workflows/*.md` → 10 workflow template resources
 - Scan `governance/personas/agentic/*.md` → 5 persona resources
 - Serve `governance/prompts/shared-perspectives.md` → 1 shared perspectives resource
-- Scan `governance/policy/{default,fin_pii_high,infrastructure_critical,reduced_touchpoint}.yaml` → 4 policy summary resources
+- Scan `governance/policy/{default,fin_pii_high,infrastructure_critical,fast-track,reduced_touchpoint}.yaml` → 5 policy summary resources
 - Parse frontmatter with `gray-matter` for metadata (name, description, version)
 - Each resource has a URI: `governance://reviews/{name}`, `governance://workflows/{name}`, etc.
 
