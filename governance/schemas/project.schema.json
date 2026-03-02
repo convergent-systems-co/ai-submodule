@@ -46,6 +46,18 @@
           "maximum": 10,
           "default": 5,
           "description": "Maximum number of concurrent Coder agents spawned during parallel dispatch. Default is 5. Set to -1 for unlimited (context-monitored) — the pipeline processes issues until context pressure triggers the shutdown protocol and checkpoint."
+        },
+        "use_project_manager": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Project Manager mode. When true, the PM persona orchestrates Code Managers who each manage a pool of Coders. Default is false (standard mode)."
+        },
+        "parallel_code_managers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 3,
+          "description": "Maximum number of concurrent Code Manager agents when Project Manager mode is enabled. Each Code Manager dispatches its own pool of Coders. Default is 3."
         }
       },
       "additionalProperties": false

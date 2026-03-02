@@ -37,32 +37,279 @@ Before starting, verify the environment:
 
 ---
 
-## Step 1: Choose Language Template
+## Step 1: Interactive Project Configuration
 
-Ask the user which language template to use for `project.yaml`. Available templates:
+If `project.yaml` already exists in the project root, ask: "A `project.yaml` already exists. Do you want to reconfigure it? (yes/no, default: no)". If no, skip to Step 2.
 
-| Template | Path | Language | Defaults |
-|----------|------|----------|----------|
-| Python | `governance/templates/python/project.yaml` | Python | pytest, ruff, mypy, uv |
-| Node | `governance/templates/node/project.yaml` | TypeScript/JS | jest, eslint, prettier |
-| React | `governance/templates/react/project.yaml` | TypeScript/React | jest/vitest, eslint, prettier |
-| Go | `governance/templates/go/project.yaml` | Go | go test, golangci-lint |
-| C# | `governance/templates/csharp/project.yaml` | C# | xUnit, dotnet format |
-| Generic | `governance/templates/project.yaml` | Any | Minimal defaults |
-| Skip | — | — | Do not copy a template |
+Otherwise, walk the user through the following 5-group questionnaire. Present one group at a time and wait for answers before proceeding. For each question, show the default in parentheses — if the user presses Enter or says "default", use the default value.
 
-**Action:** Ask the user: "Which language template should I use for your project? (python, node, react, go, csharp, generic, or skip)"
+### Group 1 — Project Identity
 
-If the user selects a template (not "skip"):
-```bash
-cp .ai/governance/templates/{selection}/project.yaml project.yaml
+Ask the user these questions:
+
+1. **Project name** — "What is the project name?" (default: the repository name, detected via `basename $(git rev-parse --show-toplevel)`)
+2. **Primary language** — "What is the primary language?"
+   - `python` | `typescript` | `go` | `java` | `csharp` | `rust` | `bicep` | `terraform`
+   - (default: detect from files — `pyproject.toml` / `setup.py` → python, `package.json` → typescript, `go.mod` → go, `*.csproj` / `*.sln` → csharp, `main.bicep` → bicep, `main.tf` → terraform)
+3. **Framework** — "What framework are you using, if any?"
+   - Language-specific suggestions:
+     - Python: `fastapi`, `django`, `flask`, `cli`, or `none`
+     - TypeScript: `express`, `fastify`, `nestjs`, `hono`, or `none`
+     - React/TypeScript: `react`, `nextjs`, `remix`, or `none`
+     - Go: `chi`, `gin`, `echo`, `stdlib`, or `none`
+     - C#: `aspnetcore`, `minimal-api`, `blazor`, `console`, or `none`
+     - Bicep: `standalone`, `aks`, `app-service`, `container-apps`, or `none`
+     - Terraform: `azure`, `aws`, `gcp`, `multi-cloud`, or `none`
+   - (default: `none`)
+
+### Group 2 — Governance
+
+Ask the user these questions:
+
+1. **Policy profile** — "Which policy profile should this project use?"
+   - `default` — Balanced automation with human oversight; suitable for most internal applications
+   - `fast-track` — Lightweight profile for trivial changes (docs, typos, chores); reduced ceremony
+   - `fin_pii_high` — Strict compliance for financial/PII data; SOC2, PCI-DSS, HIPAA, GDPR contexts
+   - `infrastructure_critical` — Emphasizes production stability and blast radius for IaC/platform repos
+   - `reduced_touchpoint` — Near-full autonomy; human review only for overrides and security-critical findings
+   - (default: `default`)
+2. **Parallel coders** — "How many parallel Coder agents should run during dispatch?" (1-10, or -1 for unlimited; default: `5`)
+3. **Project Manager mode** — "Enable Project Manager mode? PM orchestrates Code Managers who each manage Coders." (yes/no; default: `no`)
+4. **If PM mode is yes** — "How many parallel Code Managers?" (1-5; default: `3`)
+
+### Group 3 — Conventions
+
+Ask the user these questions:
+
+1. **Commit style** — "What commit message style?"
+   - `conventional` — e.g., `feat:`, `fix:`, `refactor:`, `docs:` (recommended)
+   - `freeform` — No enforced format
+   - (default: `conventional`)
+2. **PR template** — "Generate a PR template?" (yes/no; default: `yes`)
+
+### Group 4 — Git
+
+Ask the user this question:
+
+1. **Branch naming pattern** — "What branch naming pattern should be used?"
+   - Placeholders: `{network_id}` = your network ID, `{type}` = feat/fix/chore, `{number}` = issue number, `{name}` = short description
+   - (default: `{network_id}/{type}/{number}/{name}`)
+
+### Group 5 — Repository
+
+Ask the user these questions:
+
+1. **Auto-merge** — "Enable auto-merge? PRs merge automatically when all checks pass." (yes/no; default: `no`)
+2. **CODEOWNERS** — "Generate a CODEOWNERS file?" (yes/no; default: `no`)
+   - If yes: "Who should be the default code owner? (e.g., `@your-org/your-team`)"
+
+---
+
+### Language-Specific Convention Defaults
+
+After collecting answers, apply language-specific convention defaults based on the primary language selected in Group 1. Use these as the `conventions` section of `project.yaml`. The user does not need to answer these — they come from the language template.
+
+**Python:**
+```yaml
+conventions:
+  testing:
+    framework: "pytest"
+    naming: "test_*"
+    coverage_target: 80
+  style:
+    max_line_length: 100
+    indent: "spaces"
+    indent_size: 4
+    linter: "ruff"
+    formatter: "ruff format"
+    type_checker: "mypy"
+  tooling:
+    package_manager: "uv"
+    min_python: "3.11"
 ```
-For "generic":
-```bash
-cp .ai/governance/templates/project.yaml project.yaml
+
+**TypeScript / Node:**
+```yaml
+conventions:
+  testing:
+    framework: "vitest"
+    naming: "describe/it"
+    coverage_target: 80
+  style:
+    max_line_length: 100
+    indent: "spaces"
+    indent_size: 2
+    linter: "eslint"
+    formatter: "prettier"
+    module_system: "esm"
+  tooling:
+    package_manager: "pnpm"
+    runtime: "node22"
 ```
 
-Then tell the user: "I've copied the template to `project.yaml` (project root). You can customize it later — it controls which personas, panels, and conventions are active for your project."
+**Go:**
+```yaml
+conventions:
+  testing:
+    framework: "go test"
+    naming: "TestFunctionName_Scenario"
+    pattern: "table-driven"
+    coverage_target: 80
+  style:
+    formatter: "gofmt"
+    linter: "golangci-lint"
+    indent: "tabs"
+```
+
+**C#:**
+```yaml
+conventions:
+  testing:
+    framework: "xunit"
+    assertions: "fluentassertions"
+    naming: "MethodName_Scenario_Expected"
+    coverage_target: 80
+  style:
+    max_line_length: 120
+    indent: "spaces"
+    indent_size: 4
+    nullable: true
+```
+
+**Java:**
+```yaml
+conventions:
+  testing:
+    framework: "junit5"
+    naming: "shouldDoSomething_whenCondition"
+    coverage_target: 80
+  style:
+    max_line_length: 120
+    indent: "spaces"
+    indent_size: 4
+    linter: "checkstyle"
+    formatter: "google-java-format"
+```
+
+**Rust:**
+```yaml
+conventions:
+  testing:
+    framework: "cargo test"
+    naming: "test_function_name"
+    coverage_target: 80
+  style:
+    formatter: "rustfmt"
+    linter: "clippy"
+    indent: "spaces"
+    indent_size: 4
+```
+
+**Bicep:**
+```yaml
+conventions:
+  style:
+    indent: "spaces"
+    indent_size: 2
+    naming: "camelCase"
+    resource_naming: "kebab-case"
+  testing:
+    framework: "bicep-test"
+    what_if: true
+    linter: "bicep linter"
+```
+
+**Terraform:**
+```yaml
+conventions:
+  style:
+    indent: "spaces"
+    indent_size: 2
+    naming: "snake_case"
+    resource_naming: "kebab-case"
+  testing:
+    framework: "terraform test"
+    validate: true
+    linter: "tflint"
+    security_scanner: "tfsec"
+```
+
+For languages not listed above, use minimal defaults:
+```yaml
+conventions:
+  testing:
+    coverage_target: 80
+  style:
+    indent: "spaces"
+    indent_size: 2
+  git:
+    commit_style: "conventional"
+    pr_template: true
+```
+
+---
+
+### Validation and Output
+
+After collecting all answers:
+
+1. **Validate** — Check answers against schema constraints:
+   - `governance.parallel_coders` must be an integer, -1 to 10
+   - `governance.parallel_code_managers` must be an integer, 1 to 5
+   - `governance.policy_profile` must be one of: `default`, `fast-track`, `fin_pii_high`, `infrastructure_critical`, `reduced_touchpoint`
+   - `conventions.git.commit_style` must be `conventional` or `freeform`
+   - If any answer is invalid, tell the user and re-ask that specific question
+
+2. **Write `project.yaml`** — Generate the complete file in the project root using the collected answers and language-specific defaults. Structure:
+   ```yaml
+   # Project AI Configuration — generated by init.md
+
+   name: "<project_name>"
+   language: "<language>"
+   framework: <framework_or_null>
+
+   governance:
+     policy_profile: "<profile>"
+     parallel_coders: <N>
+     use_project_manager: <true|false>
+     # parallel_code_managers: <N>  # only include if use_project_manager is true
+
+   repository:
+     auto_merge: <true|false>
+     codeowners:
+       enabled: <true|false>
+       # default_owner: "<owner>"  # only include if codeowners enabled
+
+   conventions:
+     # ... language-specific defaults from above ...
+     git:
+       branch_pattern: "<pattern>"
+       commit_style: "<style>"
+       pr_template: <true|false>
+   ```
+
+3. **Run installation** — After writing `project.yaml`:
+   ```bash
+   bash .ai/bin/init.sh --install-deps
+   ```
+
+4. **Verify** — Confirm the installation:
+   ```bash
+   bash .ai/bin/init.sh --verify
+   ```
+
+5. **Print summary** — Show the user what was configured:
+   ```
+   project.yaml generated with:
+     - Project: <name> (<language>/<framework>)
+     - Policy profile: <profile>
+     - Parallel coders: <N>
+     - PM mode: <enabled/disabled>
+     - Commit style: <style>
+     - Branch pattern: <pattern>
+     - Auto-merge: <yes/no>
+     - CODEOWNERS: <yes/no>
+   ```
 
 ---
 
@@ -106,34 +353,19 @@ Write instruction files directly (not symlinks) to each AI tool's expected locat
 
 ## Step 3: Repository Configuration
 
-Ask the user about GitHub repository settings. These settings are applied via the GitHub API and affect how PRs are merged.
+Apply the repository settings collected during the Step 1 questionnaire (Group 5) via the GitHub API.
 
-**Action:** Ask the user the following questions:
+The `auto_merge` and `codeowners` values are already written to `project.yaml` in Step 1. This step applies them to the GitHub repository.
 
-1. **"Should PRs auto-merge when all checks pass?"** (yes/no, default: no)
-   - `yes` → `auto_merge: true` — PRs merge automatically after CI passes and approvals are met
-   - `no` → `auto_merge: false` — PRs require manual merge (recommended for most teams)
+**Action:** Ask the user two additional questions not covered by the questionnaire:
 
-2. **"Should branches be deleted after merge?"** (yes/no, default: yes)
+1. **"Should branches be deleted after merge?"** (yes/no, default: yes)
    - `yes` → `delete_branch_on_merge: true` — keeps the branch list clean
    - `no` → `delete_branch_on_merge: false` — preserves branches after merge
 
-3. **"Which merge strategies should be allowed?"** (squash, merge commit, rebase — select all that apply, default: all)
+2. **"Which merge strategies should be allowed?"** (squash, merge commit, rebase — select all that apply, default: all)
 
-If the user chose a template in Step 1 and `project.yaml` exists, update it with the user's choices:
-
-```bash
-# Example: Update auto_merge in project.yaml
-# The agent should edit the repository section of project.yaml (project root)
-# to reflect the user's preferences, adding a repository section if missing:
-#
-# repository:
-#   auto_merge: true
-#   delete_branch_on_merge: true
-#   allow_squash_merge: true
-#   allow_merge_commit: true
-#   allow_rebase_merge: true
-```
+Update `project.yaml` with these additional settings (add them to the `repository` section).
 
 Then apply settings immediately if `gh` is authenticated:
 
