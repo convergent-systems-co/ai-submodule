@@ -4,7 +4,7 @@
 **Date:** 2026-02-27
 **Status:** approved
 **Issue:** #505
-**Branch:** itsfwcp/fix/505/context-capacity-shutdown-protocol
+**Branch:** NETWORK_ID/fix/505/context-capacity-shutdown-protocol
 
 ---
 

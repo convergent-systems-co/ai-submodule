@@ -1,7 +1,7 @@
 # Azure Naming Test Report
 
 **Date:** 2026-02-27
-**Branch:** `itsfwcp/fix/remove-hardcoded-network-id`
+**Branch:** `NETWORK_ID/fix/remove-hardcoded-network-id`
 **Test file:** `governance/engine/tests/test_naming.py`
 **Result:** 77/77 passed (1.19s)
 

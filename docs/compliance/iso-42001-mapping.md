@@ -25,7 +25,7 @@ ISO/IEC 42001 follows the Annex SL high-level structure (clauses 4-10) common to
 | Requirement | Governance Control | Artifact |
 |-------------|-------------------|----------|
 | 4.1 External/internal issues | `project.yaml` captures project-specific configuration; policy profiles encode regulatory context (GDPR, SOC2, PCI-DSS, HIPAA) | `project.yaml`, `governance/policy/fin_pii_high.yaml` |
-| 4.2 Interested parties | CODEOWNERS defines stakeholders; panel perspectives represent diverse viewpoints | `CODEOWNERS`, 19 shared perspectives |
+| 4.2 Interested parties | CODEOWNERS defines stakeholders; panel perspectives represent diverse viewpoints | `CODEOWNERS`, 24 shared perspectives |
 | 4.3 Scope of AIMS | Governance pipeline scope defined in CLAUDE.md; five governance layers cover full lifecycle | `CLAUDE.md`, governance architecture |
 | 4.4 AI management system | The governance platform itself is the AIMS -- policy engine, panel system, structured emissions, audit trail | Full platform |
 
@@ -58,7 +58,7 @@ ISO/IEC 42001 follows the Annex SL high-level structure (clauses 4-10) common to
 | Requirement | Governance Control | Artifact |
 |-------------|-------------------|----------|
 | 7.1 Resources | Context management tiers (Tier 0-3) optimize resource allocation; parallel Coder dispatch scales execution | Context management architecture |
-| 7.2 Competence | 19 specialized review perspectives with full evaluation criteria; six agentic personas with domain expertise | `governance/prompts/reviews/`, `governance/prompts/shared-perspectives.md` |
+| 7.2 Competence | 24 specialized review perspectives with full evaluation criteria; six agentic personas with domain expertise | `governance/prompts/reviews/`, `governance/prompts/shared-perspectives.md` |
 | 7.3 Awareness | CLAUDE.md and instructions.md distributed via symlinks to all consuming repos; copilot-instructions.md for IDE integration | `config.yaml` symlink configuration |
 | 7.4 Communication | Agent protocol with typed messages (ASSIGN, STATUS, RESULT, FEEDBACK, ESCALATE, APPROVE, BLOCK, CANCEL) | `governance/prompts/agent-protocol.md` |
 | 7.5 Documented information | Three artifact types (Cognitive, Enforcement, Audit) with defined mutability; schemas enforce structure | Artifact type system, JSON schemas |
@@ -126,4 +126,4 @@ For organizations using Dark Factory to support ISO/IEC 42001 certification:
 - [NIST AI RMF Mapping](nist-ai-rmf-mapping.md)
 - `governance/schemas/panel-output.schema.json` -- structured emission schema
 - `governance/policy/` -- policy profiles implementing risk tolerance
-- `governance/prompts/reviews/` -- consolidated review prompts with 19 perspectives
+- `governance/prompts/reviews/` -- consolidated review prompts with 24 perspectives

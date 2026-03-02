@@ -4,7 +4,7 @@
 **Date:** 2026-02-27
 **Status:** approved
 **Issue:** #492
-**Branch:** itsfwcp/feat/492/ado-config-sync-ledger-schemas
+**Branch:** NETWORK_ID/feat/492/ado-config-sync-ledger-schemas
 
 ---
 

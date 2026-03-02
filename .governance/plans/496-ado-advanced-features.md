@@ -4,7 +4,7 @@
 **Date:** 2026-02-27
 **Status:** approved
 **Issue:** https://github.com/SET-Apps/ai-submodule/issues/496
-**Branch:** itsfwcp/feat/496/ado-advanced-features
+**Branch:** NETWORK_ID/feat/496/ado-advanced-features
 
 ---
 

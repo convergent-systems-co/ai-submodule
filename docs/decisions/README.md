@@ -256,7 +256,7 @@ Introduced `panels.schema.json` and `panels.defaults.json` with per-panel config
 
 ### Consequences
 
-- All 19 panels have standardized scoring
+- All 21 panels have standardized scoring
 - The scoring logic lives alongside the panel definition (cognitive artifact, interpreted by AI)
 - **Open question from external review:** Should scoring move to the policy engine as actual code? Currently it's numerical logic in prose that AI interprets.
 
@@ -306,7 +306,7 @@ Research was conducted across 51 sources to evaluate both approaches.
 
 ### Decision
 
-Self-contained review prompts. Each panel + its persona definitions consolidated into a single markdown file in `governance/prompts/reviews/`. Shared perspectives (19 appearing in 2+ panels) defined in `governance/prompts/shared-perspectives.md` for DRY authoring but inlined at review time.
+Self-contained review prompts. Each panel + its persona definitions consolidated into a single markdown file in `governance/prompts/reviews/`. Shared perspectives (24 appearing in 2+ panels) defined in `governance/prompts/shared-perspectives.md` for DRY authoring but inlined at review time.
 
 ### Alternatives Considered
 
@@ -390,8 +390,8 @@ ADR-010 decided on self-contained review prompts. This ADR documents the impleme
 
 #### Created (20 new files)
 
-- `governance/prompts/shared-perspectives.md` — Canonical definitions for 19 perspectives appearing in 2+ panels
-- `governance/prompts/reviews/` — 19 self-contained review prompts, each containing:
+- `governance/prompts/shared-perspectives.md` — Canonical definitions for 24 perspectives appearing in 2+ panels
+- `governance/prompts/reviews/` — 21 self-contained review prompts, each containing:
   - Purpose and context
   - Perspective definitions (inlined from personas or referencing shared-perspectives.md)
   - Scoring formula and pass/fail criteria
@@ -401,7 +401,7 @@ ADR-010 decided on self-contained review prompts. This ADR documents the impleme
 #### Deprecated (77 files)
 
 - 58 persona files across 13 categories — deprecation notice added, pointing to `governance/prompts/reviews/` and `shared-perspectives.md`
-- 19 panel files — deprecation notice added, pointing to corresponding review prompt
+- 21 panel files — deprecation notice added, pointing to corresponding review prompt
 - Excluded: `governance/personas/agentic/code-manager.md` and `governance/personas/agentic/coder.md` (these define decision authority, not evaluation checklists)
 
 #### Updated (15+ files)

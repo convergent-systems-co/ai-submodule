@@ -1,0 +1,61 @@
+{
+  "session_id": "20260227-session-9",
+  "timestamp": "2026-02-27T12:00:00Z",
+  "phase": "5a",
+  "phase_label": "Merge PRs",
+  "context_capacity": {
+    "tier": "Orange",
+    "signals": ["context_compaction_occurred", "checkpoint_requested_by_user"],
+    "trigger": "user_requested_checkpoint"
+  },
+  "git_state": {
+    "branch": "main",
+    "clean": true,
+    "stash": false
+  },
+  "completed_work": [
+    "Phase 0: Checkpoint recovery — previous checkpoint (session-6) discarded, all issues closed",
+    "Phase 1: Pre-flight — CODEOWNERS present, governance workflow exists, REQUIRES_PR=true",
+    "Phase 1c: Resolved open PRs — closed PR #515 (issue #511 closed) and PR #516 (issue #493 closed)",
+    "Phase 1d: Scanned issues — found #495, #496, #497 (all ADO integration Phase 6)",
+    "Phase 2: Created plans for all 3 issues in .governance/plans/",
+    "Phase 3: Dispatched 3 parallel Coder agents with worktree isolation",
+    "Phase 4: All 3 agents completed — #495 (67 tests), #496 (112 tests), #497 (56 tests)",
+    "Phase 4: Created PRs — #518 (#495), #519 (#496), #520 (#497)",
+    "Phase 5a: PR #518 merged successfully via squash",
+    "Phase 5a: PR #519 conflict resolved, pushed, APPROVED and MERGEABLE",
+    "Phase 5a: PR #520 conflict resolved, pushed, APPROVED and MERGEABLE"
+  ],
+  "remaining_work": [
+    "Merge PR #519 (#496) — ADO advanced features (APPROVED, MERGEABLE)",
+    "Merge PR #520 (#497) — ADO operations health (APPROVED, MERGEABLE)",
+    "Re-check PR #520 for conflicts after #519 merges (likely __init__.py again)",
+    "Close issues #495, #496, #497 via PR merge",
+    "Phase 5b: Retrospective",
+    "Phase 5c: Loop or shutdown evaluation"
+  ],
+  "issues": [
+    {
+      "number": 495,
+      "title": "ADO reverse sync",
+      "status": "MERGED",
+      "pr": 518,
+      "branch": "NETWORK_ID/feat/495/ado-to-github-reverse-sync"
+    },
+    {
+      "number": 496,
+      "title": "ADO advanced features",
+      "status": "PR_APPROVED_MERGEABLE",
+      "pr": 519,
+      "branch": "NETWORK_ID/feat/496/ado-advanced-features"
+    },
+    {
+      "number": 497,
+      "title": "ADO operations health",
+      "status": "PR_APPROVED_MERGEABLE",
+      "pr": 520,
+      "branch": "NETWORK_ID/feat/497/ado-operations-health"
+    }
+  ],
+  "notes": "Both remaining PRs are approved and mergeable. PR #520 will likely conflict again after #519 merges (same __init__.py pattern). The resolution pattern is: combine all import blocks and __all__ entries from both sides."
+}

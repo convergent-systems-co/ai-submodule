@@ -4,7 +4,7 @@
 **Date:** 2026-02-27
 **Status:** approved
 **Issue:** https://github.com/SET-Apps/ai-submodule/issues/524
-**Branch:** itsfwcp/fix/524/symlink-claude-commands
+**Branch:** NETWORK_ID/fix/524/symlink-claude-commands
 
 ---
 

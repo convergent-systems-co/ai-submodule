@@ -243,11 +243,11 @@ Skills (`.skill.md` files) are self-contained capabilities registered as MCP too
 
 - [README.md](../../README.md) — Full architecture, governance layers, file structure, and [Documentation Index](../../README.md#documentation-index)
 - [GOALS.md](../../GOALS.md) — Phase status and completed work
-- [governance/prompts/reviews/](../../governance/prompts/reviews/) — 19 consolidated review prompts (preferred, replaces individual persona/panel files)
+- [governance/prompts/reviews/](../../governance/prompts/reviews/) — 21 consolidated review prompts (preferred, replaces individual persona/panel files)
 - [governance/personas/agentic/](../../governance/personas/agentic/) — 6 agentic personas (Project Manager, DevOps Engineer, Code Manager, Coder, IaC Engineer, Tester)
 - [docs/architecture/governance-model.md](../architecture/governance-model.md) — Governance layers, policy profiles, and how changes flow through the system
 - [docs/guides/project-yaml-configuration.md](../guides/project-yaml-configuration.md) — Complete project.yaml configuration reference
-- [docs/architecture/ci-workflows.md](../architecture/ci-workflows.md) — All 16 GitHub Actions workflows
+- [docs/architecture/ci-workflows.md](../architecture/ci-workflows.md) — All 18 GitHub Actions workflows
 - [docs/guides/prompt-library.md](../guides/prompt-library.md) — Developer prompt library and catalog system
 - [docs/guides/skills-development.md](../guides/skills-development.md) — MCP skills system
 - [docs/configuration/repository-setup.md](../configuration/repository-setup.md) — Repository settings, CODEOWNERS, per-project overrides

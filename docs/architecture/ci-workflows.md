@@ -4,7 +4,7 @@ Complete reference for all GitHub Actions workflows in the Dark Factory Governan
 
 ## Overview
 
-The platform includes 16 workflows organized into four categories: Governance, Agentic, Self-Repair, and Publishing/Automation. Required workflows are copied to consuming repos by `init.sh`; optional workflows can be enabled per project.
+The platform includes 18 workflows organized into five categories: Governance, Agentic, Self-Repair, ADO Sync, and Publishing/Automation. Required workflows are copied to consuming repos by `init.sh`; optional workflows can be enabled per project.
 
 ---
 
@@ -43,6 +43,11 @@ flowchart TD
         LINT[self-repair-lint]
     end
 
+    subgraph "ADO Sync"
+        ADOSYNC[ado-sync]
+        ADOREVERSE[ado-reverse-sync]
+    end
+
     subgraph "Publishing & Automation"
         PROPAGATE[propagate-submodule]
         DOCS[deploy-docs]
@@ -57,12 +62,14 @@ flowchart TD
     PR -->|closed + merged| ARCHIVE
 
     ISSUE --> EVENT
+    ISSUE --> ADOSYNC
     ISSUE -->|agentic-ready| WORKER
     COMMENT -->|/agentic-retry| WORKER
     DEPLOY --> EVENT
     EVENT -->|dispatch| MONITOR
     MONITOR -->|dispatch| LOOP
     WORKER -->|calls| LOOP
+    DISPATCH --> ADOREVERSE
 
     PUSH --> REBASE
     PUSH --> LINT
@@ -267,6 +274,34 @@ Detects workflow lint errors and creates GitHub issues for remediation.
 
 ---
 
+## ADO Sync Workflows
+
+### ado-sync.yml
+
+Synchronizes GitHub issues to Azure DevOps work items. Creates, updates, and closes ADO work items when GitHub issues change.
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `issues` (opened, edited, closed, reopened, labeled, unlabeled) |
+| **Permissions** | contents: read, issues: read |
+
+**Behavior:** Reads ADO configuration from `project.yaml`, maps GitHub issue fields to ADO work item fields (title, description, state, priority), maintains sync ledger at `.governance/state/ado-sync-ledger.json`, logs errors to `.governance/state/ado-sync-errors.json`.
+
+---
+
+### ado-reverse-sync.yml
+
+Reverse-syncs Azure DevOps work item changes back to GitHub issues. Triggered by ADO webhooks via `repository_dispatch`.
+
+| Field | Value |
+|-------|-------|
+| **Trigger** | `repository_dispatch` (type: `ado-webhook`) |
+| **Permissions** | contents: read, issues: write |
+
+**Behavior:** Receives ADO work item change events, maps state/field changes back to GitHub issue updates (state, labels, comments), prevents sync loops via ledger timestamp checks.
+
+---
+
 ## Publishing & Automation Workflows
 
 ### propagate-submodule.yml
@@ -351,6 +386,8 @@ Builds, tests, and publishes the MCP server.
 | `agentic-loop` | Agentic | Reusable workflow | AI agent convergence loop |
 | `event-trigger` | Agentic | Issues, PRs, deployments | Event-driven session dispatch |
 | `issue-monitor` | Agentic | Dispatch | Issue actionability evaluation |
+| `ado-sync` | ADO Sync | Issues | GitHub→ADO work item sync |
+| `ado-reverse-sync` | ADO Sync | repository_dispatch | ADO→GitHub reverse sync |
 | `auto-rebase` | Self-Repair | Push, schedule, dispatch | Keep agent PRs rebased on main |
 | `branch-cleanup` | Self-Repair | Schedule, dispatch | Delete merged/stale branches |
 | `self-repair-lint` | Self-Repair | Push, dispatch | Detect workflow lint errors |

@@ -248,7 +248,7 @@ Pattern: `NETWORK_ID/{type}/{issue-number}/{short-name}`
 
 | Directory | Purpose | Mutability |
 |-----------|---------|------------|
-| `governance/prompts/reviews/` | 19 consolidated review prompts | Editable (cognitive artifacts) |
+| `governance/prompts/reviews/` | 21 consolidated review prompts | Editable (cognitive artifacts) |
 | `governance/personas/agentic/` | 6 agentic personas | Editable (cognitive artifacts) |
 | `governance/policy/` | Deterministic policy profiles (YAML) | Versioned (enforcement artifacts) |
 | `governance/schemas/` | JSON Schema definitions | Versioned (enforcement artifacts) |
@@ -386,7 +386,7 @@ Key directories for contributors:
   governance/
     personas/agentic/          6 agentic personas (Project Manager, DevOps Engineer, Code Manager, Coder, IaC Engineer, Tester)
     prompts/
-      reviews/                 19 consolidated review prompts (canonical)
+      reviews/                 21 consolidated review prompts (canonical)
       shared-perspectives.md   Canonical perspective definitions
       startup.md               Agentic loop entry point
       agent-protocol.md        Inter-agent communication protocol

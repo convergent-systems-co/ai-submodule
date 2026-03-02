@@ -46,7 +46,7 @@ Six panels are mandatory on every PR regardless of files changed: code-review, s
 
 ### Neutral
 
-- The 19 shared perspectives in `governance/prompts/shared-perspectives.md` serve as the canonical source of truth but are never loaded at runtime -- this is a deliberate design choice documented in the file header
+- The 24 shared perspectives in `governance/prompts/shared-perspectives.md` serve as the canonical source of truth but are never loaded at runtime -- this is a deliberate design choice documented in the file header
 - Panel pass/fail scoring currently lives in cognitive artifacts (the prompts themselves) rather than the policy engine -- this boundary is an open design question
 
 ## Alternatives Considered
@@ -61,7 +61,7 @@ Six panels are mandatory on every PR regardless of files changed: code-review, s
 ## References
 
 - `governance/prompts/reviews/` -- 21 self-contained review prompts
-- `governance/prompts/shared-perspectives.md` -- canonical definitions for 19 cross-panel perspectives
+- `governance/prompts/shared-perspectives.md` -- canonical definitions for 24 cross-panel perspectives
 - `governance/schemas/panel-output.schema.json` -- structured emission schema
 - `governance/policy/default.yaml` -- mandatory panel list and confidence weighting
 - `docs/decisions/README.md` (ADR-006: Mandatory Panels) -- why six panels are always required

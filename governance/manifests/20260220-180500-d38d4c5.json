@@ -27,7 +27,7 @@
   "repository": {
     "name": "ai-submodule",
     "owner": "SET-Apps",
-    "branch": "itsfwcp/remove-mcp-directories",
+    "branch": "NETWORK_ID/remove-mcp-directories",
     "base_branch": "main",
     "commit_sha": "d38d4c50dfe953be266b328f82fb1aab720904e0",
     "pr_number": 14

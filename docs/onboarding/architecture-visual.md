@@ -37,7 +37,7 @@ flowchart TD
 
 ## Review Panels
 
-19 consolidated review prompts execute in parallel on every change. Each panel emits structured JSON validated against `panel-output.schema.json`:
+21 consolidated review prompts execute in parallel on every change. Each panel emits structured JSON validated against `panel-output.schema.json`:
 
 | Panel Category | What It Reviews |
 |---------------|----------------|
@@ -85,7 +85,7 @@ Every decision is recorded:
 | **Blue** | DevOps Engineer (session entry) / Developer |
 | **Purple** | Code Manager (orchestrator) |
 | **Green** | Tester (evaluator) / GitHub (remote mode) |
-| **Orange** | Review Panels (19 total, dynamically selected) |
+| **Orange** | Review Panels (21 total, dynamically selected) |
 | **Yellow** | Policy Engine (deterministic) |
 | **Dashed** | Audit trail artifacts |
 

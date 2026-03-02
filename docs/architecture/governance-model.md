@@ -1288,7 +1288,7 @@ flowchart TD
 | **Session** (pre-pipeline) | DevOps Engineer (pre-flight, triage, routing) | — |
 | **L1: Intent** | Code Manager (validation, routing) | Product Manager (requirements) |
 | **L2: Cognitive** | Code Manager (panel selection, orchestration) | Architect, Tech Lead (via review prompts) |
-| **L3: Execution** | Coder (implementation), Tester (evaluation) | All panel participants (19 panels), Policy Engine |
+| **L3: Execution** | Coder (implementation), Tester (evaluation) | All panel participants (21 panels), Policy Engine |
 | **L4: Runtime** | Code Manager (DI generation) | Incident Commander, SRE, Observability Engineer |
 | **L5: Evolution** | Code Manager (version management) | Refactor Specialist, Systems Architect, Tech Lead, Minimalist Engineer |
 

@@ -25,7 +25,7 @@
   "aggregate_verdict": "approve",
   "execution_context": {
     "repository": "SET-Apps/ai-submodule",
-    "branch": "itsfwcp/11-instruction-decomposition",
+    "branch": "NETWORK_ID/11-instruction-decomposition",
     "pr_number": 17,
     "policy_profile": "default",
     "model_version": "claude-opus-4-6",

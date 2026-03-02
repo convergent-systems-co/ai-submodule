@@ -88,8 +88,8 @@ Every code change flows through these layers in order:
 
 ### Persona and Panel System
 
-- **Consolidated review prompts** (`governance/prompts/reviews/`) — 19 self-contained review prompts implementing Anthropic's Parallelization (Voting) pattern. Each prompt inlines its participant perspectives with full evaluation criteria, scoring, and output schema. This is the canonical location for review definitions.
-- **Shared perspectives** (`governance/prompts/shared-perspectives.md`) — Canonical definitions for the 19 perspectives appearing in 2+ review prompts. Serves as the authoring-time DRY mechanism; compiled prompts have full locality at runtime.
+- **Consolidated review prompts** (`governance/prompts/reviews/`) — 21 self-contained review prompts implementing Anthropic's Parallelization (Voting) pattern. Each prompt inlines its participant perspectives with full evaluation criteria, scoring, and output schema. This is the canonical location for review definitions.
+- **Shared perspectives** (`governance/prompts/shared-perspectives.md`) — Canonical definitions for the 24 perspectives appearing in 2+ review prompts. Serves as the authoring-time DRY mechanism; compiled prompts have full locality at runtime.
 - **Agentic personas** (`governance/personas/agentic/`) — Six-agent prompt-chained architecture:
   - **Project Manager** — Portfolio-level orchestrator: multiplexes Code Managers, spawns background DevOps Engineer, cross-batch coordination (Orchestrator-Workers pattern, opt-in via `governance.use_project_manager: true`)
   - **DevOps Engineer** — Session entry point (standard) or background agent (PM mode): pre-flight, triage, routing, issue grouping, continuous polling (Anthropic's Routing pattern)
@@ -130,7 +130,7 @@ Operational CLI commands via `bin/ado-sync.py`: `health` (6-point check battery 
 
 ### CI Workflows
 
-16 GitHub Actions workflows across four categories: Governance (dark-factory-governance, jm-compliance, plan-archival, prompt-eval), Agentic (agentic-issue-worker, agentic-loop, event-trigger, issue-monitor), Self-Repair (auto-rebase, branch-cleanup, self-repair-lint), and Publishing/Automation (propagate-submodule, deploy-docs, publish-dashboard, prompt-catalog, publish-mcp). See `docs/architecture/ci-workflows.md`.
+18 GitHub Actions workflows across five categories: Governance (dark-factory-governance, jm-compliance, plan-archival, prompt-eval), Agentic (agentic-issue-worker, agentic-loop, event-trigger, issue-monitor), Self-Repair (auto-rebase, branch-cleanup, self-repair-lint), ADO Sync (ado-sync, ado-reverse-sync), and Publishing/Automation (propagate-submodule, deploy-docs, publish-dashboard, prompt-catalog, publish-mcp). See `docs/architecture/ci-workflows.md`.
 
 The `dark-factory-governance` workflow auto-detects consuming repos via `.gitmodules` when the `.ai` submodule content is unavailable in CI (private submodule without credentials). In consuming repo mode: the test job is skipped, the policy engine falls back to lightweight emission-only validation reading from `.governance/panels/`, and the `skip_panel_validation` setting is read from the PR merge commit (not the base branch). See `docs/configuration/repository-setup.md` for details.
 

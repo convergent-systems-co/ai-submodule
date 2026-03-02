@@ -62,11 +62,13 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       node/                    Node.js/TypeScript conventions
       react/                   React conventions
       csharp/                  C#/.NET conventions
+      bicep/                   Bicep/Azure IaC conventions
+      terraform/               Terraform/HCL conventions
     personas/                  AI persona definitions (Markdown)
       agentic/                 Project Manager, DevOps Engineer, Code Manager, Coder, IaC Engineer, Tester
 
     prompts/                   Reusable prompt templates
-      reviews/                 19 consolidated review prompts (replaces personas/panels/)
+      reviews/                 21 consolidated review prompts (replaces personas/panels/)
       shared-perspectives.md   Canonical definitions for perspectives appearing in 2+ reviews
       startup.md               Agentic improvement loop entry point
       init.md                  Agentic bootstrap prompt (interactive install for consuming repos)
@@ -352,7 +354,7 @@ Quick navigation to all documentation in this repository.
 |----------|-------|
 | [Governance Model](docs/architecture/governance-model.md) | Five governance layers and decision authority |
 | [Agent Architecture](docs/architecture/agent-architecture.md) | 6-agent prompt-chained architecture and protocol |
-| [CI Workflows](docs/architecture/ci-workflows.md) | All 16 GitHub Actions workflows |
+| [CI Workflows](docs/architecture/ci-workflows.md) | All 18 GitHub Actions workflows |
 | [Artifact Classification](docs/governance/artifact-classification.md) | Cognitive, Enforcement, and Audit artifact types |
 | [Context Management](docs/architecture/context-management.md) | JIT loading tiers and checkpoint-based reset protection |
 | [Runtime Feedback](docs/architecture/runtime-feedback.md) | Drift detection and incident-to-DI generation (Phase 4b/5) |
@@ -416,7 +418,7 @@ Quick navigation to all documentation in this repository.
 
 | Resource | Description |
 |----------|-------------|
-| [Consolidated Review Prompts](governance/prompts/reviews/) | 19 self-contained review prompts (canonical location) |
+| [Consolidated Review Prompts](governance/prompts/reviews/) | 21 self-contained review prompts (canonical location) |
 | [Shared Perspectives](governance/prompts/shared-perspectives.md) | Canonical definitions for cross-cutting perspectives |
 | [Project Manager](governance/personas/agentic/project-manager.md) | Portfolio orchestrator (opt-in) — multiplexed Code Managers, cross-batch coordination |
 | [DevOps Engineer](governance/personas/agentic/devops-engineer.md) | Routing agent — session lifecycle, pre-flight, issue triage |

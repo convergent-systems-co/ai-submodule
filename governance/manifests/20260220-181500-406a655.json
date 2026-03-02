@@ -33,7 +33,7 @@
   "repository": {
     "name": "ai-submodule",
     "owner": "SET-Apps",
-    "branch": "itsfwcp/7-mitre-specialist",
+    "branch": "NETWORK_ID/7-mitre-specialist",
     "base_branch": "main",
     "commit_sha": "406a6552de55671dbd6fc0a2c84ea6ee8b3fba4e",
     "pr_number": 16

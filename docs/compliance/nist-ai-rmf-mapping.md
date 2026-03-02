@@ -23,7 +23,7 @@ The NIST AI Risk Management Framework defines four core functions -- Govern, Map
 |------------------|----|--------------------|----------|
 | Policies, processes, procedures | GV-1 | Four deterministic policy profiles enforce risk tolerance | `governance/policy/default.yaml`, `fin_pii_high.yaml`, `infrastructure_critical.yaml`, `reduced_touchpoint.yaml` |
 | Accountability structures | GV-2 | CODEOWNERS defines approval authority; agent protocol defines role boundaries | `CODEOWNERS`, `governance/prompts/agent-protocol.md` |
-| Workforce diversity of perspectives | GV-3 | 19 review perspectives across 6 panel types ensure multi-viewpoint evaluation | `governance/prompts/reviews/`, `governance/prompts/shared-perspectives.md` |
+| Workforce diversity of perspectives | GV-3 | 24 review perspectives across 6 panel types ensure multi-viewpoint evaluation | `governance/prompts/reviews/`, `governance/prompts/shared-perspectives.md` |
 | Organizational commitments | GV-4 | Governance pipeline is mandatory in all modes (local and remote) | `CLAUDE.md` conventions, `project.yaml` |
 | Processes for ongoing monitoring | GV-5 | Agentic startup loop re-evaluates state on every session; canary calibration detects drift | `governance/prompts/startup.md`, canary calibration |
 | Risk tolerance defined | GV-6 | Policy profiles define risk thresholds (auto-merge conditions, approver counts, required panels) | `governance/policy/*.yaml` |
@@ -74,7 +74,7 @@ The NIST AI RMF identifies seven characteristics of trustworthy AI. Each maps to
 | **Accountable and Transparent** | Structured emissions with evidence grounding; `execution_context` provenance; immutable manifests |
 | **Explainable and Interpretable** | Per-persona `rationale` field; `evidence` with file/line/snippet grounding |
 | **Privacy-Enhanced** | `data-governance-review` panel; `data_classification` field; `fin_pii_high.yaml` profile |
-| **Fair -- with Harmful Bias Managed** | 19 diverse perspectives across panels; multi-persona voting reduces individual bias |
+| **Fair -- with Harmful Bias Managed** | 24 diverse perspectives across panels; multi-persona voting reduces individual bias |
 
 ## Related Documents
 

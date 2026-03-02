@@ -10,7 +10,7 @@
 | `governance/schemas/` | JSON Schema enforcement artifacts | panel-output, run-manifest schemas |
 | `governance/policy/` | Deterministic policy profiles | default, fin_pii_high, infrastructure_critical |
 | `governance/manifests/` | Append-only audit trail | Run manifests (one per merge decision) |
-| `governance/prompts/reviews/` | Consolidated review prompts | 19 self-contained review prompts |
+| `governance/prompts/reviews/` | Consolidated review prompts | 21 self-contained review prompts |
 | `governance/personas/governance/` | Governance-specific personas | Governance Auditor, Policy Evaluator |
 | `governance/personas/agentic/` | Autonomous agent personas | Code Manager, Coder |
 

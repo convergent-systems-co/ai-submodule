@@ -25,7 +25,7 @@
   "aggregate_verdict": "approve",
   "execution_context": {
     "repository": "SET-Apps/ai-submodule",
-    "branch": "itsfwcp/feat/126/data-governance-enforcement",
+    "branch": "NETWORK_ID/feat/126/data-governance-enforcement",
     "policy_profile": "default",
     "model_version": "claude-opus-4-6",
     "triggered_by": "manual"

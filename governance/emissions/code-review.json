@@ -25,7 +25,7 @@
   "aggregate_verdict": "approve",
   "execution_context": {
     "repository": "SET-Apps/ai-submodule",
-    "branch": "itsfwcp/12-auto-propagation",
+    "branch": "NETWORK_ID/12-auto-propagation",
     "pr_number": 18,
     "policy_profile": "default",
     "model_version": "claude-opus-4-6",

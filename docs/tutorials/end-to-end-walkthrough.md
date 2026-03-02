@@ -160,7 +160,7 @@ The governance platform operates through three distinct artifact types:
 
 ### 2.2 Personas and Panels
 
-**Review prompts** are consolidated, self-contained review definitions in `governance/prompts/reviews/`. There are 19 review prompts implementing Anthropic's Parallelization (Voting) pattern. Each prompt inlines its participant perspectives with full evaluation criteria, scoring, and output schema. Additionally, 6 agentic personas (Project Manager, DevOps Engineer, Code Manager, Coder, IaC Engineer, Tester) in `governance/personas/agentic/` drive the autonomous pipeline.
+**Review prompts** are consolidated, self-contained review definitions in `governance/prompts/reviews/`. There are 21 review prompts implementing Anthropic's Parallelization (Voting) pattern. Each prompt inlines its participant perspectives with full evaluation criteria, scoring, and output schema. Additionally, 6 agentic personas (Project Manager, DevOps Engineer, Code Manager, Coder, IaC Engineer, Tester) in `governance/personas/agentic/` drive the autonomous pipeline.
 
 **Panels** (review prompts) coordinate multiple perspectives into review workflows. Each panel:
 1. Activates relevant perspectives for the review type
