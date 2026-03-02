@@ -54,7 +54,7 @@ Five governance layers: Intent → Cognitive → Execution → Runtime → Evolu
 
 Six agentic personas in `governance/personas/agentic/`: Project Manager, DevOps Engineer, Code Manager, Coder, IaC Engineer, Tester. Protocol: `governance/prompts/agent-protocol.md`. See `docs/architecture/agent-architecture.md`.
 
-21 review prompts in `governance/prompts/reviews/`. Five policy profiles and 21 supporting policy configurations in `governance/policy/`. Panel output validated against `governance/schemas/panel-output.schema.json`.
+21 review prompts in `governance/prompts/reviews/`. Five policy profiles and 18 supporting policy configurations in `governance/policy/`. Panel output validated against `governance/schemas/panel-output.schema.json`.
 
 **Context management**: Hard stop at 80% capacity. Four-tier model (Green/Yellow/Orange/Red). See `docs/architecture/context-management.md`.
 

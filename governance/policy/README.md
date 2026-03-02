@@ -16,6 +16,7 @@ Policy profiles define deterministic rules for merge decisions. The policy engin
 | Default | `default.yaml` | Standard internal repositories with moderate risk tolerance. |
 | Financial PII High | `fin_pii_high.yaml` | Repositories handling financial data, PII, or regulated information (SOC2, PCI-DSS, HIPAA, GDPR). |
 | Infrastructure Critical | `infrastructure_critical.yaml` | Infrastructure-as-code, CI/CD, deployment configs, platform services. |
+| Fast-Track | `fast-track.yaml` | Lightweight profile for trivial changes (docs, typos, chores). Requires only code-review and security-review. |
 | Reduced Touchpoint | `reduced_touchpoint.yaml` | Near-full autonomy, human approval only for policy overrides and dismissed security-critical findings (Phase 5e). |
 
 ## Profile Structure
@@ -58,6 +59,7 @@ governance:
 | default | 1.3.1 | Added parallel session support, reduced_touchpoint reference |
 | fin_pii_high | 1.0.1 | Initial SOC2/PCI-DSS/HIPAA/GDPR compliance profile |
 | infrastructure_critical | 1.0.1 | Initial mandatory architecture and SRE review profile |
+| fast-track | 1.0.0 | Lightweight profile for trivial changes |
 | reduced_touchpoint | 1.0.1 | Initial near-full autonomy profile |
 
 ## Schema Versioning Policy

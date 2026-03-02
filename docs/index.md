@@ -61,11 +61,12 @@ flowchart TD
 
 ## Policy Profiles
 
-Four deterministic YAML profiles control governance behavior:
+Five deterministic YAML profiles control governance behavior:
 
 - **default** -- Standard risk tolerance, auto-merge enabled with conditions
 - **fin_pii_high** -- SOC2/PCI-DSS/HIPAA/GDPR, auto-merge disabled, 3-approver override
 - **infrastructure_critical** -- Mandatory architecture and SRE review
+- **fast-track** -- Lightweight profile for trivial changes (docs, typos, chores)
 - **reduced_touchpoint** -- Near-full autonomy, human approval only for policy overrides
 
 ## Documentation Sections

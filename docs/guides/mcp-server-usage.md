@@ -158,7 +158,7 @@ URI pattern: `governance://personas/{persona-name}`
 | `governance://shared/perspectives` | Shared perspective definitions |
 | `governance://schemas/panel-output` | Panel output JSON schema |
 
-### Policy Profiles (4)
+### Policy Profiles (5)
 
 URI pattern: `governance://policy/{profile-name}`
 
@@ -167,6 +167,7 @@ URI pattern: `governance://policy/{profile-name}`
 | `governance://policy/default` | Standard risk tolerance, auto-merge enabled |
 | `governance://policy/fin_pii_high` | SOC2/PCI-DSS/HIPAA/GDPR compliance |
 | `governance://policy/infrastructure_critical` | Mandatory architecture and SRE review |
+| `governance://policy/fast-track` | Lightweight profile for trivial changes |
 | `governance://policy/reduced_touchpoint` | Near-full autonomy |
 
 ## Available Tools

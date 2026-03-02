@@ -36,7 +36,7 @@ ISO/IEC 42001 follows the Annex SL high-level structure (clauses 4-10) common to
 | Requirement | Governance Control | Artifact |
 |-------------|-------------------|----------|
 | 5.1 Leadership and commitment | Governance pipeline is mandatory in all modes; no exceptions or bypasses | `CLAUDE.md` key conventions |
-| 5.2 AI policy | Four deterministic policy profiles define risk tolerance, review requirements, and merge conditions | `governance/policy/*.yaml` |
+| 5.2 AI policy | Five deterministic policy profiles define risk tolerance, review requirements, and merge conditions | `governance/policy/*.yaml` |
 | 5.3 Roles and responsibilities | Six agentic personas with defined boundaries; CODEOWNERS for approval authority; agent protocol for communication | `governance/personas/agentic/`, `CODEOWNERS`, `governance/prompts/agent-protocol.md` |
 
 ## Clause 6 -- Planning

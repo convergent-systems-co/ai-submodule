@@ -20,7 +20,7 @@ A **prompt engineering knowledge base and distribution platform**. Curates 68 AI
 
 ### ai-submodule
 
-An **AI governance framework for autonomous software delivery**. Provides 19 consolidated review panels, a deterministic Python policy engine, 26 JSON schemas, 23 YAML policy profiles, and a 5-persona agentic architecture. Distributed as a git submodule (`.ai/`) to consuming repositories.
+An **AI governance framework for autonomous software delivery**. Provides 19 consolidated review panels, a deterministic Python policy engine, 26 JSON schemas, 5 policy profiles and 18 supporting policy configurations, and a 5-persona agentic architecture. Distributed as a git submodule (`.ai/`) to consuming repositories.
 
 - **Repo:** `SET-Apps/ai-submodule`
 - **Language:** Python (policy engine), Bash/PowerShell (bootstrap)
@@ -54,7 +54,7 @@ graph TB
         AIS_PANELS["19 Review Panels<br/>Voting Pattern"]
         AIS_ENGINE["Policy Engine<br/>Python Deterministic"]
         AIS_SCHEMAS["26 JSON Schemas<br/>Enforcement"]
-        AIS_POLICY["23 Policy Profiles<br/>Risk-Tiered"]
+        AIS_POLICY["5 Policy Profiles<br/>Risk-Tiered"]
         AIS_PERSONAS["5 Agentic Personas<br/>Prompt-Chained"]
         AIS_NAMING["Azure Naming CLI<br/>100+ Resource Types"]
 
@@ -466,7 +466,7 @@ graph TB
         subgraph "Governance Core"
             ENGINE["Policy Engine"]
             SCHEMAS["26 Schemas"]
-            POLICY["23 Policy Profiles"]
+            POLICY["5 Policy Profiles"]
             PERSONAS["5 Personas"]
         end
 
