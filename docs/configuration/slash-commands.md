@@ -12,6 +12,7 @@ The Dark Factory Governance Framework provides slash commands for initiating and
 | `/review` | Review panel router — list, run, and inspect governance review panels | Claude Code, GitHub Copilot |
 | `/plan` | Governance plan management — list, create, and show plans | Claude Code, GitHub Copilot |
 | `/governance` | Pipeline dashboard — status, policy, and emissions | Claude Code, GitHub Copilot |
+| `/issue` | Issue triage and planning without the full startup loop | Claude Code, GitHub Copilot |
 
 ## `/startup` - Agentic Loop
 
@@ -440,6 +441,70 @@ The command resolves the active policy profile:
 
 Policy files are read from `governance/policy/{profile}.yaml` (submodule) or `.ai/governance/policy/{profile}.yaml` (consuming repo).
 
+## `/issue` - Issue Triage and Planning
+
+The `/issue` command provides quick issue triage and planning without invoking the full `/startup` agentic loop. Use it to find the next actionable issue or create a plan for a specific issue.
+
+### Modes
+
+| Argument | Mode | Description |
+|----------|------|-------------|
+| `next` | Show next issue | Shows the highest-priority actionable issue with triage details |
+| `plan <N>` | Plan issue | Creates a branch and governance plan for issue #N without implementing |
+| *(no args)* | Show next issue | Defaults to `next` mode |
+
+### Usage
+
+=== "Claude Code"
+
+    ```bash
+    /issue next              # Show next actionable issue
+    /issue plan 42           # Create branch and plan for issue #42
+    /issue                   # Defaults to next mode
+    ```
+
+=== "GitHub Copilot"
+
+    ```bash
+    /issue next              # Show next actionable issue
+    /issue plan 42           # Create branch and plan for issue #42
+    /issue                   # Defaults to next mode
+    ```
+
+### Triage Logic
+
+The `next` mode applies:
+
+1. **Fetch**: `gh issue list --state open --json number,title,labels,assignees,body --limit 50`
+2. **Filter out**: issues with existing branches, labeled `blocked`/`wontfix`/`duplicate`, assigned to humans
+3. **Prioritize**: P0 > P1 > P2 > P3 > P4, bugs before enhancements, oldest first
+
+### Plan Mode Workflow
+
+The `plan <N>` mode:
+
+1. Verifies the issue is open
+2. Creates a branch: `itsfwcp/{type}/{N}/{slug}`
+3. Reads the plan template from `governance/prompts/templates/plan-template.md`
+4. Creates and saves a plan to `.governance/plans/{N}-{slug}.md`
+5. Stops after plan creation — does not implement
+
+### Output
+
+| Mode | What Is Displayed |
+|------|-------------------|
+| `next` | Issue number, title, labels, body summary, recommended branch name |
+| `plan <N>` | Branch name, plan file location, confirmation that implementation is deferred |
+
+### Key Differences from `/startup`
+
+| Aspect | `/issue` | `/startup` |
+|--------|----------|------------|
+| Scope | Single issue | All actionable issues |
+| Implementation | Never | Full pipeline |
+| Governance panels | Not run | Full execution |
+| Context cost | Minimal | Full session |
+
 ## Context Capacity Protocol
 
 All commands integrate with the framework's context management system. The protocol enforces a hard stop at 80% context capacity to prevent instruction loss during compaction.
@@ -485,6 +550,7 @@ The slash commands are implemented in these files:
   - `.claude/commands/review.md` - Review panel router command definition
   - `.claude/commands/plan.md` - Plan management command definition
   - `.claude/commands/governance.md` - Governance dashboard command definition
+  - `.claude/commands/issue.md` - Issue triage command definition
 
 - **GitHub Copilot:**
   - `.github/copilot-chat/startup.md` - Startup command definition
@@ -493,6 +559,7 @@ The slash commands are implemented in these files:
   - `.github/copilot-chat/review.md` - Review panel router command definition
   - `.github/copilot-chat/plan.md` - Plan management command definition
   - `.github/copilot-chat/governance.md` - Governance dashboard command definition
+  - `.github/copilot-chat/issue.md` - Issue triage command definition
 
 - **Core workflow:**
   - `governance/prompts/startup.md` - Agentic loop specification
