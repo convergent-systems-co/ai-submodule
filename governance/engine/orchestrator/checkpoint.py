@@ -189,9 +189,17 @@ class CheckpointManager:
         return removed
 
 
-def _extract_issue_number(ref: str) -> int | None:
-    """Extract issue number from references like '#42' or 'issue-42'."""
-    ref = ref.strip()
+def _extract_issue_number(ref: str | dict) -> int | None:
+    """Extract issue number from references like '#42', 'issue-42', or dict with 'issue'/'number' key."""
+    if isinstance(ref, dict):
+        num = ref.get("issue") or ref.get("number")
+        if num is not None:
+            try:
+                return int(num)
+            except (ValueError, TypeError):
+                return None
+        return None
+    ref = str(ref).strip()
     if ref.startswith("#"):
         try:
             return int(ref[1:])
