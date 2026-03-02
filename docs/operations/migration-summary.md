@@ -8,7 +8,7 @@
 |-----------|---------|----------|
 | `docs/` | Architecture and design documents | 7 governance documents |
 | `governance/schemas/` | JSON Schema enforcement artifacts | panel-output, run-manifest schemas |
-| `governance/policy/` | Deterministic policy profiles | default, fin_pii_high, infrastructure_critical |
+| `governance/policy/` | Deterministic policy profiles | default, fin_pii_high, infrastructure_critical, fast-track, reduced_touchpoint |
 | `governance/manifests/` | Append-only audit trail | Run manifests (one per merge decision) |
 | `governance/prompts/reviews/` | Consolidated review prompts | 21 self-contained review prompts |
 | `governance/personas/governance/` | Governance-specific personas | Governance Auditor, Policy Evaluator |

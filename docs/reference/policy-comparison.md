@@ -1,6 +1,6 @@
 # Policy Comparison
 
-Side-by-side comparison of the four deterministic policy profiles.
+Side-by-side comparison of the five deterministic policy profiles.
 All profiles are evaluated programmatically by the policy engine --
 AI models never interpret policy rules.
 

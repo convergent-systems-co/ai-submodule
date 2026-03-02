@@ -25,7 +25,7 @@ Run this workflow periodically (e.g., weekly or after every N governance runs) o
 
 1. Read the most recent retrospective aggregation report
 2. Read the most recent persona effectiveness report
-3. Read all current policy profiles (`default.yaml`, `fin_pii_high.yaml`, `infrastructure_critical.yaml`)
+3. Read all current policy profiles (`default.yaml`, `fin_pii_high.yaml`, `infrastructure_critical.yaml`, `fast-track.yaml`, `reduced_touchpoint.yaml`)
 4. Read panel defaults (`panels.defaults.json`)
 5. Read threshold tuning policy (`threshold-tuning.yaml`)
 

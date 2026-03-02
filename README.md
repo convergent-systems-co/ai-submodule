@@ -11,7 +11,7 @@ AI governance framework for autonomous software delivery. Provides personas, pan
 The Dark Factory Governance Platform exists to:
 
 1. **Automate software delivery governance** — Replace manual code review gates with structured, auditable AI-driven review panels that produce deterministic merge decisions.
-2. **Enforce policy without human bottlenecks** — Deterministic policy profiles (default, financial/PII, infrastructure-critical) evaluate every change programmatically. AI models never interpret policy rules.
+2. **Enforce policy without human bottlenecks** — Five deterministic policy profiles (default, financial/PII, infrastructure-critical, fast-track, reduced-touchpoint) evaluate every change programmatically. AI models never interpret policy rules.
 3. **Maintain compliance at scale** — Embed SOC2, PCI-DSS, HIPAA, and GDPR compliance into the review pipeline so regulated changes are caught at intake, not after merge.
 4. **Enable autonomous agentic operation** — A 6-agent prompt-chained pipeline (Project Manager, DevOps Engineer, Code Manager, Coder, IaC Engineer, Tester) orchestrates the full lifecycle (session management, issue triage, planning, implementation, evaluation, review, merge) with human oversight only where policy requires it.
 5. **Distribute governance as infrastructure** — Ship as a git submodule so any repository gets personas, panels, policies, and CI workflows by adding a single dependency.
@@ -110,6 +110,7 @@ See [GOALS.md](GOALS.md) for detailed progress tracking, completed work, and ope
       default.yaml             Standard risk tolerance
       fin_pii_high.yaml        Financial/PII — SOC2, PCI-DSS, HIPAA, GDPR
       infrastructure_critical.yaml  Infrastructure-as-code, deployment configs
+      fast-track.yaml          Lightweight — docs, typos, chores
       reduced_touchpoint.yaml  Near-full autonomy — Phase 5e
       threshold-tuning.yaml    Auto-tuning rules for confidence threshold adjustment
       drift-policy.yaml        Drift detection thresholds and triggers
@@ -276,9 +277,10 @@ Security, regulatory compliance, and code quality are embedded at every governan
 For a detailed mapping of governance controls to the OWASP Top 10 for LLM Applications, see [OWASP LLM Top 10 Coverage Matrix](docs/compliance/owasp-llm-top10-mapping.md).
 
 Policy profiles provide pre-configured compliance postures:
+- **`default`** — Standard internal applications. Balanced automation and oversight.
 - **`fin_pii_high`** — SOC2, PCI-DSS, HIPAA, GDPR. Auto-merge disabled. 3-approver override.
 - **`infrastructure_critical`** — Production stability. Mandatory architecture and SRE review.
-- **`default`** — Standard internal applications. Balanced automation and oversight.
+- **`fast-track`** — Lightweight profile for trivial changes (docs, typos, chores). Requires only code-review and security-review.
 - **`reduced_touchpoint`** — Near-full autonomy. Human approval only for policy overrides, dismissed security-critical findings, or critical risk. Phase 5e.
 
 ## Context Management

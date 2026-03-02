@@ -21,7 +21,7 @@ The NIST AI Risk Management Framework defines four core functions -- Govern, Map
 
 | NIST Subcategory | ID | Governance Control | Artifact |
 |------------------|----|--------------------|----------|
-| Policies, processes, procedures | GV-1 | Four deterministic policy profiles enforce risk tolerance | `governance/policy/default.yaml`, `fin_pii_high.yaml`, `infrastructure_critical.yaml`, `reduced_touchpoint.yaml` |
+| Policies, processes, procedures | GV-1 | Five deterministic policy profiles enforce risk tolerance | `governance/policy/default.yaml`, `fin_pii_high.yaml`, `infrastructure_critical.yaml`, `fast-track.yaml`, `reduced_touchpoint.yaml` |
 | Accountability structures | GV-2 | CODEOWNERS defines approval authority; agent protocol defines role boundaries | `CODEOWNERS`, `governance/prompts/agent-protocol.md` |
 | Workforce diversity of perspectives | GV-3 | 24 review perspectives across 6 panel types ensure multi-viewpoint evaluation | `governance/prompts/reviews/`, `governance/prompts/shared-perspectives.md` |
 | Organizational commitments | GV-4 | Governance pipeline is mandatory in all modes (local and remote) | `CLAUDE.md` conventions, `project.yaml` |
