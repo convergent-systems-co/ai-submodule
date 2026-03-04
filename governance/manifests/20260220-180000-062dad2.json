@@ -1,0 +1,35 @@
+{
+  "manifest_version": "1.0.0",
+  "manifest_id": "20260220-180000-062dad2",
+  "timestamp": "2026-02-20T18:00:00Z",
+  "persona_set_commit": "062dad291cc3ef1f0ec8485ce45a59eb5d730679",
+  "panel_graph_version": "1.0.0",
+  "policy_profile_used": "default",
+  "model_version": "claude-opus-4-6",
+  "aggregate_confidence": 0.92,
+  "risk_level": "negligible",
+  "human_intervention": {
+    "required": false,
+    "occurred": false
+  },
+  "decision": {
+    "action": "auto_merge",
+    "rationale": "Additive persona creation. Documentation Review panel approved with high confidence (0.92). No policy flags. Risk level negligible per default profile."
+  },
+  "panels_executed": [
+    {
+      "panel_name": "documentation-review",
+      "verdict": "approve",
+      "confidence_score": 0.92,
+      "artifact_path": "manifests/panels/pr13-documentation-review.json"
+    }
+  ],
+  "repository": {
+    "name": "dark-forge",
+    "owner": "SET-Apps",
+    "branch": "itsfwcp/5-agile-coach-persona",
+    "base_branch": "main",
+    "commit_sha": "062dad291cc3ef1f0ec8485ce45a59eb5d730679",
+    "pr_number": 13
+  }
+}

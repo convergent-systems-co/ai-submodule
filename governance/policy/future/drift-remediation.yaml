@@ -1,0 +1,36 @@
+# Drift auto-remediation configuration
+# Defines which drift types can be automatically remediated and under what constraints
+# See: docs/architecture/runtime-feedback.md Section 4
+
+auto_remediation:
+  version: "1.0.0"
+  enabled: true
+  ceiling_severity: "medium"  # Drift above this severity requires human review
+
+  allowed_drift_types:
+    configuration:
+      - "environment_variable_rollback"
+      - "feature_flag_restore"
+      - "replica_count_restore"
+      - "config_file_restore_from_manifest"
+    behavior:
+      - "restart_unhealthy_instance"
+      - "scale_horizontal_within_bounds"
+    performance:
+      - "cache_flush"
+      - "connection_pool_reset"
+    compliance:
+      # No auto-remediation for compliance drift. Always requires human review.
+      []
+
+  prohibited_actions:
+    - "data_deletion"
+    - "schema_migration"
+    - "secret_rotation"
+    - "network_rule_modification"
+    - "iam_policy_change"
+
+  verification:
+    required: true
+    verification_window_minutes: 15
+    revert_on_verification_failure: true

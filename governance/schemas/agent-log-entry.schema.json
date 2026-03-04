@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/agent-log-entry.schema.json",
+  "title": "Agent Log Entry",
+  "description": "Schema for a single line in an agent audit log JSONL file. Each agent protocol message emission appends one entry conforming to this schema to .artifacts/logs/{session-id}.jsonl.",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "session_id",
+    "message_type",
+    "source_agent",
+    "target_agent",
+    "correlation_id"
+  ],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the agent message was emitted."
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Session identifier in YYYYMMDD-session-N format, where N increments per session on the same date.",
+      "pattern": "^\\d{8}-session-\\d+$"
+    },
+    "message_type": {
+      "type": "string",
+      "enum": ["ASSIGN", "STATUS", "RESULT", "FEEDBACK", "ESCALATE", "APPROVE", "BLOCK", "CANCEL"],
+      "description": "The agent protocol message type being logged."
+    },
+    "source_agent": {
+      "type": "string",
+      "enum": ["devops-engineer", "tech-lead", "coder", "iac-engineer", "test-writer", "test-evaluator", "document-writer", "documentation-reviewer", "project-manager"],
+      "description": "The persona that emitted the message."
+    },
+    "target_agent": {
+      "type": "string",
+      "enum": ["devops-engineer", "tech-lead", "coder", "iac-engineer", "test-writer", "test-evaluator", "document-writer", "documentation-reviewer", "project-manager"],
+      "description": "The persona that received the message."
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Issue or PR identifier linking all messages in a work unit (e.g., issue-42, pr-108).",
+      "pattern": "^(issue|pr)-\\d+$"
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Truncated payload summary for auditability. Must not exceed 500 characters. Captures the essential decision or action without reproducing the full payload."
+    }
+  },
+  "additionalProperties": false
+}

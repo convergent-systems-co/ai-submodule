@@ -1,0 +1,199 @@
+{
+  "issue_opened": {
+    "action": "opened",
+    "issue": {
+      "number": 100,
+      "title": "[E2E] Test issue for bidirectional sync",
+      "body": "This is an automated E2E test issue.\n\nCreated by test_bidirectional_e2e.py.",
+      "state": "open",
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100",
+      "labels": [
+        {"id": 1, "name": "bug"},
+        {"id": 2, "name": "P1"},
+        {"id": 3, "name": "ado-sync"}
+      ],
+      "assignee": {
+        "login": "test-user-gh",
+        "id": 12345
+      },
+      "milestone": {
+        "title": "v1.0.0",
+        "number": 1
+      }
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "issue_edited": {
+    "action": "edited",
+    "issue": {
+      "number": 100,
+      "title": "[E2E] Updated test issue title",
+      "body": "Updated body for E2E testing.",
+      "state": "open",
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100",
+      "labels": [
+        {"id": 1, "name": "bug"},
+        {"id": 4, "name": "P2"},
+        {"id": 3, "name": "ado-sync"}
+      ],
+      "assignee": {
+        "login": "test-user-gh",
+        "id": 12345
+      },
+      "milestone": {
+        "title": "v1.0.0",
+        "number": 1
+      }
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "issue_closed": {
+    "action": "closed",
+    "issue": {
+      "number": 100,
+      "title": "[E2E] Updated test issue title",
+      "body": "Updated body for E2E testing.",
+      "state": "closed",
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100",
+      "labels": [
+        {"id": 1, "name": "bug"},
+        {"id": 4, "name": "P2"},
+        {"id": 3, "name": "ado-sync"}
+      ],
+      "assignee": {
+        "login": "test-user-gh",
+        "id": 12345
+      },
+      "milestone": null
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "issue_reopened": {
+    "action": "reopened",
+    "issue": {
+      "number": 100,
+      "title": "[E2E] Updated test issue title",
+      "body": "Updated body for E2E testing.",
+      "state": "open",
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100",
+      "labels": [
+        {"id": 1, "name": "bug"},
+        {"id": 4, "name": "P2"},
+        {"id": 3, "name": "ado-sync"}
+      ],
+      "assignee": {
+        "login": "test-user-gh",
+        "id": 12345
+      },
+      "milestone": null
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "issue_labeled_enhancement": {
+    "action": "labeled",
+    "issue": {
+      "number": 100,
+      "title": "[E2E] Updated test issue title",
+      "body": "Updated body for E2E testing.",
+      "state": "open",
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100",
+      "labels": [
+        {"id": 5, "name": "enhancement"},
+        {"id": 4, "name": "P2"},
+        {"id": 3, "name": "ado-sync"}
+      ],
+      "assignee": null,
+      "milestone": null
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "issue_unassigned": {
+    "action": "unassigned",
+    "issue": {
+      "number": 100,
+      "title": "[E2E] Updated test issue title",
+      "body": "Updated body for E2E testing.",
+      "state": "open",
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100",
+      "labels": [
+        {"id": 1, "name": "bug"},
+        {"id": 4, "name": "P2"},
+        {"id": 3, "name": "ado-sync"}
+      ],
+      "assignee": null,
+      "milestone": null
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "issue_milestoned": {
+    "action": "milestoned",
+    "issue": {
+      "number": 100,
+      "title": "[E2E] Updated test issue title",
+      "body": "Updated body for E2E testing.",
+      "state": "open",
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100",
+      "labels": [
+        {"id": 1, "name": "bug"},
+        {"id": 4, "name": "P2"},
+        {"id": 3, "name": "ado-sync"}
+      ],
+      "assignee": null,
+      "milestone": {
+        "title": "Sprint-42",
+        "number": 42
+      }
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "comment_with_prefix": {
+    "action": "created",
+    "issue": {
+      "number": 100,
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100"
+    },
+    "comment": {
+      "id": 5001,
+      "body": "[ado-sync] This comment should be synced to ADO.",
+      "user": {
+        "login": "test-user-gh",
+        "id": 12345
+      }
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  },
+  "comment_without_prefix": {
+    "action": "created",
+    "issue": {
+      "number": 100,
+      "html_url": "https://github.com/convergent-systems-co/dark-forge/issues/100"
+    },
+    "comment": {
+      "id": 5002,
+      "body": "This comment should NOT be synced.",
+      "user": {
+        "login": "test-user-gh",
+        "id": 12345
+      }
+    },
+    "repository": {
+      "full_name": "convergent-systems-co/dark-forge"
+    }
+  }
+}

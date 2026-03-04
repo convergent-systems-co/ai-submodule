@@ -1,0 +1,240 @@
+# governance/templates/workflows/pipeline.yml
+# Unified deployment pipeline for consuming repos.
+#
+# This template orchestrates multiple deployment phases (build, infra, private endpoints, helm)
+# into a single workflow. Each phase calls an existing workflow via workflow_call.
+#
+# Usage:
+#   1. Copy this file to .github/workflows/pipeline.yml in your repo
+#   2. Ensure each phase workflow supports workflow_call trigger
+#   3. Customize phase names, environments, and skip flags
+#
+# Design principles:
+#   - Existing workflows remain manually usable via workflow_dispatch
+#   - This pipeline calls them via workflow_call (no step duplication)
+#   - Skip flags allow operators to bypass inapplicable phases
+#   - Promotion validation prevents deploying to higher environments without lower ones
+
+name: Deployment Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      skip_build:
+        description: 'Skip build phase'
+        required: false
+        type: boolean
+        default: false
+      skip_infra:
+        description: 'Skip infrastructure phase'
+        required: false
+        type: boolean
+        default: false
+      skip_private_endpoints:
+        description: 'Skip private endpoints phase'
+        required: false
+        type: boolean
+        default: true
+      skip_deploy:
+        description: 'Skip application deployment phase'
+        required: false
+        type: boolean
+        default: false
+      build_ref:
+        description: 'Git ref to build (branch, tag, or SHA). Defaults to the triggering ref.'
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+concurrency:
+  group: pipeline-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  # -----------------------------------------------------------
+  # Phase 0: Validate promotion order
+  # -----------------------------------------------------------
+  validate-promotion:
+    name: validate-promotion
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.validate.outputs.proceed }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate promotion order
+        id: validate
+        # Replace with your composite action path if using validate-promotion action
+        # uses: ./.github/actions/validate-promotion
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+
+          # Define promotion order
+          PROMOTION_ORDER=("dev" "staging" "production")
+
+          # For dev, always proceed
+          if [ "$ENV" = "dev" ]; then
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            echo "Environment 'dev' — no promotion check required"
+            exit 0
+          fi
+
+          # For higher environments, verify the previous environment was deployed
+          # This is a template — customize the check mechanism for your repo
+          # Options: GitHub deployments API, environment variables, deployment tags
+          echo "proceed=true" >> "$GITHUB_OUTPUT"
+          echo "Promotion validation passed for environment: $ENV"
+          echo ""
+          echo "NOTE: Customize this step with your promotion validation logic."
+          echo "See .ai/governance/templates/actions/validate-promotion/action.yml"
+
+  # -----------------------------------------------------------
+  # Phase 1: Build
+  # -----------------------------------------------------------
+  build:
+    name: build
+    needs: [validate-promotion]
+    if: |
+      needs.validate-promotion.outputs.proceed == 'true' &&
+      github.event.inputs.skip_build != 'true'
+    # Option A: Call an existing workflow
+    # uses: ./.github/workflows/build.yml
+    # with:
+    #   ref: ${{ github.event.inputs.build_ref || github.ref }}
+    #   environment: ${{ github.event.inputs.environment }}
+    # Option B: Inline steps (template default)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.build_ref || github.ref }}
+
+      - name: Build
+        run: |
+          echo "BUILD PHASE"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Ref: ${{ github.event.inputs.build_ref || github.ref }}"
+          echo ""
+          echo "Replace this step with your build commands or use workflow_call"
+          echo "to delegate to an existing build workflow."
+
+  # -----------------------------------------------------------
+  # Phase 2: Infrastructure
+  # -----------------------------------------------------------
+  infra:
+    name: infra
+    needs: [validate-promotion, build]
+    if: |
+      always() &&
+      needs.validate-promotion.outputs.proceed == 'true' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      github.event.inputs.skip_infra != 'true'
+    # uses: ./.github/workflows/infra.yml
+    # with:
+    #   environment: ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Infrastructure
+        run: |
+          echo "INFRASTRUCTURE PHASE"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo ""
+          echo "Replace this step with your infrastructure commands or use workflow_call"
+          echo "to delegate to an existing infra workflow (Terraform, Bicep, etc.)."
+
+  # -----------------------------------------------------------
+  # Phase 3: Private Endpoints (optional)
+  # -----------------------------------------------------------
+  private-endpoints:
+    name: private-endpoints
+    needs: [validate-promotion, infra]
+    if: |
+      always() &&
+      needs.validate-promotion.outputs.proceed == 'true' &&
+      (needs.infra.result == 'success' || needs.infra.result == 'skipped') &&
+      github.event.inputs.skip_private_endpoints != 'true'
+    # uses: ./.github/workflows/private-endpoints.yml
+    # with:
+    #   environment: ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Private Endpoints
+        run: |
+          echo "PRIVATE ENDPOINTS PHASE"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo ""
+          echo "Replace this step with your PE commands or use workflow_call."
+
+  # -----------------------------------------------------------
+  # Phase 4: Application Deployment
+  # -----------------------------------------------------------
+  deploy:
+    name: deploy
+    needs: [validate-promotion, build, infra, private-endpoints]
+    if: |
+      always() &&
+      needs.validate-promotion.outputs.proceed == 'true' &&
+      (needs.build.result == 'success' || needs.build.result == 'skipped') &&
+      (needs.infra.result == 'success' || needs.infra.result == 'skipped') &&
+      (needs.private-endpoints.result == 'success' || needs.private-endpoints.result == 'skipped') &&
+      github.event.inputs.skip_deploy != 'true'
+    # uses: ./.github/workflows/deploy.yml
+    # with:
+    #   environment: ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy
+        run: |
+          echo "DEPLOY PHASE"
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo ""
+          echo "Replace this step with your deployment commands (Helm, kubectl, az webapp, etc.)"
+          echo "or use workflow_call to delegate to an existing deploy workflow."
+
+  # -----------------------------------------------------------
+  # Summary
+  # -----------------------------------------------------------
+  summary:
+    name: summary
+    needs: [validate-promotion, build, infra, private-endpoints, deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pipeline Summary
+        run: |
+          echo "## Pipeline Summary"
+          echo ""
+          echo "Environment: ${{ github.event.inputs.environment }}"
+          echo "Validation: ${{ needs.validate-promotion.result }}"
+          echo "Build: ${{ needs.build.result }}"
+          echo "Infra: ${{ needs.infra.result }}"
+          echo "Private Endpoints: ${{ needs.private-endpoints.result }}"
+          echo "Deploy: ${{ needs.deploy.result }}"
+
+      - name: Fail if any required phase failed
+        if: |
+          needs.validate-promotion.result == 'failure' ||
+          needs.build.result == 'failure' ||
+          needs.infra.result == 'failure' ||
+          needs.deploy.result == 'failure'
+        run: exit 1

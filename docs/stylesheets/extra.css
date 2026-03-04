@@ -1,0 +1,167 @@
+/* Nord Dark Theme for Dark Forge */
+/* Nord palette: https://www.nordtheme.com/ */
+
+/* -- Nord color definitions (20% darker for deeper contrast) -- */
+/* Polar Night (dark backgrounds — original → darkened) */
+/* #2E3440 → #252A33 nord0 - darkest */
+/* #3B4252 → #2F3542 nord1 */
+/* #434C5E → #363D4B nord2 */
+/* #4C566A → #3D4555 nord3 - lightest dark */
+
+/* Snow Storm (light text) */
+/* #D8DEE9 nord4 */
+/* #E5E9F0 nord5 */
+/* #ECEFF4 nord6 - brightest */
+
+/* Frost (blues/cyans) */
+/* #8FBCBB nord7 */
+/* #88C0D0 nord8 */
+/* #81A1C1 nord9 */
+/* #5E81AC nord10 */
+
+/* Aurora (accents) */
+/* #BF616A nord11 - red */
+/* #D08770 nord12 - orange */
+/* #EBCB8B nord13 - yellow */
+/* #A3BE8C nord14 - green */
+/* #B48EAD nord15 - purple */
+
+/* Register nord as a custom color scheme */
+[data-md-color-scheme="nord"] {
+  /* Core backgrounds */
+  --md-default-bg-color: #252A33;
+  --md-default-bg-color--light: #2F3542;
+  --md-default-bg-color--lighter: #363D4B;
+  --md-default-bg-color--lightest: #3D4555;
+
+  /* Core text */
+  --md-default-fg-color: #ECEFF4;
+  --md-default-fg-color--light: #D8DEE9;
+  --md-default-fg-color--lighter: #D8DEE9BF;
+  --md-default-fg-color--lightest: #D8DEE980;
+
+  /* Primary (Frost blue) */
+  --md-primary-fg-color: #5E81AC;
+  --md-primary-fg-color--light: #81A1C1;
+  --md-primary-fg-color--dark: #4C6A8F;
+  --md-primary-bg-color: #ECEFF4;
+  --md-primary-bg-color--light: #E5E9F0;
+
+  /* Accent (Frost cyan) */
+  --md-accent-fg-color: #88C0D0;
+  --md-accent-fg-color--transparent: #88C0D01A;
+  --md-accent-bg-color: #252A33;
+  --md-accent-bg-color--light: #2F3542;
+
+  /* Code blocks */
+  --md-code-fg-color: #ECEFF4;
+  --md-code-bg-color: #2F3542;
+  --md-code-hl-color: #88C0D030;
+  --md-code-hl-number-color: #B48EAD;
+  --md-code-hl-special-color: #D08770;
+  --md-code-hl-function-color: #88C0D0;
+  --md-code-hl-constant-color: #B48EAD;
+  --md-code-hl-keyword-color: #81A1C1;
+  --md-code-hl-string-color: #A3BE8C;
+  --md-code-hl-name-color: #ECEFF4;
+  --md-code-hl-operator-color: #81A1C1;
+  --md-code-hl-punctuation-color: #D8DEE9;
+  --md-code-hl-comment-color: #7B88A0;
+  --md-code-hl-generic-color: #88C0D0;
+  --md-code-hl-variable-color: #D8DEE9;
+
+  /* Typeset */
+  --md-typeset-color: #ECEFF4;
+  --md-typeset-a-color: #88C0D0;
+
+  /* Navigation sidebar */
+  --md-typeset-table-color: #3D455540;
+
+  /* Admonitions */
+  --md-admonition-bg-color: #2F3542;
+
+  /* Footer */
+  --md-footer-bg-color: #252A33;
+  --md-footer-bg-color--dark: #1E2229;
+  --md-footer-fg-color: #D8DEE9;
+  --md-footer-fg-color--light: #D8DEE9BF;
+  --md-footer-fg-color--lighter: #D8DEE980;
+
+  color-scheme: dark;
+}
+
+/* Header bar */
+[data-md-color-scheme="nord"] .md-header {
+  background-color: #2F3542;
+}
+
+/* Sidebar navigation */
+[data-md-color-scheme="nord"] .md-sidebar {
+  background-color: #252A33;
+}
+
+[data-md-color-scheme="nord"] .md-nav__link--active,
+[data-md-color-scheme="nord"] .md-nav__link:is(:focus, :hover) {
+  color: #88C0D0;
+}
+
+/* Search bar */
+[data-md-color-scheme="nord"] .md-search__input {
+  background-color: #363D4B;
+  color: #ECEFF4;
+}
+
+/* Tables */
+[data-md-color-scheme="nord"] .md-typeset table:not([class]) th {
+  background-color: #2F3542;
+  color: #88C0D0;
+}
+
+[data-md-color-scheme="nord"] .md-typeset table:not([class]) tr:hover {
+  background-color: #2F354280;
+}
+
+/* Inline code */
+[data-md-color-scheme="nord"] .md-typeset code {
+  background-color: #2F3542;
+  color: #88C0D0;
+  border-color: #363D4B;
+}
+
+/* Links */
+[data-md-color-scheme="nord"] .md-typeset a {
+  color: #88C0D0;
+}
+
+[data-md-color-scheme="nord"] .md-typeset a:hover {
+  color: #8FBCBB;
+}
+
+/* Header layout — hamburger far-left, logo to its right */
+[data-md-color-scheme="nord"] .md-header__inner {
+  display: flex;
+  align-items: center;
+}
+
+[data-md-color-scheme="nord"] .md-header__button[for="__drawer"] {
+  order: -2;
+  margin-left: 0;
+  padding-left: 0.4rem;
+}
+
+[data-md-color-scheme="nord"] .md-header__button.md-logo {
+  order: -1;
+}
+
+/* Scrollbar (webkit) */
+[data-md-color-scheme="nord"] ::-webkit-scrollbar-track {
+  background: #252A33;
+}
+
+[data-md-color-scheme="nord"] ::-webkit-scrollbar-thumb {
+  background: #3D4555;
+}
+
+[data-md-color-scheme="nord"] ::-webkit-scrollbar-thumb:hover {
+  background: #5E81AC;
+}

@@ -1,0 +1,140 @@
+# Threshold Auto-Tuning Policy
+# Defines rules for adjusting governance confidence thresholds based on
+# retrospective aggregation data. This policy does not modify thresholds
+# directly — it defines the rules by which a governance change proposal
+# workflow would recommend adjustments for human approval.
+#
+# Data source: governance/schemas/retrospective-aggregation.schema.json
+# See: docs/operations/threshold-tuning.md
+
+threshold_tuning:
+  version: "1.0.0"
+  description: >
+    Governs how panel confidence thresholds evolve based on empirical data
+    from retrospective aggregation reports. All adjustments are proposals
+    requiring human approval unless within the auto-apply delta.
+
+  # Data requirements — minimum conditions before any tuning is considered
+  data_requirements:
+    # Minimum number of governance runs before adjustments can be proposed
+    min_runs: 20
+    # Minimum time period of data (days) to avoid tuning on short-term anomalies
+    min_period_days: 14
+    # Data must come from a single policy profile (no cross-profile tuning)
+    single_profile_required: true
+
+  # Per-panel tuning rules
+  panel_rules:
+    # False positive tuning — lower threshold when panel blocks too aggressively
+    false_positive:
+      description: >
+        When a panel's false positive rate exceeds the trigger threshold,
+        propose lowering that panel's confidence weight or the escalation
+        threshold that references it.
+      trigger:
+        # Panel false positive rate above this triggers a tuning proposal
+        rate_threshold: 0.15
+        # Minimum false positives in absolute count (avoid reacting to small samples)
+        min_count: 3
+      adjustment:
+        # Maximum decrease per tuning cycle
+        max_delta: -0.05
+        # Recommended delta for moderate false positive rates (0.15–0.25)
+        moderate_delta: -0.02
+        # Recommended delta for high false positive rates (>0.25)
+        high_delta: -0.05
+        high_rate_threshold: 0.25
+
+    # False negative tuning — raise threshold when panel approves incorrectly
+    false_negative:
+      description: >
+        When a panel's false negative rate exceeds the trigger threshold,
+        propose raising that panel's confidence weight or the auto-merge
+        threshold. False negatives are more dangerous than false positives.
+      trigger:
+        # Panel false negative rate above this triggers a tuning proposal
+        rate_threshold: 0.05
+        # Minimum false negatives in absolute count
+        min_count: 1
+      adjustment:
+        # Maximum increase per tuning cycle
+        max_delta: 0.10
+        # Recommended delta for moderate false negative rates (0.05–0.10)
+        moderate_delta: 0.05
+        # Recommended delta for high false negative rates (>0.10)
+        high_delta: 0.10
+        high_rate_threshold: 0.10
+
+  # Global threshold bounds — no tuning can push thresholds outside these ranges
+  bounds:
+    # Aggregate confidence for auto-merge
+    auto_merge_confidence:
+      min: 0.75
+      max: 0.95
+      default: 0.85
+    # Aggregate confidence for escalation to human review
+    escalation_confidence:
+      min: 0.50
+      max: 0.80
+      default: 0.70
+    # Aggregate confidence for hard block
+    block_confidence:
+      min: 0.20
+      max: 0.50
+      default: 0.40
+    # Individual panel weight bounds (within the weighting model)
+    panel_weight:
+      min: 0.02
+      max: 0.35
+
+  # Cooldown — prevent oscillation from rapid successive adjustments
+  cooldown:
+    # Minimum days between tuning proposals for the same panel
+    per_panel_days: 30
+    # Minimum days between any tuning proposal (global cooldown)
+    global_days: 7
+    # After an adjustment is applied, require this many new runs before re-evaluating
+    post_adjustment_min_runs: 10
+
+  # Approval gates — who approves tuning proposals
+  approval:
+    # Changes within this delta can be auto-applied without human approval
+    auto_apply_max_delta: 0.02
+    # Changes exceeding auto_apply_max_delta require human approval
+    human_approval:
+      required_roles:
+        - tech_lead
+        - senior_engineer
+      min_approvals: 1
+      justification_required: true
+    # Changes exceeding this delta require elevated approval (critical threshold change)
+    elevated_approval_delta: 0.05
+    elevated_approval:
+      required_roles:
+        - tech_lead
+        - engineering_manager
+      min_approvals: 2
+      justification_required: true
+
+  # Rollback — revert tuning if outcomes worsen
+  rollback:
+    description: >
+      If a tuning adjustment results in worse outcomes (measured over the
+      post-adjustment observation period), automatically propose reverting
+      to the previous threshold value.
+    # If false negative rate increases after a threshold decrease, flag for rollback
+    false_negative_increase_trigger: 0.02
+    # If false positive rate increases after a threshold increase, flag for rollback
+    false_positive_increase_trigger: 0.10
+    # Auto-revert (without approval) if both rates worsen simultaneously
+    auto_revert_on_dual_degradation: true
+
+  # Audit — all tuning proposals and decisions are logged
+  audit:
+    log_to_manifest: true
+    create_github_issue: true
+    issue_labels:
+      - enhancement
+      - governance
+      - auto-tuning
+    comment_on_source_report: true

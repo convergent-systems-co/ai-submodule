@@ -1,0 +1,173 @@
+# Merge Sequencing Policy
+# Defines rules for ordering concurrent agent PRs to avoid conflicts
+# and maintain governance consistency in multi-agent scenarios.
+# Part of Phase 5d — Multi-Agent Coordination.
+
+policy_name: merge_sequencing
+policy_version: "1.0.0"
+description: >
+  Deterministic rules for ordering concurrent PRs when multiple agents
+  operate in parallel. Ensures higher-priority work merges first,
+  file-level dependencies are respected, and governance checks remain
+  valid after each merge. This policy is a governance artifact — runtime
+  enforcement requires a multi-agent orchestrator (Phase 5d blocked).
+
+# Queue Configuration
+# Controls the merge queue behavior.
+queue:
+  max_concurrent_prs: 5
+  max_queue_depth: 20
+  stale_pr_timeout_hours: 48
+  description: >
+    Maximum number of PRs that can be in the merge queue simultaneously.
+    PRs beyond max_queue_depth are rejected back to their agent sessions.
+    PRs older than stale_pr_timeout_hours without activity are flagged
+    for human review.
+
+# Ordering Rules
+# PRs are sorted by these rules in priority order (first matching rule wins).
+ordering:
+  model: priority_then_dependency
+  rules:
+    - name: critical_priority
+      description: "P0 and P1 issues always merge before lower-priority work."
+      condition: pr_issue_priority in ["P0", "P1"]
+      order: highest
+      preempt: true
+
+    - name: security_fix
+      description: "Security fixes take precedence over feature work at same priority."
+      condition: pr_labels contains "security" or pr_issue_labels contains "bug"
+      order: before_same_priority_enhancements
+
+    - name: dependency_order
+      description: >
+        If PR A modifies files that PR B reads or depends on, A merges first.
+        Detected via conflict-detection.schema.json overlap analysis.
+      condition: file_dependency_detected == true
+      order: dependency_source_first
+      conflict_schema_ref: "governance/schemas/conflict-detection.schema.json"
+
+    - name: priority_label
+      description: "Standard priority ordering: P0 > P1 > P2 > P3 > P4."
+      condition: pr_issue_priority is set
+      order: by_priority_label_ascending
+
+    - name: creation_date
+      description: "Tiebreaker: oldest PR merges first (FIFO within same priority)."
+      condition: always
+      order: by_creation_date_ascending
+
+# Dependency Detection
+# How the sequencer identifies inter-PR dependencies.
+dependency_detection:
+  enabled: true
+  methods:
+    - name: exact_file_overlap
+      description: "Two PRs modify the same file."
+      severity: blocking
+      action: serialize
+
+    - name: directory_overlap
+      description: "Two PRs modify different files in the same directory."
+      severity: advisory
+      action: warn_and_proceed
+
+    - name: governance_state_overlap
+      description: "Two PRs modify the same governance artifact (policy, schema, persona)."
+      severity: blocking
+      action: serialize
+
+    - name: import_dependency
+      description: "PR B imports or references a file modified by PR A."
+      severity: blocking
+      action: serialize_a_before_b
+
+  conflict_schema: "governance/schemas/conflict-detection.schema.json"
+
+# Governance Re-evaluation
+# When a PR merges, other queued PRs may need re-evaluation.
+re_evaluation:
+  enabled: true
+  triggers:
+    - name: overlapping_pr_merged
+      description: >
+        When a PR merges that has file overlap with queued PRs,
+        the overlapping PRs must re-run governance checks against
+        the updated main branch.
+      condition: merged_pr_overlaps_queued_pr == true
+      action: rebase_and_recheck
+      max_retries: 2
+
+    - name: policy_change_merged
+      description: >
+        When a PR that modifies governance policy files merges,
+        ALL queued PRs must re-run governance checks (the policy
+        rules themselves may have changed).
+      condition: merged_pr_modifies in ["governance/policy/", "governance/schemas/"]
+      action: recheck_all_queued
+
+    - name: schema_change_merged
+      description: >
+        When a PR that modifies governance schemas merges,
+        queued PRs with structured emissions must re-validate
+        against the updated schemas.
+      condition: merged_pr_modifies in ["governance/schemas/"]
+      action: revalidate_emissions
+
+# Hold and Release
+# Mechanisms for pausing and resuming the queue.
+hold_release:
+  hold_conditions:
+    - name: ci_outage
+      description: "Pause queue when CI infrastructure is degraded."
+      condition: ci_health_check == "degraded"
+      action: hold_all
+
+    - name: manual_freeze
+      description: "Human can freeze the queue via label or command."
+      condition: merge_queue_label == "freeze"
+      action: hold_all
+
+    - name: conflict_storm
+      description: >
+        If more than 3 PRs in the queue have blocking conflicts with
+        each other, pause the queue for human triage.
+      condition: blocking_conflict_count > 3
+      action: hold_all_and_notify
+
+  release_conditions:
+    - name: ci_recovered
+      description: "Resume when CI health returns to normal."
+      condition: ci_health_check == "healthy"
+      action: release_all
+
+    - name: manual_unfreeze
+      description: "Human removes the freeze label or command."
+      condition: merge_queue_label != "freeze"
+      action: release_all
+
+# Escalation
+# When the sequencer cannot resolve ordering.
+escalation:
+  rules:
+    - name: circular_dependency
+      description: "PR A depends on B, B depends on A — cannot order."
+      condition: circular_dependency_detected == true
+      action: escalate_to_human
+      notify:
+        - role: tech_lead
+
+    - name: stale_queue
+      description: "PR has been in queue longer than timeout without progress."
+      condition: queue_time_hours > stale_pr_timeout_hours
+      action: escalate_to_human
+      notify:
+        - role: tech_lead
+
+    - name: repeated_rebase_failure
+      description: "PR has failed re-evaluation rebase more than max_retries times."
+      condition: rebase_failure_count > re_evaluation.triggers[0].max_retries
+      action: escalate_to_human
+      notify:
+        - role: tech_lead

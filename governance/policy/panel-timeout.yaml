@@ -1,0 +1,29 @@
+# Panel execution timeout and fallback configuration
+# Prevents the governance pipeline from blocking indefinitely
+# when required panels cannot execute.
+# See: governance/policy/default.yaml panel_execution section
+
+panel_timeout:
+  version: "1.0.0"
+
+  # Default timeout for panel execution (minutes)
+  default_timeout_minutes: 5
+
+  # Number of retries before falling back to baseline
+  max_retries: 1
+
+  # Fallback strategy when panel execution fails
+  fallback_strategy: baseline  # Use baseline emissions from governance/emissions/
+
+  # Maximum confidence score for fallback emissions
+  fallback_confidence_cap: 0.50
+
+  # Maximum number of fallback emissions per PR before requiring human review
+  max_fallbacks_per_pr: 2
+
+  # Per-panel timeout overrides (optional)
+  per_panel_overrides:
+    security-review:
+      timeout_minutes: 8  # Security review may need more time
+    threat-modeling:
+      timeout_minutes: 8

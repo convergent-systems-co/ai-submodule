@@ -1,0 +1,45 @@
+# Circuit breaker configuration for automatic remediation loops
+# Prevents infinite remediation cycles
+# See: docs/architecture/runtime-feedback.md Section 3
+
+circuit_breaker:
+  version: "1.0.0"
+
+  # Consecutive panel executions for the same DI that produce auto_remediate
+  # without resolving the signal before the circuit trips
+  failure_threshold: 3
+
+  # Successful execution (signal resolved) resets the counter
+  success_threshold: 1
+
+  # Time the circuit remains open before allowing a half-open probe
+  cooldown_period_minutes: 30
+
+  # Exponential backoff ceiling for consecutive trips
+  max_cooldown_period_minutes: 240
+
+  # Maximum time a circuit can remain open before forced reset
+  max_open_duration_hours: 24
+
+  # Action when circuit opens
+  open_action: "human_escalation"
+
+  # Cooldown periods by priority (minimum gap between re-executions)
+  cooldown_by_priority:
+    P0: 5    # minutes
+    P1: 15
+    P2: 60
+    P3: 240
+    P4: 1440
+
+  # Panel execution failure tracking
+  # Separate from remediation loop circuit breaker
+  panel_execution:
+    # Consecutive execution failures per panel type before tripping
+    failure_threshold: 3
+    # Successful execution resets the counter
+    success_threshold: 1
+    # Cooldown before retrying a tripped panel
+    cooldown_period_minutes: 15
+    # Action when circuit opens for a panel
+    open_action: "use_baseline_and_escalate"

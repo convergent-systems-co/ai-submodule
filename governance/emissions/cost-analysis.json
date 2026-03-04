@@ -1,0 +1,74 @@
+{
+  "panel_name": "cost-analysis",
+  "panel_version": "1.0.0",
+  "schema_version": "1.2.0",
+  "confidence_score": 0.88,
+  "risk_level": "low",
+  "compliance_score": 0.90,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-03-03T14:03:00Z",
+  "findings": [
+    {
+      "persona": "domain/finops-analyst",
+      "verdict": "approve",
+      "confidence": 0.89,
+      "rationale": "No infrastructure cost impact. Changes are governance framework configuration only. The CI pre-check step adds minimal compute time (seconds) to the existing governance workflow. No new cloud resources provisioned.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 1
+      },
+      "evidence": {
+        "file": ".github/workflows/dark-factory-governance.yml",
+        "snippet": "pre-check step adds minimal CI compute overhead"
+      },
+      "groundedness_score": 0.90,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "domain/finops-engineer",
+      "verdict": "approve",
+      "confidence": 0.88,
+      "rationale": "Token cost impact is negligible. Copilot-review promotion to required panel may increase per-PR governance cost marginally, but the security risk reduction justifies the incremental spend. No budget threshold breached.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 1
+      },
+      "evidence": {
+        "file": "governance/policy/default.yaml",
+        "snippet": "copilot-review added to required_panels list"
+      },
+      "groundedness_score": 0.88,
+      "hallucination_indicators": []
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "branch": "itsfwcp/feat/737/copilot-dependabot-hard-gates",
+    "commit_sha": "89ae8164209aac9a4469cc5e94d2a8c8a31544d6",
+    "pr_number": 737,
+    "policy_profile": "default",
+    "model_id": "claude-opus-4-6",
+    "triggered_by": "manual"
+  },
+  "data_classification": {
+    "level": "internal",
+    "contains_sensitive_evidence": false,
+    "redaction_applied": false,
+    "sensitive_categories": []
+  },
+  "execution_trace": {
+    "files_read": [
+      "governance/policy/default.yaml",
+      ".github/workflows/dark-factory-governance.yml"
+    ],
+    "diff_lines_analyzed": 699
+  }
+}

@@ -1,0 +1,896 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-03-02T22:48:51Z",
+  "prompt_count": 75,
+  "prompts": [
+    {
+      "id": "agent-protocol",
+      "name": "Agent Protocol",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/agent-protocol.md",
+      "content_hash": "ab93c9b0fe46e2b74d31c76efdea972726e7418a9041b633789dd5bc497618c2",
+      "last_modified": "2026-02-27T17:14:02Z"
+    },
+    {
+      "id": "backward-compatibility-workflow",
+      "name": "Backward Compatibility Workflow",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/backward-compatibility-workflow.md",
+      "content_hash": "ba95fe61201bb49e45298527891ccb359a67729315f584708f3077c981af4d90",
+      "last_modified": "2026-02-26T04:34:25Z"
+    },
+    {
+      "id": "checkpoint-resumption-workflow",
+      "name": "Checkpoint Resumption Workflow",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/checkpoint-resumption-workflow.md",
+      "content_hash": "4fbc4c7fedb5cc20dce70b9cfc209292b3d608eedeb190a2336fe908a462c2f3",
+      "last_modified": "2026-02-26T04:34:25Z"
+    },
+    {
+      "id": "code-review",
+      "name": "Code Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/code-review.md",
+      "content_hash": "e4f941f01a0cdace3bc98b270f01f5a1b9671fb893673c10952293a7444e814d",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "commit",
+      "name": "Commit",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/commit.md",
+      "content_hash": "5c608e0ba56ad0ea36f54e3c0ac76d9504ca895fb4caacbc31c85c9b73328297",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "cross-repo-escalation-workflow",
+      "name": "Cross Repo Escalation Workflow",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/cross-repo-escalation-workflow.md",
+      "content_hash": "ec594933c670ba27f7daf481be4ae25a693e8b5c8ee301c0e666820b5ec9667d",
+      "last_modified": "2026-02-27T16:44:59Z"
+    },
+    {
+      "id": "data-governance-workflow",
+      "name": "Data Governance Workflow",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/data-governance-workflow.md",
+      "content_hash": "dad7adc7ecd4973003f6e0c988539e055aae59785d56ea34d43f1706f1365add",
+      "last_modified": "2026-02-25T18:11:27Z"
+    },
+    {
+      "id": "debug",
+      "name": "Debug",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/debug.md",
+      "content_hash": "e8f1ffb9891cc5e7ec3726b36f80b4777a0a2c21e668fff663bac3e9d9d8df93",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "devops-operations-loop",
+      "name": "Devops Operations Loop",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/devops-operations-loop.md",
+      "content_hash": "761189d10c312c7cd181c545af98df25b0d59215712b407ba26317df6d883767",
+      "last_modified": "2026-03-02T22:30:48Z"
+    },
+    {
+      "id": "di-generation-workflow",
+      "name": "Di Generation Workflow",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/di-generation-workflow.md",
+      "content_hash": "9b648c51667fea2caf8c2b9e961919b4b328da527c429d7749ad99fdacf95597",
+      "last_modified": "2026-02-25T23:31:02Z"
+    },
+    {
+      "id": "docx-generation",
+      "name": "Docx Generation",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/docx-generation.md",
+      "content_hash": "50f1f554193dd892c5ccaf7977d58cced88ebf597304dacb7689f328a58b5804",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "explain",
+      "name": "Explain",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/explain.md",
+      "content_hash": "27bec0812cb0625f3259ad48ad6e938307d558a2d039cada1833ef16d180d914",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "github-pages-setup",
+      "name": "global-ops-github-pages-setup",
+      "description": "Sets up GitHub Pages on a repository using GitHub Actions deployment with Jekyll 4.x. Includes workflow creation, Jekyll configuration, Liquid template protection, and optional URL migration.",
+      "status": "beta",
+      "tags": [
+        "github-pages",
+        "deployment",
+        "documentation",
+        "workflow",
+        "jekyll"
+      ],
+      "model": "Claude Sonnet 4.5 (copilot)",
+      "file_path": "governance/prompts/github-pages-setup.md",
+      "content_hash": "e2d53c07b9b8f4a40d69bca14e4da0563cd808da953adf51461391d6d31c801c",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "governance-change-proposal",
+      "name": "Governance Change Proposal",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/governance-change-proposal.md",
+      "content_hash": "9bf461cdec50cc2743d40ac86b156727dd0be061d6b25810906cc0e9b1650080",
+      "last_modified": "2026-03-02T20:07:01Z"
+    },
+    {
+      "id": "governance-compliance-checklist",
+      "name": "Governance Compliance Checklist",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/governance-compliance-checklist.md",
+      "content_hash": "7872929950bad39f19b03e14d3421062d8880dbf672f0fd6938ce7434894e392",
+      "last_modified": "2026-02-26T04:34:25Z"
+    },
+    {
+      "id": "init",
+      "name": "Init",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/init.md",
+      "content_hash": "a7868c0c2049ad87f29002b00cfe334c5159f971303803032453c946567768d0",
+      "last_modified": "2026-03-02T19:54:59Z"
+    },
+    {
+      "id": "migrate",
+      "name": "Migrate",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/migrate.md",
+      "content_hash": "8be977978f3d0c9a3d8a85aa9711cb2ab7d771f042e72e6d67a967adc4e54744",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "plan",
+      "name": "Plan",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/plan.md",
+      "content_hash": "768f7fb6f65fabd72c087c50712a45edb2fa978b5c96b0102c6b76cd475dbe76",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "refactor",
+      "name": "Refactor",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/refactor.md",
+      "content_hash": "c59596bea7cc9661fbcb7e345c61f00b3db80d9bc1cf61576820e8152e002598",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "remediation-workflow",
+      "name": "Remediation Workflow",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/remediation-workflow.md",
+      "content_hash": "3c73f18162c6779c87858212d5e8f3160accd30922a44af9c811cb8be13aeb9c",
+      "last_modified": "2026-02-25T16:09:46Z"
+    },
+    {
+      "id": "retrospective",
+      "name": "Retrospective",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/retrospective.md",
+      "content_hash": "e4dd3764cac83342019dd6889b0d01c6b27b141a3ee45dc3000eb54a577cc432",
+      "last_modified": "2026-02-25T18:11:27Z"
+    },
+    {
+      "id": "reviews/ai-expert-review",
+      "name": "Ai Expert Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/ai-expert-review.md",
+      "content_hash": "c2de94e1c83d9c147f2cdbd5ee30718d78bea109475d61ddc0170765ec29a00f",
+      "last_modified": "2026-03-02T20:04:23Z"
+    },
+    {
+      "id": "reviews/api-design-review",
+      "name": "Api Design Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/api-design-review.md",
+      "content_hash": "14ef933c21b99f34f68a9630a95f500cde043a854f9e00adf1de31b555b51982",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/architecture-review",
+      "name": "Architecture Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/architecture-review.md",
+      "content_hash": "89476edfc4b78e5020fa86ba0d7b805da65a3d214e50fd56fe229b28300b736d",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/code-review",
+      "name": "Code Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/code-review.md",
+      "content_hash": "5edbcefba012ad41248043699723433a9bb153e0c310f22308a4768dfde63d47",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/copilot-review",
+      "name": "Copilot Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/copilot-review.md",
+      "content_hash": "5bc5aaedfc8214b79a30272ff12de1cedc60ec1aa91cc4c35258e08c3c3f4f3c",
+      "last_modified": "2026-03-02T20:04:23Z"
+    },
+    {
+      "id": "reviews/cost-analysis",
+      "name": "Cost Analysis",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/cost-analysis.md",
+      "content_hash": "186e7d68d2985dd17f632c4566bb4b7211373aecf35aa4413795f6e7896fba89",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/data-design-review",
+      "name": "Data Design Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/data-design-review.md",
+      "content_hash": "dfb6bef4da1a4b253bac7d708440b925704b8e714913a08f2fc4b441df18d4df",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/data-governance-review",
+      "name": "Data Governance Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/data-governance-review.md",
+      "content_hash": "c78228042575032ba4c03e6266fb944ab45226ca59f47365c9d41e3b99fb2dc9",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/documentation-review",
+      "name": "Documentation Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/documentation-review.md",
+      "content_hash": "7f32cb1f154d8fa522fb8fadbd152ce4560a7096bc0a6de8d2b389a7e50749dd",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/finops-review",
+      "name": "Finops Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/finops-review.md",
+      "content_hash": "6c82e9da47812a35275b81675ec5dd45fda57d2725c31cf66a8f9885609578ab",
+      "last_modified": "2026-03-02T20:04:23Z"
+    },
+    {
+      "id": "reviews/governance-compliance-review",
+      "name": "Governance Compliance Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/governance-compliance-review.md",
+      "content_hash": "23023feeb05492185905e8ea057791b2521b192345e699895c07446a2c115f19",
+      "last_modified": "2026-03-02T20:04:23Z"
+    },
+    {
+      "id": "reviews/jm-standards-compliance-review",
+      "name": "Jm Standards Compliance Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/jm-standards-compliance-review.md",
+      "content_hash": "f45f203a026b759ad26b1fa6d97eeda398d15c21c6679a7039ad99092168af69",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/migration-review",
+      "name": "Migration Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/migration-review.md",
+      "content_hash": "c1bfdb45c7904201c3bb55d9b99ddd82f6a550215e7dca382e2d2181483a14b2",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/performance-review",
+      "name": "Performance Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/performance-review.md",
+      "content_hash": "1cb542f25cdaf50bc221336c56318786b59e542e43b309dbba0bc1c8be5625fd",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/production-readiness-review",
+      "name": "Production Readiness Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/production-readiness-review.md",
+      "content_hash": "3aa21364aaeab9671e3710e5961be3e35da431fcca0fe9d395aa4cd76fb5a982",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/security-review",
+      "name": "Security Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/security-review.md",
+      "content_hash": "254b57f92425c10762f9028ce1a6191f54347faab77e98db17a377a087d28d55",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/technical-debt-review",
+      "name": "Technical Debt Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/technical-debt-review.md",
+      "content_hash": "85f83fd59d3db0575f94bbf9f0921f881f1ed539183f038f8f6de9c28f9f76a0",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/test-generation-review",
+      "name": "Test Generation Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/test-generation-review.md",
+      "content_hash": "8e2dda628db5c9ef0996c6012003e6eca44536e650b1ec3d5b11fd86c75f0980",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/testing-review",
+      "name": "Testing Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/testing-review.md",
+      "content_hash": "20a9ccc2504c15218323bade1df47f385221b3174f1af7a708059244d4ec3d27",
+      "last_modified": "2026-03-02T20:06:47Z"
+    },
+    {
+      "id": "reviews/threat-model-system",
+      "name": "Threat Model System",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/threat-model-system.md",
+      "content_hash": "d0fe3c12056688a137c79192893efa2fc3ce4ec92c59070fb9b586a95a5833de",
+      "last_modified": "2026-03-02T21:00:28Z"
+    },
+    {
+      "id": "reviews/threat-modeling",
+      "name": "Threat Modeling",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/reviews/threat-modeling.md",
+      "content_hash": "bdb981d57d8630555a2ffa053ef47acfcf0929e018e1229699c107ed81a63042",
+      "last_modified": "2026-03-02T21:00:28Z"
+    },
+    {
+      "id": "shared-perspectives",
+      "name": "Shared Perspectives",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/shared-perspectives.md",
+      "content_hash": "669864da923da21288216c82956b262afdda41aa172398f546474a4291fb505d",
+      "last_modified": "2026-02-27T23:15:52Z"
+    },
+    {
+      "id": "startup-legacy",
+      "name": "Startup Legacy",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-legacy.md",
+      "content_hash": "be1b1b044f5e6e1a497b79fb735b0025d8354fc7c6e60826fabdd6173fcadf1a",
+      "last_modified": "2026-03-02T22:12:16Z"
+    },
+    {
+      "id": "startup-phases/phase-0-recovery",
+      "name": "Phase 0 Recovery",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-phases/phase-0-recovery.md",
+      "content_hash": "da20d97f1309fee329e3d7b7f7d61f0931f062ce3ceffaadd4b4fc2404b1d6d5",
+      "last_modified": "2026-03-02T03:41:34Z"
+    },
+    {
+      "id": "startup-phases/phase-1-preflight",
+      "name": "Phase 1 Preflight",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-phases/phase-1-preflight.md",
+      "content_hash": "20b15c37cd82cbc3b45c32d97a8db4cf775387756e5a226ba713cb6bcfa068f9",
+      "last_modified": "2026-03-02T16:45:21Z"
+    },
+    {
+      "id": "startup-phases/phase-2-planning",
+      "name": "Phase 2 Planning",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-phases/phase-2-planning.md",
+      "content_hash": "cd325a30aabd72fab4512ffcfd7b2d8fa605716bc657b571584eed75ce775134",
+      "last_modified": "2026-03-02T03:41:34Z"
+    },
+    {
+      "id": "startup-phases/phase-3-dispatch",
+      "name": "Phase 3 Dispatch",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-phases/phase-3-dispatch.md",
+      "content_hash": "39ad2bda9538fd0fba50cfcb06f678dd24ab6f79d4754109439a36e854d7c350",
+      "last_modified": "2026-03-02T03:41:34Z"
+    },
+    {
+      "id": "startup-phases/phase-4-review",
+      "name": "Phase 4 Review",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-phases/phase-4-review.md",
+      "content_hash": "4a435686fbc4df42fc74d4d0827897af489d71b76cc63de09bab1e720713a4d4",
+      "last_modified": "2026-03-02T03:41:34Z"
+    },
+    {
+      "id": "startup-phases/phase-5-merge",
+      "name": "Phase 5 Merge",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-phases/phase-5-merge.md",
+      "content_hash": "68a66703d972dfa0e99018e7a4587838f87943f091a680749c90a5b903a5a7ec",
+      "last_modified": "2026-03-02T03:41:34Z"
+    },
+    {
+      "id": "startup-pm-mode",
+      "name": "Startup Pm Mode",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup-pm-mode.md",
+      "content_hash": "f774b9259b68788a23d46e22ec93d2be9b16e8490b619eb622a201210f0fd050",
+      "last_modified": "2026-03-02T03:41:34Z"
+    },
+    {
+      "id": "startup",
+      "name": "Startup",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/startup.md",
+      "content_hash": "106773b60f6c522eb98b74fc66df1b9b322dcb8c69f0f414277348fb84e6304e",
+      "last_modified": "2026-03-02T22:30:48Z"
+    },
+    {
+      "id": "test-coverage-gate",
+      "name": "Test Coverage Gate",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/test-coverage-gate.md",
+      "content_hash": "b02404d809ce1903a62c71c747785c0460f25946721142f30bc32e1da7c45867",
+      "last_modified": "2026-02-25T18:11:27Z"
+    },
+    {
+      "id": "workflows/acceptance-verification",
+      "name": "Acceptance Verification",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/acceptance-verification.md",
+      "content_hash": "9d7b7e7a1b2ed0284b90d5b22f21f57a7b56d9dff30cffe7cda3747ff456a229",
+      "last_modified": "2026-02-24T13:21:22Z"
+    },
+    {
+      "id": "workflows/api-design",
+      "name": "Api Design",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/api-design.md",
+      "content_hash": "6c397ab5e3344d8c7afc644830660bf0d877152de00ce2e8f64a2cdded477055",
+      "last_modified": "2026-02-25T15:01:21Z"
+    },
+    {
+      "id": "workflows/architecture-decision",
+      "name": "Architecture Decision",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/architecture-decision.md",
+      "content_hash": "e248fe46b94b7a75194319a4370a9b11ec9babd49f200bdca9b2269e617dc7c6",
+      "last_modified": "2026-02-25T15:01:21Z"
+    },
+    {
+      "id": "workflows/bug-fix",
+      "name": "Bug Fix",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/bug-fix.md",
+      "content_hash": "9b9b2fc9a4b592c0796a84503fe39ecd8388842e799f0b0bf9c766dbe8c65515",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "workflows/documentation",
+      "name": "Documentation",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/documentation.md",
+      "content_hash": "00217b239f273d1eb110025d37e97816dffa13ecf87c7abc6a952288a7f5d823",
+      "last_modified": "2026-02-25T15:01:21Z"
+    },
+    {
+      "id": "workflows/feature-implementation",
+      "name": "Feature Implementation",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/feature-implementation.md",
+      "content_hash": "317046c7890431a1218d8673490f5137f80113429a6680a5e8b0143bdaa06a9a",
+      "last_modified": "2026-02-25T15:01:21Z"
+    },
+    {
+      "id": "workflows/incident-response",
+      "name": "Incident Response",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/incident-response.md",
+      "content_hash": "675c24dab5d8cb779c449cbc4ca972c790d426bbc0dcc9486536569023ebfe94",
+      "last_modified": "2026-02-25T15:01:21Z"
+    },
+    {
+      "id": "workflows/migration",
+      "name": "Migration",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/migration.md",
+      "content_hash": "54c2c1d7d584bbe51c4a32af9716e108aaf3fa2d3a228093144985c362f774f9",
+      "last_modified": "2026-02-25T15:01:21Z"
+    },
+    {
+      "id": "workflows/refactoring",
+      "name": "Refactoring",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/workflows/refactoring.md",
+      "content_hash": "e516b06cb16977840bd9d614d84a2442b0c7c2d82285696a3caedc4967ac34c7",
+      "last_modified": "2026-02-25T15:01:21Z"
+    },
+    {
+      "id": "write-tests",
+      "name": "Write Tests",
+      "description": "",
+      "status": "concept",
+      "tags": [],
+      "model": null,
+      "file_path": "governance/prompts/write-tests.md",
+      "content_hash": "040e617ce0fd30a4580a8494669989c8df049435d5578f937e2387e4b681cfd2",
+      "last_modified": "2026-02-21T21:49:44Z"
+    },
+    {
+      "id": "global-dev-code-review",
+      "name": "global-dev-code-review",
+      "description": "Review code for quality, security, and performance",
+      "status": "production",
+      "tags": [
+        "dev",
+        "review",
+        "security",
+        "quality"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-code-review.prompt.md",
+      "content_hash": "72a45421affab6937b88ba9cd05e4f02d243030fe08f477eabdf30f47419a3f9",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-context-summary",
+      "name": "global-dev-context-summary",
+      "description": "Summarize current codebase context for session handoff or checkpoint",
+      "status": "production",
+      "tags": [
+        "dev",
+        "context",
+        "handoff",
+        "checkpoint"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-context-summary.prompt.md",
+      "content_hash": "8eb9353e7ba6e8b3838c183d144c328e2c369f0274fa76f1c6bca54cad03df71",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-debug",
+      "name": "global-dev-debug",
+      "description": "Systematic debugging workflow for errors and unexpected behavior",
+      "status": "production",
+      "tags": [
+        "dev",
+        "debug",
+        "troubleshooting"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-debug.prompt.md",
+      "content_hash": "bc456eadbf5ddfba03914bf77f5794028d348e1d86e801d56938612859e5dc0f",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-explain",
+      "name": "global-dev-explain",
+      "description": "Explain code in detail with examples and context",
+      "status": "production",
+      "tags": [
+        "dev",
+        "explain",
+        "documentation",
+        "learning"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-explain.prompt.md",
+      "content_hash": "67250ce4e5193687fc6debe13f79f5596db5c06d1c66be33b1b7e217664985af",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-git-review",
+      "name": "global-dev-git-review",
+      "description": "Review staged changes and suggest a conventional commit message",
+      "status": "production",
+      "tags": [
+        "dev",
+        "git",
+        "commit",
+        "review"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-git-review.prompt.md",
+      "content_hash": "f38329d58f631a9c0b72ea355d038741ae6848f6696c1e78151aa500030f43d7",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-plan-create",
+      "name": "global-dev-plan-create",
+      "description": "Create an implementation plan for a feature or fix",
+      "status": "production",
+      "tags": [
+        "dev",
+        "planning",
+        "architecture"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-plan-create.prompt.md",
+      "content_hash": "b61412063c861c31b96189d0da4247b30c652731fc819f09742ecd12019f77e8",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-plan-execute",
+      "name": "global-dev-plan-execute",
+      "description": "Execute an existing implementation plan step by step",
+      "status": "production",
+      "tags": [
+        "dev",
+        "planning",
+        "execution",
+        "implementation"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-plan-execute.prompt.md",
+      "content_hash": "75525456999f3fd5450b69f9df8a70457eb88579d0ead9bb566f158bf2e2ff5a",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-pr-create",
+      "name": "global-dev-pr-create",
+      "description": "Generate a well-structured PR description from branch diff",
+      "status": "production",
+      "tags": [
+        "dev",
+        "git",
+        "pr",
+        "github"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-pr-create.prompt.md",
+      "content_hash": "dfdf80e93b525b42a775e6660eb46daa9178ed0f8e081d406b24aa3e5efa3c95",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-pr-review",
+      "name": "global-dev-pr-review",
+      "description": "Perform a thorough code review on a pull request",
+      "status": "production",
+      "tags": [
+        "dev",
+        "git",
+        "pr",
+        "review",
+        "github"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-pr-review.prompt.md",
+      "content_hash": "629d9f0c3c0885415ba5f0e9d49dc96f135cf2622baff1f53e2cfcf7b1998c81",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-refactor",
+      "name": "global-dev-refactor",
+      "description": "Suggest and implement refactoring improvements for code",
+      "status": "production",
+      "tags": [
+        "dev",
+        "refactor",
+        "quality",
+        "maintainability"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-refactor.prompt.md",
+      "content_hash": "8b802acf399af19f513ab8eb0fca041019d2dcb35668b8cda7aa4de07dceefde",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-release-notes",
+      "name": "global-dev-release-notes",
+      "description": "Generate release notes from git history between two refs",
+      "status": "production",
+      "tags": [
+        "dev",
+        "git",
+        "release",
+        "documentation"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-release-notes.prompt.md",
+      "content_hash": "bae5020e0350ea16a9e0cf3589985832dbe3da1ab0f0b00275fb184cd8cb34ca",
+      "last_modified": "2026-02-27T17:42:25Z"
+    },
+    {
+      "id": "global-dev-write-tests",
+      "name": "global-dev-write-tests",
+      "description": "Generate comprehensive tests for code under test",
+      "status": "production",
+      "tags": [
+        "dev",
+        "testing",
+        "quality"
+      ],
+      "model": null,
+      "file_path": "prompts/global/global-dev-write-tests.prompt.md",
+      "content_hash": "b211a62a9f4e010645eaab4c549fc1fdeaea4dab8eec60e90807ae5fed197be7",
+      "last_modified": "2026-02-27T17:42:25Z"
+    }
+  ]
+}

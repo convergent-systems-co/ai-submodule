@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Governance Prompt Catalog</title>
+<style>
+:root {
+  --nord0: #2e3440; --nord1: #3b4252; --nord2: #434c5e; --nord3: #4c566a;
+  --nord4: #d8dee9; --nord5: #e5e9f0; --nord6: #eceff4;
+  --nord7: #8fbcbb; --nord8: #88c0d0; --nord9: #81a1c1; --nord10: #5e81ac;
+  --nord11: #bf616a; --nord12: #d08770; --nord13: #ebcb8b; --nord14: #a3be8c; --nord15: #b48ead;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: var(--nord0); color: var(--nord4); line-height: 1.6;
+  min-height: 100vh;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+header { text-align: center; margin-bottom: 2.5rem; }
+header h1 { font-size: 2rem; color: var(--nord6); margin-bottom: 0.5rem; }
+header p { color: var(--nord3); font-size: 0.95rem; }
+.controls { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; align-items: center; }
+.search-box {
+  flex: 1; min-width: 250px; padding: 0.7rem 1rem; border-radius: 6px;
+  border: 1px solid var(--nord3); background: var(--nord1); color: var(--nord6);
+  font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+}
+.search-box:focus { border-color: var(--nord8); }
+.search-box::placeholder { color: var(--nord3); }
+.filter-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.filter-btn {
+  padding: 0.5rem 1rem; border-radius: 6px; border: 1px solid var(--nord3);
+  background: var(--nord1); color: var(--nord4); cursor: pointer;
+  font-size: 0.85rem; transition: all 0.2s;
+}
+.filter-btn:hover { background: var(--nord2); border-color: var(--nord8); }
+.filter-btn.active { background: var(--nord10); border-color: var(--nord10); color: var(--nord6); }
+.stats { display: flex; gap: 2rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+.stat { font-size: 0.85rem; color: var(--nord3); }
+.stat strong { color: var(--nord8); font-size: 1.1rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.25rem; }
+.card {
+  background: var(--nord1); border: 1px solid var(--nord2); border-radius: 8px;
+  padding: 1.25rem; cursor: pointer; transition: all 0.2s;
+  display: flex; flex-direction: column;
+}
+.card:hover { border-color: var(--nord8); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.6rem; }
+.card-title { font-size: 1.05rem; font-weight: 600; color: var(--nord6); }
+.badge {
+  display: inline-block; padding: 0.15rem 0.55rem; border-radius: 4px;
+  font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  flex-shrink: 0; margin-left: 0.5rem;
+}
+.badge-review { background: var(--nord10); color: var(--nord6); }
+.badge-developer { background: var(--nord14); color: var(--nord0); }
+.card-desc { font-size: 0.85rem; color: var(--nord3); margin-bottom: 0.75rem; flex: 1;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.card-meta { display: flex; gap: 1rem; font-size: 0.78rem; color: var(--nord3); flex-wrap: wrap; }
+.card-meta span { display: inline-flex; align-items: center; gap: 0.3rem; }
+.detail-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  z-index: 1000; justify-content: center; align-items: flex-start; padding: 3rem 1rem;
+  overflow-y: auto;
+}
+.detail-overlay.active { display: flex; }
+.detail-panel {
+  background: var(--nord1); border: 1px solid var(--nord2); border-radius: 10px;
+  max-width: 700px; width: 100%; padding: 2rem; position: relative;
+  max-height: 85vh; overflow-y: auto;
+}
+.detail-close {
+  position: absolute; top: 1rem; right: 1rem; background: none; border: none;
+  color: var(--nord3); font-size: 1.5rem; cursor: pointer; line-height: 1;
+}
+.detail-close:hover { color: var(--nord11); }
+.detail-panel h2 { color: var(--nord6); margin-bottom: 0.5rem; font-size: 1.3rem; }
+.detail-panel .detail-type { margin-bottom: 1rem; }
+.detail-section { margin-top: 1.25rem; }
+.detail-section h3 { color: var(--nord8); font-size: 0.95rem; margin-bottom: 0.5rem; border-bottom: 1px solid var(--nord2); padding-bottom: 0.3rem; }
+.detail-section ul { list-style: none; padding: 0; }
+.detail-section li { padding: 0.25rem 0; font-size: 0.88rem; color: var(--nord4); }
+.detail-section li::before { content: "\2022"; color: var(--nord8); margin-right: 0.5rem; }
+.detail-path { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; color: var(--nord3); background: var(--nord0); padding: 0.3rem 0.6rem; border-radius: 4px; display: inline-block; margin-top: 0.5rem; word-break: break-all; }
+.detail-hash { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.75rem; color: var(--nord3); word-break: break-all; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.4rem; }
+.tag {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px;
+  font-size: 0.72rem; background: var(--nord2); color: var(--nord4);
+}
+footer { text-align: center; margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--nord2); color: var(--nord3); font-size: 0.8rem; }
+.no-results { text-align: center; padding: 3rem 1rem; color: var(--nord3); font-size: 1rem; display: none; }
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; }
+  .controls { flex-direction: column; }
+  header h1 { font-size: 1.5rem; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>AI Governance Prompt Catalog</h1>
+    <p>33 prompts &mdash; 21 review panels + 12 developer prompts</p>
+  </header>
+
+  <div class="controls">
+    <input type="text" id="search" class="search-box" placeholder="Search prompts by name, category, or perspective..." />
+    <div class="filter-buttons">
+      <button class="filter-btn active" data-filter="all">All (33)</button>
+      <button class="filter-btn" data-filter="review">Review Panels (21)</button>
+      <button class="filter-btn" data-filter="developer">Developer Prompts (12)</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="grid" id="grid"></div>
+  <div class="no-results" id="no-results">No prompts match your search.</div>
+
+  <div class="detail-overlay" id="overlay">
+    <div class="detail-panel" id="detail-panel"></div>
+  </div>
+
+  <footer>
+    Generated on 2026-03-02T19:26:33Z &bull; AI Governance Platform &bull;
+    <a href="https://github.com/SET-Apps/ai-submodule" style="color:var(--nord8);text-decoration:none;">SET-Apps/ai-submodule</a>
+  </footer>
+</div>
+<script>
+const catalog = [{"name": "ai-expert-review", "display_name": "AI Expert", "type": "review", "path": "governance/prompts/reviews/ai-expert-review.md", "description": "Evaluate changes to AI governance artifacts for impact on agent behavior, prompt engineering quality, governance pipeline integrity, and AI safety. This panel is the governance gate for changes that affect how AI agents reason, act, and are constrained within the Dark Forge pipeline.", "perspectives": ["AI Safety Specialist", "Prompt Engineer", "Governance Architect"], "perspective_count": 3, "categories": ["ai-safety"], "pass_fail_criteria": ["Confidence score: >= 0.70", "Critical findings: 0", "High findings: <= 2", "Aggregate verdict: `approve`", "Compliance score: >= 0.70"], "content_hash": "sha256:e350e76a902a8e895a5bc7ab8fc42ac183c923b05c7182d7981432a2b1414835", "last_updated": "2026-03-02"}, {"name": "api-design-review", "display_name": "API Design Review", "type": "review", "path": "governance/prompts/reviews/api-design-review.md", "description": "Evaluate API design from both provider and consumer perspectives. This panel assesses REST correctness, contract stability, security posture, implementation feasibility, and client integration experience to produce a comprehensive evaluation of the API surface before it is exposed to consumers.", "perspectives": ["API Designer", "API Consumer", "Security Auditor", "Backend Engineer", "Frontend Engineer"], "perspective_count": 5, "categories": ["architecture"], "pass_fail_criteria": ["| Confidence score: >= 0.70", "| Critical findings: 0", "| High findings: <= 2", "| Aggregate verdict: `approve`", "| Compliance score: >= 0.70"], "content_hash": "sha256:49ee6b4467b6bac54c4c6a6b86972905908cb6cd87d55e7177adb1ffd3e2d272", "last_updated": "2026-03-02"}, {"name": "architecture-review", "display_name": "Architecture Review", "type": "review", "path": "governance/prompts/reviews/architecture-review.md", "description": "Evaluate system design decisions from multiple architectural perspectives. This panel assesses scalability, security boundaries, failure modes, infrastructure topology, and API contracts to surface cross-cutting risks before implementation proceeds.", "perspectives": ["Systems Architect", "Security Auditor", "Failure Engineer", "Infrastructure Engineer", "API Designer"], "perspective_count": 5, "categories": ["architecture"], "pass_fail_criteria": ["| Confidence score: >= 0.70", "| Critical findings: 0", "| High findings: <= 1", "| Aggregate verdict: `approve`", "| Compliance score: >= 0.75"], "content_hash": "sha256:d08fe65402f5588c7581010dec9c3d175a47bfe2d47adf97dab421c927e3436b", "last_updated": "2026-03-02"}, {"name": "code-review", "display_name": "Code Review", "type": "review", "path": "governance/prompts/reviews/code-review.md", "description": "Comprehensive code evaluation from multiple engineering perspectives. This panel examines correctness, security, performance, testability, and maintainability to produce a holistic assessment of production readiness.", "perspectives": ["Code Reviewer", "Security Auditor", "Performance Engineer", "Test Engineer", "Refactor Specialist"], "perspective_count": 5, "categories": ["code-quality"], "pass_fail_criteria": ["Confidence score: >= 0.70", "Critical findings: 0", "High findings: <= 2", "Aggregate verdict: approve", "Compliance score: >= 0.70"], "content_hash": "sha256:dc5fcca49d9ab36bf906c3d4e04524d6fe73663facd27551f51c54a25cf7aa27", "last_updated": "2026-03-02"}, {"name": "copilot-review", "display_name": "Copilot Integration", "type": "review", "path": "governance/prompts/reviews/copilot-review.md", "description": "Integrates GitHub Copilot as a formal review panel within the Dark Forge governance pipeline. Copilot feedback is parsed, classified, and emitted as structured output compatible with the policy engine. This enables Copilot's automated code analysis to participate in governance decisions alongside persona-based panels.", "perspectives": [], "perspective_count": 0, "categories": ["operations"], "pass_fail_criteria": ["Confidence score: >= 0.60", "Critical findings: 0 (escalate to human review)", "High findings: <= 3", "Aggregate verdict: `approve`", "Compliance score: >= 0.60"], "content_hash": "sha256:8766ecff8ea8e1dfa30f2dafbb8d8e0042354905bb8fef010bb9ce668a616dae", "last_updated": "2026-03-02"}, {"name": "cost-analysis", "display_name": "Cost Analysis", "type": "review", "path": "governance/prompts/reviews/cost-analysis.md", "description": "Evaluate the cost implications of proposed changes, including estimated implementation cost (AI token usage), infrastructure deployment costs, and ongoing runtime costs.", "perspectives": ["FinOps Analyst", "FinOps Engineer", "Cost Optimizer", "Cloud Cost Analyst", "LLM Cost Analyst", "Infrastructure Engineer"], "perspective_count": 6, "categories": ["cost-optimization"], "pass_fail_criteria": ["Confidence score: >= 0.65", "Critical findings: 0", "High findings: <= 2", "Aggregate verdict: `approve`", "Compliance score: >= 0.65"], "content_hash": "sha256:307dd1c4b5956eac76b031f8d5fbe8a84677fc79908a3ae96cedb9138ff74624", "last_updated": "2026-03-02"}, {"name": "data-design-review", "display_name": "Data Design", "type": "review", "path": "governance/prompts/reviews/data-design-review.md", "description": "Evaluate data architecture, schema design, and data management practices for proposed changes. This panel assesses structural soundness, query performance, migration safety, security posture, and regulatory compliance of data-layer changes.", "perspectives": ["Data Architect", "Backend Engineer", "Performance Engineer", "Security Auditor", "Compliance Officer"], "perspective_count": 5, "categories": ["architecture", "data-governance"], "pass_fail_criteria": ["Confidence score: >= 0.70", "Critical findings: 0", "High findings: <= 1", "Aggregate verdict: `approve`", "Compliance score: >= 0.75"], "content_hash": "sha256:88f0bb7b8db2a29c6af7ca7cffcfbe66bf14fb0ee559f54aec0977f8a9fae243", "last_updated": "2026-03-02"}, {"name": "data-governance-review", "display_name": "Data Governance Review", "type": "review", "path": "governance/prompts/reviews/data-governance-review.md", "description": "Enforce enterprise canonical data model standards from the dach-canonical-models repository. Validate that data changes comply with naming conventions, schema structure, external reference discipline, and deployment governance. This panel ensures data consistency, regulatory compliance, and canonical model integrity across all consuming services.", "perspectives": ["Data Architect", "Compliance Officer", "Domain Expert", "Security Auditor"], "perspective_count": 4, "categories": ["data-governance"], "pass_fail_criteria": ["Confidence score: >= 0.70", "Critical findings: 0", "High findings: <= 1", "Aggregate verdict: `approve`", "Canonical compliance score: >= 0.80"], "content_hash": "sha256:36a4c569256afc36992282a08fb28ea737cf09bb009c5c194adb341043af1d71", "last_updated": "2026-03-02"}, {"name": "documentation-review", "display_name": "Documentation", "type": "review", "path": "governance/prompts/reviews/documentation-review.md", "description": "Evaluate documentation completeness, accuracy, and usability for proposed changes. This panel ensures that documentation keeps pace with code changes, remains technically correct, and serves its intended audience effectively.", "perspectives": ["Documentation Reviewer", "Documentation Writer", "API Consumer", "Mentor", "UX Engineer"], "perspective_count": 5, "categories": ["documentation"], "pass_fail_criteria": ["Confidence score: >= 0.65", "Critical findings: 0", "High findings: <= 3", "Aggregate verdict: `approve`", "Compliance score: >= 0.65"], "content_hash": "sha256:3b63d29bcad0c3ffe8cadb806c20ee60e0e5896d509500628b2c7df7ab272b8a", "last_updated": "2026-03-02"}, {"name": "finops-review", "display_name": "FinOps Review", "type": "review", "path": "governance/prompts/reviews/finops-review.md", "description": "Evaluate the financial operations impact of proposed changes, including cloud cost optimization opportunities, resource right-sizing, savings plan analysis, cost allocation compliance, and safe shutdown/decommission recommendations with mandatory human approval guardrails.", "perspectives": ["FinOps Strategist", "Resource Optimizer", "Shutdown/Decommission Analyst", "Savings Plan Advisor", "Cost Allocation Auditor"], "perspective_count": 5, "categories": ["cost-optimization"], "pass_fail_criteria": ["Confidence score: >= 0.65", "Critical findings: 0", "High findings: <= 2", "Aggregate verdict: `approve`", "Compliance score: >= 0.65", "Destruction without human approval: Automatic block"], "content_hash": "sha256:efa73b628a4d37b1053e2e9d706740b8402f3884d3dd804d012572e85fbefce9", "last_updated": "2026-03-02"}, {"name": "governance-compliance-review", "display_name": "Governance Compliance Review", "type": "review", "path": "governance/prompts/reviews/governance-compliance-review.md", "description": "Evaluate whether a pull request followed the required governance steps defined in the startup and governance pipeline. This panel verifies that plans exist, panels executed, documentation was updated, and all governance artifacts are complete and consistent. It is a meta-review — it audits the governance process itself, not the code.", "perspectives": ["Governance Auditor", "Tech Lead", "Documentation Reviewer"], "perspective_count": 3, "categories": ["data-governance", "compliance"], "pass_fail_criteria": ["Confidence score: >= 0.80", "Critical findings: 0", "High findings: 0", "Medium findings: <= 2"], "content_hash": "sha256:0e0e8c7b19721ad963af81b8c2c71a9e9268d288cf720810e218d20d6e023b06", "last_updated": "2026-03-02"}, {"name": "jm-standards-compliance-review", "display_name": "JM Standards Compliance Review", "type": "review", "path": "governance/prompts/reviews/jm-standards-compliance-review.md", "description": "Evaluate whether a pull request uses JM Family approved technologies, frameworks, and patterns (\"Paved Roads\") for code and infrastructure. Flag deviations and verify documented justifications for approved overrides. This panel audits technology choices against organizational standards, not code quality — other panels handle that.", "perspectives": ["Standards Compliance Reviewer", "Infrastructure Engineer", "Deviation Auditor"], "perspective_count": 3, "categories": ["compliance"], "pass_fail_criteria": ["Confidence score: >= 0.75", "Critical findings: 0", "High findings: <= 1", "Medium findings: <= 3"], "content_hash": "sha256:c0d08702b74007ec91d96ed9dea75f1031b95989a5a34a7df9391dbffadca638", "last_updated": "2026-03-02"}, {"name": "migration-review", "display_name": "Migration Review", "type": "review", "path": "governance/prompts/reviews/migration-review.md", "description": "Evaluate a migration plan for safety, completeness, and risk mitigation. This panel assesses data integrity preservation, rollback capability, operational readiness, failure scenarios, and team coordination to determine whether a migration is safe to execute.", "perspectives": ["Migration Specialist", "Data Architect", "SRE (Site Reliability Engineer)", "Failure Engineer", "Tech Lead"], "perspective_count": 5, "categories": ["operations"], "pass_fail_criteria": ["| Confidence score: >= 0.75", "| Critical findings: 0", "| High findings: <= 1", "| Aggregate verdict: `approve`", "| Compliance score: >= 0.75"], "content_hash": "sha256:f0a9311b462920811ba954892985b57aba8e43d5f3e90b254d04b59b6bdb0c47", "last_updated": "2026-03-02"}, {"name": "performance-review", "display_name": "Performance Review", "type": "review", "path": "governance/prompts/reviews/performance-review.md", "description": "Comprehensive performance analysis from multiple perspectives. This panel evaluates algorithmic efficiency, infrastructure capacity, frontend responsiveness, and production reliability to identify bottlenecks, optimization opportunities, and capacity risks.", "perspectives": ["Performance Engineer", "Backend Engineer", "Frontend Engineer", "Infrastructure Engineer", "SRE"], "perspective_count": 5, "categories": ["performance"], "pass_fail_criteria": ["Confidence score: >= 0.65", "Critical findings: 0", "High findings: <= 2", "Aggregate verdict: approve", "Compliance score: >= 0.65"], "content_hash": "sha256:0c9cd697c32b69d4e7b2c4e5593cf628068cadaf8e48313754b0d30692f49784", "last_updated": "2026-03-02"}, {"name": "production-readiness-review", "display_name": "Production Readiness Review", "type": "review", "path": "governance/prompts/reviews/production-readiness-review.md", "description": "Assess whether a system is ready for production deployment. This panel evaluates operational maturity across reliability, infrastructure, observability, resilience, and delivery pipeline dimensions to determine if the system meets the bar for serving production traffic.", "perspectives": ["SRE (Site Reliability Engineer)", "Infrastructure Engineer", "Observability Engineer", "Failure Engineer", "DevOps Engineer"], "perspective_count": 5, "categories": ["operations"], "pass_fail_criteria": ["| Confidence score: >= 0.75", "| Critical findings: 0", "| High findings: <= 1", "| Aggregate verdict: `approve`", "| Compliance score: >= 0.80"], "content_hash": "sha256:6202c2bef81fca248c68f6565ec4cb02c2d43ab70c71e3eb386e5d9d15004ac6", "last_updated": "2026-03-02"}, {"name": "security-review", "display_name": "Security Review", "type": "review", "path": "governance/prompts/reviews/security-review.md", "description": "Comprehensive security assessment from multiple threat perspectives. This panel evaluates code changes for vulnerabilities, infrastructure risks, compliance gaps, adversarial weaknesses, and backend security concerns — producing an aggregate security posture assessment with actionable remediation guidance.", "perspectives": ["Security Auditor", "Infrastructure Engineer", "Compliance Officer", "Adversarial Reviewer", "Backend Engineer"], "perspective_count": 5, "categories": ["security"], "pass_fail_criteria": ["Confidence score: >= 0.75", "Critical findings: 0", "High findings: 0", "Aggregate verdict: `approve`", "Compliance score: >= 0.85"], "content_hash": "sha256:ac87e8c9fdffd6b8ae9bde9103ff2e532f0b5837c00bb3fde13f62aa92017643", "last_updated": "2026-03-02"}, {"name": "technical-debt-review", "display_name": "Technical Debt Review", "type": "review", "path": "governance/prompts/reviews/technical-debt-review.md", "description": "Assess and prioritize technical debt for strategic remediation. This panel inventories existing and newly introduced debt, evaluates its impact on team velocity and system reliability, and produces a prioritized remediation roadmap based on return on investment.", "perspectives": ["Refactor Specialist", "Systems Architect", "Test Engineer", "Tech Lead", "Minimalist Engineer"], "perspective_count": 5, "categories": ["code-quality"], "pass_fail_criteria": ["Confidence score: >= 0.65", "Critical findings: 0", "High findings: <= 3", "Aggregate verdict: request_changes", "Compliance score: >= 0.60"], "content_hash": "sha256:7a783dc019b1aeb45b85b4a09e8e8a48cfcb87219f1945b8365a54738f8f7c4c", "last_updated": "2026-03-02"}, {"name": "test-generation-review", "display_name": "Test Generation Review", "type": "review", "path": "governance/prompts/reviews/test-generation-review.md", "description": "Evaluate test coverage, verification requirements, and proof-of-correctness criteria for code changes. Emits structured test requirements as JSON. This panel does not execute tests -- it assesses test governance by determining what tests are required, at what verification level, and whether existing coverage meets those requirements.", "perspectives": ["Quality Engineer", "Security Auditor", "Domain Expert"], "perspective_count": 3, "categories": ["code-quality"], "pass_fail_criteria": ["Confidence score: >= 0.70", "Critical findings: 0", "High findings: <= 2", "Aggregate verdict: approve", "Coverage assessment: adequate"], "content_hash": "sha256:4261ac65defaffabfda4718e538d5e5eb515cadf14b40a10f198f114b72d7df0", "last_updated": "2026-03-02"}, {"name": "testing-review", "display_name": "Testing Review", "type": "review", "path": "governance/prompts/reviews/testing-review.md", "description": "Evaluate test coverage, quality, and testing approach comprehensively. This panel assesses the adequacy of the test portfolio, identifies gaps in coverage, and evaluates the reliability and maintainability of existing tests.", "perspectives": ["Test Engineer", "Failure Engineer", "Performance Engineer", "Security Auditor", "Code Reviewer"], "perspective_count": 5, "categories": ["code-quality"], "pass_fail_criteria": ["Confidence score: >= 0.70", "Critical findings: 0", "High findings: <= 2", "Aggregate verdict: approve", "Compliance score: >= 0.70"], "content_hash": "sha256:f6ae4c48451ce3810a0838eea9a483a220d30c1123887979d8953b34239e07af", "last_updated": "2026-03-02"}, {"name": "threat-model-system", "display_name": "Threat Model — System-Level", "type": "review", "path": "governance/prompts/reviews/threat-model-system.md", "description": "Comprehensive system-level threat model producing a structured security assessment of the entire platform or application. This is an on-demand analysis — not a per-PR gate — that maps the full attack surface to MITRE ATT&CK, performs STRIDE analysis per trust boundary, constructs attack trees, validates detection coverage, and produces a prioritized mitigation roadmap with Sigma detection rules.", "perspectives": [], "perspective_count": 0, "categories": ["security"], "pass_fail_criteria": ["Confidence score: >= 0.75", "Critical findings: 0", "High findings: 0", "Aggregate verdict: `approve`", "Compliance score: >= 0.85"], "content_hash": "sha256:f64bea727064da8dcc27474386d17dc2a18d8054add83a6e53faca63e0cfc832", "last_updated": "2026-03-02"}, {"name": "threat-modeling", "display_name": "Threat Modeling", "type": "review", "path": "governance/prompts/reviews/threat-modeling.md", "description": "Systematic PR-level threat analysis mapping the attack surface introduced or modified by a pull request to MITRE ATT&CK, performing STRIDE analysis per affected trust boundary, validating attack paths, assessing detection coverage, and producing actionable mitigation strategies. This panel runs on every PR as part of the governance pipeline.", "perspectives": [], "perspective_count": 0, "categories": ["security"], "pass_fail_criteria": ["Confidence score: >= 0.75", "Critical findings: 0", "High findings: 0", "Aggregate verdict: `approve`", "Compliance score: >= 0.85"], "content_hash": "sha256:25c3f489de447db1cbea8fa95bf83a5a92fa1a1e8cce96f9b72f418ceb3123ff", "last_updated": "2026-03-02"}, {"name": "global-dev-code-review", "display_name": "global-dev-code-review", "type": "developer", "path": "prompts/global/global-dev-code-review.prompt.md", "description": "Review code for quality, security, and performance", "perspectives": [], "perspective_count": 0, "categories": ["code-quality"], "pass_fail_criteria": [], "content_hash": "sha256:72a45421affab6937b88ba9cd05e4f02d243030fe08f477eabdf30f47419a3f9", "last_updated": "2026-03-02"}, {"name": "global-dev-context-summary", "display_name": "global-dev-context-summary", "type": "developer", "path": "prompts/global/global-dev-context-summary.prompt.md", "description": "Summarize current codebase context for session handoff or checkpoint", "perspectives": [], "perspective_count": 0, "categories": ["comprehension"], "pass_fail_criteria": [], "content_hash": "sha256:8eb9353e7ba6e8b3838c183d144c328e2c369f0274fa76f1c6bca54cad03df71", "last_updated": "2026-03-02"}, {"name": "global-dev-debug", "display_name": "global-dev-debug", "type": "developer", "path": "prompts/global/global-dev-debug.prompt.md", "description": "Systematic debugging workflow for errors and unexpected behavior", "perspectives": [], "perspective_count": 0, "categories": ["debugging"], "pass_fail_criteria": [], "content_hash": "sha256:bc456eadbf5ddfba03914bf77f5794028d348e1d86e801d56938612859e5dc0f", "last_updated": "2026-03-02"}, {"name": "global-dev-explain", "display_name": "global-dev-explain", "type": "developer", "path": "prompts/global/global-dev-explain.prompt.md", "description": "Explain code in detail with examples and context", "perspectives": [], "perspective_count": 0, "categories": ["comprehension"], "pass_fail_criteria": [], "content_hash": "sha256:67250ce4e5193687fc6debe13f79f5596db5c06d1c66be33b1b7e217664985af", "last_updated": "2026-03-02"}, {"name": "global-dev-git-review", "display_name": "global-dev-git-review", "type": "developer", "path": "prompts/global/global-dev-git-review.prompt.md", "description": "Review staged changes and suggest a conventional commit message", "perspectives": [], "perspective_count": 0, "categories": ["workflow"], "pass_fail_criteria": [], "content_hash": "sha256:f38329d58f631a9c0b72ea355d038741ae6848f6696c1e78151aa500030f43d7", "last_updated": "2026-03-02"}, {"name": "global-dev-plan-create", "display_name": "global-dev-plan-create", "type": "developer", "path": "prompts/global/global-dev-plan-create.prompt.md", "description": "Create an implementation plan for a feature or fix", "perspectives": [], "perspective_count": 0, "categories": ["planning"], "pass_fail_criteria": [], "content_hash": "sha256:b61412063c861c31b96189d0da4247b30c652731fc819f09742ecd12019f77e8", "last_updated": "2026-03-02"}, {"name": "global-dev-plan-execute", "display_name": "global-dev-plan-execute", "type": "developer", "path": "prompts/global/global-dev-plan-execute.prompt.md", "description": "Execute an existing implementation plan step by step", "perspectives": [], "perspective_count": 0, "categories": ["planning"], "pass_fail_criteria": [], "content_hash": "sha256:75525456999f3fd5450b69f9df8a70457eb88579d0ead9bb566f158bf2e2ff5a", "last_updated": "2026-03-02"}, {"name": "global-dev-pr-create", "display_name": "global-dev-pr-create", "type": "developer", "path": "prompts/global/global-dev-pr-create.prompt.md", "description": "Generate a well-structured PR description from branch diff", "perspectives": [], "perspective_count": 0, "categories": ["workflow"], "pass_fail_criteria": [], "content_hash": "sha256:dfdf80e93b525b42a775e6660eb46daa9178ed0f8e081d406b24aa3e5efa3c95", "last_updated": "2026-03-02"}, {"name": "global-dev-pr-review", "display_name": "global-dev-pr-review", "type": "developer", "path": "prompts/global/global-dev-pr-review.prompt.md", "description": "Perform a thorough code review on a pull request", "perspectives": [], "perspective_count": 0, "categories": ["workflow"], "pass_fail_criteria": [], "content_hash": "sha256:629d9f0c3c0885415ba5f0e9d49dc96f135cf2622baff1f53e2cfcf7b1998c81", "last_updated": "2026-03-02"}, {"name": "global-dev-refactor", "display_name": "global-dev-refactor", "type": "developer", "path": "prompts/global/global-dev-refactor.prompt.md", "description": "Suggest and implement refactoring improvements for code", "perspectives": [], "perspective_count": 0, "categories": ["code-quality"], "pass_fail_criteria": [], "content_hash": "sha256:8b802acf399af19f513ab8eb0fca041019d2dcb35668b8cda7aa4de07dceefde", "last_updated": "2026-03-02"}, {"name": "global-dev-release-notes", "display_name": "global-dev-release-notes", "type": "developer", "path": "prompts/global/global-dev-release-notes.prompt.md", "description": "Generate release notes from git history between two refs", "perspectives": [], "perspective_count": 0, "categories": ["workflow"], "pass_fail_criteria": [], "content_hash": "sha256:bae5020e0350ea16a9e0cf3589985832dbe3da1ab0f0b00275fb184cd8cb34ca", "last_updated": "2026-03-02"}, {"name": "global-dev-write-tests", "display_name": "global-dev-write-tests", "type": "developer", "path": "prompts/global/global-dev-write-tests.prompt.md", "description": "Generate comprehensive tests for code under test", "perspectives": [], "perspective_count": 0, "categories": ["testing"], "pass_fail_criteria": [], "content_hash": "sha256:b211a62a9f4e010645eaab4c549fc1fdeaea4dab8eec60e90807ae5fed197be7", "last_updated": "2026-03-02"}];
+
+let activeFilter = 'all';
+let searchTerm = '';
+
+function init() {
+  renderCards(catalog);
+  updateStats(catalog);
+  document.getElementById('search').addEventListener('input', onSearch);
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => onFilter(btn));
+  });
+  document.getElementById('overlay').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeDetail();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeDetail();
+  });
+}
+
+function onSearch(e) {
+  searchTerm = e.target.value.toLowerCase();
+  applyFilters();
+}
+
+function onFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeFilter = btn.dataset.filter;
+  applyFilters();
+}
+
+function applyFilters() {
+  const filtered = catalog.filter(item => {
+    const matchType = activeFilter === 'all' || item.type === activeFilter;
+    if (!matchType) return false;
+    if (!searchTerm) return true;
+    const haystack = [
+      item.display_name, item.name, item.description,
+      item.type, ...item.categories, ...(item.perspectives || [])
+    ].join(' ').toLowerCase();
+    return haystack.includes(searchTerm);
+  });
+  renderCards(filtered);
+  updateStats(filtered);
+}
+
+function renderCards(items) {
+  const grid = document.getElementById('grid');
+  const noResults = document.getElementById('no-results');
+  if (items.length === 0) {
+    grid.innerHTML = '';
+    noResults.style.display = 'block';
+    return;
+  }
+  noResults.style.display = 'none';
+  grid.innerHTML = items.map((item, i) => {
+    const badgeClass = item.type === 'review' ? 'badge-review' : 'badge-developer';
+    const badgeLabel = item.type === 'review' ? 'Review Panel' : 'Developer Prompt';
+    const desc = escapeHtml(item.description || 'No description available.');
+    const perspCount = item.perspective_count || 0;
+    const catTags = (item.categories || []).map(c => '<span class="tag">' + escapeHtml(c) + '</span>').join('');
+    return '<div class="card" onclick="showDetail(' + i + ')" data-idx="' + i + '">' +
+      '<div class="card-header"><span class="card-title">' + escapeHtml(item.display_name) + '</span>' +
+      '<span class="badge ' + badgeClass + '">' + badgeLabel + '</span></div>' +
+      '<div class="card-desc">' + desc + '</div>' +
+      '<div class="tag-list">' + catTags + '</div>' +
+      '<div class="card-meta">' +
+      (perspCount > 0 ? '<span>' + perspCount + ' perspectives</span>' : '') +
+      '<span>' + escapeHtml(item.last_updated) + '</span>' +
+      '</div></div>';
+  }).join('');
+}
+
+function updateStats(items) {
+  const total = items.length;
+  const reviews = items.filter(i => i.type === 'review').length;
+  const devs = items.filter(i => i.type === 'developer').length;
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><strong>' + total + '</strong> prompts</div>' +
+    '<div class="stat"><strong>' + reviews + '</strong> review panels</div>' +
+    '<div class="stat"><strong>' + devs + '</strong> developer prompts</div>';
+}
+
+function showDetail(idx) {
+  const item = catalog[idx];
+  if (!item) return;
+  const overlay = document.getElementById('overlay');
+  const panel = document.getElementById('detail-panel');
+  const badgeClass = item.type === 'review' ? 'badge-review' : 'badge-developer';
+  const badgeLabel = item.type === 'review' ? 'Review Panel' : 'Developer Prompt';
+
+  let html = '<button class="detail-close" onclick="closeDetail()">&times;</button>';
+  html += '<h2>' + escapeHtml(item.display_name) + '</h2>';
+  html += '<div class="detail-type"><span class="badge ' + badgeClass + '">' + badgeLabel + '</span></div>';
+
+  if (item.description) {
+    html += '<p style="color:var(--nord4);font-size:0.9rem;margin-bottom:0.5rem;">' + escapeHtml(item.description) + '</p>';
+  }
+
+  html += '<div class="detail-path">' + escapeHtml(item.path) + '</div>';
+
+  if (item.perspectives && item.perspectives.length > 0) {
+    html += '<div class="detail-section"><h3>Perspectives (' + item.perspectives.length + ')</h3><ul>';
+    item.perspectives.forEach(p => { html += '<li>' + escapeHtml(p) + '</li>'; });
+    html += '</ul></div>';
+  }
+
+  if (item.categories && item.categories.length > 0) {
+    html += '<div class="detail-section"><h3>Categories</h3><div class="tag-list">';
+    item.categories.forEach(c => { html += '<span class="tag">' + escapeHtml(c) + '</span>'; });
+    html += '</div></div>';
+  }
+
+  if (item.pass_fail_criteria && item.pass_fail_criteria.length > 0) {
+    html += '<div class="detail-section"><h3>Pass/Fail Criteria</h3><ul>';
+    item.pass_fail_criteria.forEach(c => { html += '<li>' + escapeHtml(c) + '</li>'; });
+    html += '</ul></div>';
+  }
+
+  html += '<div class="detail-section"><h3>Version Info</h3>';
+  html += '<p class="detail-hash">Hash: ' + escapeHtml(item.content_hash) + '</p>';
+  html += '<p style="font-size:0.8rem;color:var(--nord3);margin-top:0.3rem;">Last updated: ' + escapeHtml(item.last_updated) + '</p>';
+  html += '</div>';
+
+  panel.innerHTML = html;
+  overlay.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

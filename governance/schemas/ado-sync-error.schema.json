@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/ado-sync-error.schema.json",
+  "title": "AdoSyncErrors",
+  "description": "Schema for failed ADO sync operations logged to .artifacts/state/ado-sync-errors.json. Provides an audit trail of sync failures with retry tracking and resolution status.",
+  "type": "object",
+  "required": ["schema_version", "errors"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Semantic version of this error log schema."
+    },
+    "errors": {
+      "type": "array",
+      "description": "Array of sync error records, ordered by timestamp (newest last).",
+      "items": {
+        "type": "object",
+        "required": [
+          "error_id",
+          "timestamp",
+          "operation",
+          "source",
+          "error_type",
+          "error_message"
+        ],
+        "properties": {
+          "error_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique identifier for this error record."
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of when the error occurred."
+          },
+          "operation": {
+            "type": "string",
+            "enum": ["create", "update", "delete"],
+            "description": "The sync operation that failed."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["github", "ado"],
+            "description": "Which system originated the change that failed to sync."
+          },
+          "github_issue_number": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "description": "GitHub issue number involved in the failed sync, or null if not applicable."
+          },
+          "ado_work_item_id": {
+            "type": ["integer", "null"],
+            "minimum": 1,
+            "description": "ADO work item ID involved in the failed sync, or null if not applicable."
+          },
+          "error_type": {
+            "type": "string",
+            "description": "Error classification (e.g., 'auth_failure', 'rate_limit', 'validation_error', 'network_timeout')."
+          },
+          "error_message": {
+            "type": "string",
+            "description": "Human-readable description of the error."
+          },
+          "retry_count": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 0,
+            "description": "Number of retry attempts made for this operation."
+          },
+          "resolved": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether this error has been resolved (successfully retried or manually addressed)."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

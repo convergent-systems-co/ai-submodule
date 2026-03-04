@@ -1,0 +1,163 @@
+name: Auto-Rebase Agent PRs
+
+# Keeps agent-created PRs up to date with main by automatically rebasing.
+# Targets PRs created by github-actions[bot] or on branches matching the
+# agentic naming convention (NETWORK_ID/*).
+#
+# This workflow is part of Phase 4b (Autonomous Remediation) — self-repair
+# CI workflows that maintain repository health autonomously.
+#
+# On rebase conflict, the workflow aborts and posts a comment on the PR
+# requesting manual resolution.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-rebase
+  cancel-in-progress: true
+
+jobs:
+  rebase-prs:
+    name: rebase-prs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Find and rebase agent PRs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+
+          # Extract branch prefix from project.yaml (the part before the first /)
+          BRANCH_PREFIX=$(grep 'branch_pattern:' project.yaml | sed 's/.*"\([^/]*\)\/.*/\1/' || echo "")
+          if [ -z "$BRANCH_PREFIX" ] || [ "$BRANCH_PREFIX" = "{network_id}" ]; then
+            BRANCH_PREFIX="$(whoami)"
+          fi
+
+          # Find open PRs created by github-actions[bot] or on NETWORK_ID/* branches
+          # Use jq to extract PR numbers — one per line
+          PR_NUMBERS=$(gh pr list \
+            --state open \
+            --json number,headRefName,author \
+            --jq "[.[] | select(.author.login == \"github-actions\" or (.headRefName | startswith(\"${BRANCH_PREFIX}/\")))] | .[].number")
+
+          if [ -z "$PR_NUMBERS" ]; then
+            echo "No agent PRs found to rebase"
+            exit 0
+          fi
+
+          echo "Found PRs to rebase: $(echo "$PR_NUMBERS" | tr '\n' ' ')"
+
+          REBASE_SUCCESS=0
+          REBASE_SKIPPED=0
+          REBASE_FAILED=0
+
+          for PR_NUM in $PR_NUMBERS; do
+            echo ""
+            echo "========================================="
+            echo "Processing PR #${PR_NUM}..."
+            echo "========================================="
+
+            # Get the head branch name
+            HEAD_BRANCH=$(gh pr view "$PR_NUM" --json headRefName --jq '.headRefName')
+            if [ -z "$HEAD_BRANCH" ]; then
+              echo "::warning::Could not determine head branch for PR #${PR_NUM} — skipping"
+              REBASE_SKIPPED=$((REBASE_SKIPPED + 1))
+              continue
+            fi
+
+            echo "Head branch: ${HEAD_BRANCH}"
+
+            # Fetch the branch
+            if ! git fetch origin "$HEAD_BRANCH" 2>/dev/null; then
+              echo "::warning::Failed to fetch branch ${HEAD_BRANCH} for PR #${PR_NUM} — skipping"
+              REBASE_SKIPPED=$((REBASE_SKIPPED + 1))
+              continue
+            fi
+
+            # Check if rebase is actually needed — compare merge-base with main HEAD
+            MERGE_BASE=$(git merge-base "origin/${HEAD_BRANCH}" origin/main 2>/dev/null || true)
+            MAIN_HEAD=$(git rev-parse origin/main 2>/dev/null || true)
+
+            if [ -n "$MERGE_BASE" ] && [ "$MERGE_BASE" = "$MAIN_HEAD" ]; then
+              echo "PR #${PR_NUM} is already up to date with main — skipping"
+              REBASE_SKIPPED=$((REBASE_SKIPPED + 1))
+              continue
+            fi
+
+            # Checkout and rebase
+            git checkout "origin/${HEAD_BRANCH}" --detach 2>/dev/null
+            if git rebase origin/main; then
+              # Push the rebased branch
+              if git push --force-with-lease origin "HEAD:${HEAD_BRANCH}"; then
+                echo "Successfully rebased PR #${PR_NUM}"
+                REBASE_SUCCESS=$((REBASE_SUCCESS + 1))
+              else
+                echo "::warning::Rebase succeeded but push failed for PR #${PR_NUM}"
+                REBASE_FAILED=$((REBASE_FAILED + 1))
+                gh pr comment "$PR_NUM" --body "Auto-rebase: rebase succeeded but push failed (likely a concurrent update). Will retry on next run." 2>/dev/null || true
+              fi
+            else
+              git rebase --abort 2>/dev/null || true
+              echo "::warning::Rebase conflict on PR #${PR_NUM}"
+              REBASE_FAILED=$((REBASE_FAILED + 1))
+
+              # Comment on the PR about the conflict — use a temp file to avoid YAML escaping issues
+              MAIN_SHORT=$(git rev-parse --short origin/main)
+              {
+                echo "Auto-rebase failed due to merge conflicts with \`main\`. Manual resolution is needed."
+                echo ""
+                echo "**Conflicting rebase target:** \`origin/main\` at \`${MAIN_SHORT}\`"
+                echo ""
+                echo "To resolve locally:"
+                echo "\`\`\`bash"
+                echo "git fetch origin"
+                echo "git checkout ${HEAD_BRANCH}"
+                echo "git rebase origin/main"
+                echo "# Resolve conflicts..."
+                echo "git push --force-with-lease origin ${HEAD_BRANCH}"
+                echo "\`\`\`"
+              } > /tmp/rebase-conflict-comment.md
+              gh pr comment "$PR_NUM" --body-file /tmp/rebase-conflict-comment.md 2>/dev/null || true
+            fi
+
+            # Return to a clean state for the next iteration
+            git checkout --detach origin/main 2>/dev/null || true
+          done
+
+          echo ""
+          echo "========================================="
+          echo "Rebase Summary"
+          echo "========================================="
+          echo "Successful: ${REBASE_SUCCESS}"
+          echo "Skipped:    ${REBASE_SKIPPED}"
+          echo "Failed:     ${REBASE_FAILED}"
+
+          # Write step summary
+          {
+            echo "## Auto-Rebase Results"
+            echo ""
+            echo "| Metric | Count |"
+            echo "|--------|-------|"
+            echo "| Successful | ${REBASE_SUCCESS} |"
+            echo "| Skipped (up-to-date) | ${REBASE_SKIPPED} |"
+            echo "| Failed (conflicts) | ${REBASE_FAILED} |"
+          } >> "$GITHUB_STEP_SUMMARY"

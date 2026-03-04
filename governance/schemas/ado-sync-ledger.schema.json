@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/ado-sync-ledger.schema.json",
+  "title": "AdoSyncLedger",
+  "description": "Schema for the ADO sync ledger tracking active mappings between GitHub issues and Azure DevOps work items. Stored at .artifacts/state/ado-sync-ledger.json.",
+  "type": "object",
+  "required": ["schema_version", "mappings"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Semantic version of this ledger schema."
+    },
+    "mappings": {
+      "type": "array",
+      "description": "Array of active GitHub-to-ADO work item mappings.",
+      "items": {
+        "type": "object",
+        "required": [
+          "github_issue_number",
+          "github_repo",
+          "ado_work_item_id",
+          "ado_project",
+          "sync_direction",
+          "last_synced_at",
+          "sync_status"
+        ],
+        "properties": {
+          "github_issue_number": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "GitHub issue number."
+          },
+          "github_repo": {
+            "type": "string",
+            "pattern": "^[^/]+/[^/]+$",
+            "description": "GitHub repository in owner/repo format (e.g., 'SET-Apps/my-project')."
+          },
+          "ado_work_item_id": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Azure DevOps work item ID."
+          },
+          "ado_project": {
+            "type": "string",
+            "description": "ADO project name containing the work item."
+          },
+          "ado_work_item_type": {
+            "type": "string",
+            "description": "ADO work item type (e.g., 'User Story', 'Bug', 'Task')."
+          },
+          "ado_work_item_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Direct URL to the ADO work item."
+          },
+          "sync_direction": {
+            "type": "string",
+            "enum": ["github_to_ado", "ado_to_github"],
+            "description": "Direction of the last sync operation for this mapping."
+          },
+          "last_synced_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of the most recent successful sync."
+          },
+          "last_sync_source": {
+            "type": "string",
+            "enum": ["github", "ado"],
+            "description": "Which system originated the most recent change that was synced."
+          },
+          "last_sync_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of field names that were updated in the most recent sync (e.g., ['title', 'state', 'assignee'])."
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp of when this mapping was first created."
+          },
+          "sync_status": {
+            "type": "string",
+            "enum": ["active", "paused", "error"],
+            "description": "Current status of this mapping. 'active' means sync is operational, 'paused' means sync is temporarily halted, 'error' means the last sync failed."
+          },
+          "comment_mappings": {
+            "type": "array",
+            "description": "Tracks synced comments between GitHub and ADO for this mapping.",
+            "items": {
+              "type": "object",
+              "required": ["github_comment_id", "ado_comment_id", "synced_at"],
+              "properties": {
+                "github_comment_id": {
+                  "type": "integer",
+                  "description": "GitHub comment ID."
+                },
+                "ado_comment_id": {
+                  "type": "string",
+                  "description": "ADO comment ID (as string)."
+                },
+                "synced_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "ISO 8601 timestamp of when this comment was synced."
+                }
+              },
+              "additionalProperties": false
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

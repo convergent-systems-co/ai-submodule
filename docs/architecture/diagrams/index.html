@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dark Forge - Architecture Diagrams</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg: #1a1a2e;
+            --surface: #16213e;
+            --primary: #0f3460;
+            --accent: #e94560;
+            --text: #eee;
+            --text-secondary: #aaa;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        header {
+            background: var(--surface);
+            border-bottom: 2px solid var(--accent);
+            padding: 1.5rem 2rem;
+        }
+        header h1 { font-size: 1.5rem; font-weight: 600; }
+        header p { color: var(--text-secondary); margin-top: 0.25rem; font-size: 0.9rem; }
+        nav {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: var(--surface);
+            flex-wrap: wrap;
+        }
+        nav button {
+            background: var(--primary);
+            color: var(--text);
+            border: 1px solid transparent;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        nav button:hover { border-color: var(--accent); }
+        nav button.active { background: var(--accent); }
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        .diagram-container {
+            background: #fff;
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+        .diagram-container.active { display: block; }
+        .diagram-container h2 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        .diagram-container p {
+            color: #666;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+        .mermaid { text-align: center; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+        th, td {
+            padding: 0.5rem 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            color: #333;
+            font-size: 0.85rem;
+        }
+        th { background: #f5f5f5; font-weight: 600; }
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Dark Forge - Architecture Diagrams</h1>
+        <p>Interactive visualizations of the AI governance framework</p>
+    </header>
+
+    <nav id="nav">
+        <button class="active" data-target="layers">Governance Layers</button>
+        <button data-target="state-machine">Orchestrator State Machine</button>
+        <button data-target="agents">Agent Hierarchy</button>
+        <button data-target="policy-engine">Policy Engine Flow</button>
+        <button data-target="capacity">Capacity Model</button>
+        <button data-target="panels">Review Panel Map</button>
+    </nav>
+
+    <main>
+        <div id="layers" class="diagram-container active">
+            <h2>Five-Layer Governance Model</h2>
+            <p>Each layer builds on the one below, from project intent through runtime control to evolution.</p>
+            <div class="mermaid">
+graph TB
+    subgraph Evolution["5. Evolution Governance"]
+        E1[Feedback Loops]
+        E2[Metric Collection]
+        E3[Policy Refinement]
+    end
+    subgraph Runtime["4. Runtime Governance"]
+        R1[Context Management]
+        R2[Capacity Signals]
+        R3[Circuit Breakers]
+    end
+    subgraph Execution["3. Execution Governance"]
+        X1[Policy Engine]
+        X2[Panel Emissions]
+        X3[Merge Decisions]
+    end
+    subgraph Cognitive["2. Cognitive Governance"]
+        C1[21 Review Panels]
+        C2[7 Personas]
+        C3[12 Prompts]
+    end
+    subgraph Intent["1. Intent Governance"]
+        I1[project.yaml]
+        I2[5 Policy Profiles]
+        I3[JSON Schemas]
+    end
+    Evolution --> Runtime --> Execution --> Cognitive --> Intent
+    style Intent fill:#e8f5e9,stroke:#2e7d32
+    style Cognitive fill:#e3f2fd,stroke:#1565c0
+    style Execution fill:#fff3e0,stroke:#e65100
+    style Runtime fill:#fce4ec,stroke:#c62828
+    style Evolution fill:#f3e5f5,stroke:#6a1b9a
+            </div>
+        </div>
+
+        <div id="state-machine" class="diagram-container">
+            <h2>Orchestrator State Machine (6 Phases)</h2>
+            <p>The step-based orchestrator persists state to disk between CLI invocations.</p>
+            <div class="mermaid">
+stateDiagram-v2
+    [*] --> Phase0: init_session()
+    Phase0: Phase 0 - Checkpoint Recovery
+    Phase1: Phase 1 - Triage
+    Phase2: Phase 2 - Plan
+    Phase3: Phase 3 - Dispatch
+    Phase4: Phase 4 - Collect
+    Phase5: Phase 5 - Merge
+    Phase0 --> Phase1: Fresh
+    Phase0 --> Phase3: Resume
+    Phase1 --> Phase2: issues_selected
+    Phase2 --> Phase3: plans
+    Phase3 --> Phase4: dispatched
+    Phase4 --> Phase5: reviewed
+    Phase5 --> Phase1: Loop (Green/Yellow)
+    Phase5 --> [*]: Done or Orange+
+            </div>
+            <table>
+                <tr><th>Phase</th><th>GREEN</th><th>YELLOW</th><th>ORANGE</th><th>RED</th></tr>
+                <tr><td>1 Triage</td><td>PROCEED</td><td>PROCEED</td><td>CHECKPOINT</td><td>EMERGENCY_STOP</td></tr>
+                <tr><td>2 Plan</td><td>PROCEED</td><td>PROCEED</td><td>CHECKPOINT</td><td>EMERGENCY_STOP</td></tr>
+                <tr><td>3 Dispatch</td><td>PROCEED</td><td>SKIP_DISPATCH</td><td>CHECKPOINT</td><td>EMERGENCY_STOP</td></tr>
+                <tr><td>4 Collect</td><td>PROCEED</td><td>PROCEED</td><td>CHECKPOINT</td><td>EMERGENCY_STOP</td></tr>
+                <tr><td>5 Merge</td><td>PROCEED</td><td>PROCEED</td><td>CHECKPOINT</td><td>EMERGENCY_STOP</td></tr>
+            </table>
+        </div>
+
+        <div id="agents" class="diagram-container">
+            <h2>Agent Persona Hierarchy</h2>
+            <p>Standard mode uses a flat dispatch. PM mode adds hierarchical management.</p>
+            <div class="mermaid">
+graph TB
+    PM[Project Manager] --> DE[DevOps Engineer]
+    PM --> CM1[Tech Lead 1]
+    PM --> CM2[Tech Lead 2]
+    PM --> CM3[Tech Lead 3]
+    CM1 --> C1[Coder]
+    CM1 --> C2[Coder]
+    CM2 --> C3[Coder]
+    CM2 --> IC1[IaC Engineer]
+    CM3 --> C5[Coder]
+    CM3 --> T1[Tester]
+    style PM fill:#f3e5f5,stroke:#6a1b9a
+    style DE fill:#e8f5e9,stroke:#2e7d32
+    style CM1 fill:#e3f2fd,stroke:#1565c0
+    style CM2 fill:#e3f2fd,stroke:#1565c0
+    style CM3 fill:#e3f2fd,stroke:#1565c0
+    style T1 fill:#fce4ec,stroke:#c62828
+    style IC1 fill:#fff3e0,stroke:#e65100
+            </div>
+        </div>
+
+        <div id="policy-engine" class="diagram-container">
+            <h2>Policy Engine Flow</h2>
+            <p>Structured emissions from AI panels are aggregated into deterministic merge decisions.</p>
+            <div class="mermaid">
+flowchart LR
+    subgraph Panels["Review Panels"]
+        P1[code-review]
+        P2[security-review]
+        P3[threat-modeling]
+        P4[docs-review]
+        P5[cost-analysis]
+    end
+    subgraph Engine["Policy Engine"]
+        V[Schema Validation]
+        W[Weighted Aggregation]
+        R[Risk Aggregation]
+        D[Decision Matrix]
+    end
+    subgraph Out["Decisions"]
+        AM["AUTO_MERGE"]
+        HR["HUMAN_REVIEW"]
+        BL["BLOCK"]
+    end
+    Panels --> V --> W --> D
+    V --> R --> D
+    D --> Out
+    style AM fill:#c8e6c9,stroke:#2e7d32
+    style HR fill:#fff9c4,stroke:#f9a825
+    style BL fill:#ffcdd2,stroke:#c62828
+            </div>
+        </div>
+
+        <div id="capacity" class="diagram-container">
+            <h2>Capacity Signal Model</h2>
+            <p>Four tiers prevent context overflow. Each phase has tier-specific gate actions.</p>
+            <div class="mermaid">
+graph LR
+    subgraph G["GREEN"]
+        GT["tools < 300<br/>turns < 30"]
+    end
+    subgraph Y["YELLOW"]
+        YT["tools 300-500<br/>turns 30-50"]
+    end
+    subgraph O["ORANGE"]
+        OT["tools 500-700<br/>turns 50-70"]
+    end
+    subgraph R["RED"]
+        RT["tools >= 700<br/>turns >= 70"]
+    end
+    G --> Y --> O --> R
+    style G fill:#c8e6c9,stroke:#2e7d32
+    style Y fill:#fff9c4,stroke:#f9a825
+    style O fill:#ffe0b2,stroke:#e65100
+    style R fill:#ffcdd2,stroke:#c62828
+            </div>
+        </div>
+
+        <div id="panels" class="diagram-container">
+            <h2>Review Panel Map</h2>
+            <p>21 review panels organized by weight and perspective.</p>
+            <div class="mermaid">
+graph TB
+    subgraph High["High Weight (0.18)"]
+        CR[code-review]
+        SR[security-review]
+    end
+    subgraph Medium["Medium Weight (0.12)"]
+        AI[ai-expert-review]
+        AR[architecture-review]
+    end
+    subgraph Standard["Standard Weight (0.05-0.08)"]
+        TR[testing-review]
+        PR[performance-review]
+        CP[copilot-review]
+        DR[documentation-review]
+        TM[threat-modeling]
+        DG[data-governance]
+    end
+    subgraph Low["Low Weight (0.02)"]
+        CA[cost-analysis]
+        FR[finops-review]
+    end
+    style High fill:#ffcdd2,stroke:#c62828
+    style Medium fill:#ffe0b2,stroke:#e65100
+    style Standard fill:#fff9c4,stroke:#f9a825
+    style Low fill:#e8f5e9,stroke:#2e7d32
+            </div>
+            <table>
+                <tr><th>Panel</th><th>Weight</th><th>Criticality</th></tr>
+                <tr><td>code-review</td><td>0.18</td><td>High</td></tr>
+                <tr><td>security-review</td><td>0.18</td><td>High</td></tr>
+                <tr><td>ai-expert-review</td><td>0.12</td><td>Medium</td></tr>
+                <tr><td>architecture-review</td><td>0.12</td><td>Medium</td></tr>
+                <tr><td>testing-review</td><td>0.08</td><td>Standard</td></tr>
+                <tr><td>copilot-review</td><td>0.08</td><td>Standard</td></tr>
+                <tr><td>documentation-review</td><td>0.05</td><td>Standard</td></tr>
+                <tr><td>threat-modeling</td><td>0.05</td><td>Standard</td></tr>
+                <tr><td>data-governance-review</td><td>0.05</td><td>Standard</td></tr>
+                <tr><td>performance-review</td><td>0.05</td><td>Standard</td></tr>
+                <tr><td>cost-analysis</td><td>0.02</td><td>Low</td></tr>
+                <tr><td>finops-review</td><td>0.02</td><td>Low</td></tr>
+            </table>
+        </div>
+    </main>
+
+    <footer>
+        Dark Forge - Interactive Architecture Diagrams
+    </footer>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+        });
+
+        document.getElementById('nav').addEventListener('click', (e) => {
+            if (e.target.tagName !== 'BUTTON') return;
+            const target = e.target.dataset.target;
+
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+
+            document.querySelectorAll('.diagram-container').forEach(d => d.classList.remove('active'));
+            document.getElementById(target).classList.add('active');
+        });
+    </script>
+</body>
+</html>

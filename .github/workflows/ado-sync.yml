@@ -1,0 +1,180 @@
+name: ADO Sync
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - closed
+      - reopened
+      - labeled
+      - unlabeled
+      - assigned
+      - unassigned
+      - milestoned
+      - demilestoned
+
+permissions:
+  issues: write
+  contents: write
+
+concurrency:
+  group: ado-sync-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: sync-to-ado
+    runs-on: ubuntu-latest
+    # Gate: skip entirely if ADO_SYNC_ENABLED repo variable is not 'true'
+    if: vars.ADO_SYNC_ENABLED == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check ADO integration enabled
+        id: check
+        run: |
+          # Auto-detect project.yaml location
+          if [ -f "project.yaml" ]; then
+            CONFIG_FILE="project.yaml"
+          elif [ -f ".ai/project.yaml" ]; then
+            CONFIG_FILE=".ai/project.yaml"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "No project.yaml found — ADO sync disabled"
+            exit 0
+          fi
+
+          # Check if ado_integration.enabled is true
+          ENABLED=$(python3 -c "
+          import yaml, sys
+          with open('${CONFIG_FILE}') as f:
+              data = yaml.safe_load(f) or {}
+          ado = data.get('ado_integration', {})
+          print('true' if ado.get('enabled', False) else 'false')
+          " 2>/dev/null || echo "false")
+
+          echo "enabled=${ENABLED}" >> "$GITHUB_OUTPUT"
+          echo "config_file=${CONFIG_FILE}" >> "$GITHUB_OUTPUT"
+          echo "ADO integration enabled: ${ENABLED}"
+
+      - name: Set up Python
+        if: steps.check.outputs.enabled == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          pip install pyyaml requests
+
+      - name: Run sync engine
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          ADO_PAT: ${{ secrets.ADO_PAT }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          CONFIG_FILE: ${{ steps.check.outputs.config_file }}
+        run: |
+          python3 -c "
+          import json, yaml, os, sys
+          from pathlib import Path
+
+          # Load event payload
+          event_path = os.environ.get('GITHUB_EVENT_PATH', '')
+          if not event_path or not Path(event_path).exists():
+              print('No event payload found')
+              sys.exit(0)
+
+          with open(event_path) as f:
+              event = json.load(f)
+
+          # Load config
+          config_file = os.environ.get('CONFIG_FILE', 'project.yaml')
+          with open(config_file) as f:
+              project_config = yaml.safe_load(f) or {}
+
+          ado_config_data = project_config.get('ado_integration', {})
+
+          # Set up paths
+          ledger_path = Path('.artifacts/state/ado-sync-ledger.json')
+          error_log_path = Path('.artifacts/state/ado-sync-errors.json')
+
+          # Create client
+          from governance.integrations.ado.config import load_config
+          from governance.integrations.ado.auth import create_auth_provider
+          from governance.integrations.ado.client import AdoClient
+          from governance.integrations.ado.sync_engine import SyncEngine
+
+          client_config = load_config(ado_config_data)
+          auth = create_auth_provider(ado_config_data.get('auth_method', 'pat'))
+          client = AdoClient(client_config, auth)
+
+          engine = SyncEngine(client, ado_config_data, ledger_path, error_log_path)
+          result = engine.sync(event)
+
+          print(f'Sync result: status={result.status}, operation={result.operation}, '
+                f'ado_work_item_id={result.ado_work_item_id}')
+          if result.error:
+              print(f'Error: {result.error}')
+              sys.exit(1)
+          "
+
+      - name: Commit updated ledger
+        if: steps.check.outputs.enabled == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if ledger or error log changed
+          if git diff --quiet .artifacts/state/ 2>/dev/null && \
+             ! git ls-files --others --exclude-standard .artifacts/state/ | grep -q .; then
+            echo "No ledger changes to commit"
+            exit 0
+          fi
+
+          git add .artifacts/state/ado-sync-ledger.json .artifacts/state/ado-sync-errors.json 2>/dev/null || true
+          git commit -m "chore: update ADO sync ledger [skip ci]" || true
+          git push || true
+
+      - name: Post sync status comment
+        if: steps.check.outputs.enabled == 'true' && always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          # Only post comment if configured
+          CONFIG_FILE="${{ steps.check.outputs.config_file }}"
+          POST_COMMENT=$(python3 -c "
+          import yaml
+          with open('${CONFIG_FILE}') as f:
+              data = yaml.safe_load(f) or {}
+          ado = data.get('ado_integration', {})
+          sync = ado.get('sync', {})
+          print('true' if sync.get('post_status_comment', False) else 'false')
+          " 2>/dev/null || echo "false")
+
+          if [ "$POST_COMMENT" != "true" ]; then
+            echo "Status comment posting disabled"
+            exit 0
+          fi
+
+          if [ -f ".artifacts/state/ado-sync-ledger.json" ]; then
+            ADO_ID=$(python3 -c "
+          import json
+          with open('.artifacts/state/ado-sync-ledger.json') as f:
+              ledger = json.load(f)
+          for m in ledger.get('mappings', []):
+              if m.get('github_issue_number') == ${ISSUE_NUMBER}:
+                  print(m.get('ado_work_item_id', 'unknown'))
+                  break
+          " 2>/dev/null || echo "")
+            if [ -n "$ADO_ID" ]; then
+              gh issue comment "$ISSUE_NUMBER" --body "ADO sync: work item #${ADO_ID} updated."
+            fi
+          fi

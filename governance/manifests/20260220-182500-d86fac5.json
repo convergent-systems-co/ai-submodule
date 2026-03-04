@@ -1,0 +1,41 @@
+{
+  "manifest_version": "1.0.0",
+  "manifest_id": "20260220-182500-d86fac5",
+  "timestamp": "2026-02-20T18:25:00Z",
+  "persona_set_commit": "d86fac57a6cd7a6277ff07e13371d33a84600f21",
+  "panel_graph_version": "1.0.0",
+  "policy_profile_used": "default",
+  "model_version": "claude-opus-4-6",
+  "aggregate_confidence": 0.88,
+  "risk_level": "medium",
+  "human_intervention": {
+    "required": false,
+    "occurred": false
+  },
+  "decision": {
+    "action": "auto_merge",
+    "rationale": "GitHub Actions workflow for cross-repo submodule propagation. Code Review and Security Review panels initially requested changes: (1) placeholder repo entry would fail on push, (2) secret validation used inline expression instead of env var, (3) action not pinned to SHA. All three remediated in commit d86fac5. Re-evaluation approved."
+  },
+  "panels_executed": [
+    {
+      "panel_name": "code-review",
+      "verdict": "approve",
+      "confidence_score": 0.90,
+      "artifact_path": "manifests/panels/pr18-code-review.json"
+    },
+    {
+      "panel_name": "security-review",
+      "verdict": "approve",
+      "confidence_score": 0.85,
+      "artifact_path": "manifests/panels/pr18-security-review.json"
+    }
+  ],
+  "repository": {
+    "name": "dark-forge",
+    "owner": "SET-Apps",
+    "branch": "itsfwcp/12-auto-propagation",
+    "base_branch": "main",
+    "commit_sha": "d86fac57a6cd7a6277ff07e13371d33a84600f21",
+    "pr_number": 18
+  }
+}

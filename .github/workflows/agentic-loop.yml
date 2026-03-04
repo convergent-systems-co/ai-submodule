@@ -1,0 +1,743 @@
+name: Agentic Convergence Loop
+
+# Reusable workflow that runs an AI CLI agent in a convergence loop.
+# Iterates until a success condition is met or max_iterations is reached.
+# Supports Claude Code CLI and Copilot CLI backends with checkpoint/resume.
+#
+# Usage (as reusable workflow):
+#   jobs:
+#     agent:
+#       uses: ./.github/workflows/agentic-loop.yml
+#       with:
+#         task_prompt: "Fix the failing tests in src/"
+#         success_command: "npm test"
+#         max_iterations: 10
+#       secrets: inherit
+#
+# Usage (manual dispatch):
+#   gh workflow run agentic-loop.yml --field task_prompt="Refactor utils"
+
+on:
+  workflow_call:
+    inputs:
+      task_prompt:
+        description: 'The task prompt to send to the AI agent'
+        required: true
+        type: string
+      success_command:
+        description: 'Command that must exit 0 for the loop to succeed (optional)'
+        required: false
+        type: string
+        default: ''
+      validation_prompt:
+        description: 'Prompt sent to the agent to self-validate its work (optional)'
+        required: false
+        type: string
+        default: ''
+      max_iterations:
+        description: 'Maximum number of convergence loop iterations'
+        required: false
+        type: number
+        default: 15
+      model:
+        description: 'AI model to use (e.g., claude-opus-4.6, claude-sonnet-4, gpt-5-mini, gpt-4.1)'
+        required: false
+        type: string
+        default: 'claude-opus-4.6'
+      backend:
+        description: 'CLI backend: claude or copilot'
+        required: false
+        type: string
+        default: 'claude'
+      branch_name:
+        description: 'Branch name to work on (created if it does not exist)'
+        required: false
+        type: string
+        default: ''
+      issue_number:
+        description: 'GitHub issue number (0 = no issue)'
+        required: false
+        type: number
+        default: 0
+      create_pr:
+        description: 'Create a pull request after successful convergence'
+        required: false
+        type: boolean
+        default: false
+      human_feedback:
+        description: 'Human feedback to inject into the next agent iteration'
+        required: false
+        type: string
+        default: ''
+      resume_from_checkpoint:
+        description: 'Artifact name of a previous checkpoint to restore'
+        required: false
+        type: string
+        default: ''
+
+    outputs:
+      completed:
+        description: 'Whether the loop converged successfully'
+        value: ${{ jobs.converge.outputs.completed }}
+      iterations:
+        description: 'Number of iterations executed'
+        value: ${{ jobs.converge.outputs.iterations }}
+      has_changes:
+        description: 'Whether the agent produced git changes'
+        value: ${{ jobs.converge.outputs.has_changes }}
+      judge_feedback:
+        description: 'Judge panel evaluation summary'
+        value: ${{ jobs.converge.outputs.judge_feedback }}
+
+  workflow_dispatch:
+    inputs:
+      task_prompt:
+        description: 'The task prompt to send to the AI agent'
+        required: true
+        type: string
+      max_iterations:
+        description: 'Maximum number of convergence loop iterations'
+        required: false
+        type: number
+        default: 15
+      model:
+        description: 'AI model to use'
+        required: false
+        type: string
+        default: 'claude-opus-4.6'
+      backend:
+        description: 'CLI backend: claude or copilot'
+        required: false
+        type: string
+        default: 'claude'
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: agentic-loop-${{ inputs.issue_number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  # -----------------------------------------------------------
+  # Single job: convergence loop with all steps
+  # -----------------------------------------------------------
+  converge:
+    name: convergence-loop
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      completed: ${{ steps.loop.outputs.completed }}
+      iterations: ${{ steps.loop.outputs.iterations }}
+      has_changes: ${{ steps.changes.outputs.has_changes }}
+      judge_feedback: ${{ steps.judge.outputs.feedback }}
+
+    steps:
+      # -------------------------------------------------------
+      # Step 1: Checkout repository
+      # -------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # -------------------------------------------------------
+      # Step 2: Setup runtimes
+      # -------------------------------------------------------
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # -------------------------------------------------------
+      # Step 3: Install AI CLI
+      # -------------------------------------------------------
+      - name: Install AI CLI
+        id: cli
+        env:
+          BACKEND: ${{ inputs.backend }}
+        run: |
+          set -euo pipefail
+
+          case "${BACKEND}" in
+            claude)
+              echo "Installing Claude Code CLI..."
+              npm install -g @anthropic-ai/claude-code 2>&1 | tail -5
+              CLI_CMD="claude"
+              CLI_VERSION=$(claude --version 2>/dev/null || echo "unknown")
+              ;;
+            copilot)
+              echo "Installing GitHub Copilot CLI..."
+              # Copilot CLI is distributed via gh extension
+              gh extension install github/gh-copilot 2>&1 || true
+              CLI_CMD="gh copilot"
+              CLI_VERSION=$(gh copilot --version 2>/dev/null || echo "unknown")
+              ;;
+            *)
+              echo "::error::Unsupported backend: ${BACKEND}. Use 'claude' or 'copilot'."
+              exit 1
+              ;;
+          esac
+
+          echo "cli_cmd=${CLI_CMD}" >> "$GITHUB_OUTPUT"
+          echo "cli_version=${CLI_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Installed ${BACKEND} CLI (${CLI_VERSION})"
+
+      # -------------------------------------------------------
+      # Step 4: Configure git identity
+      # -------------------------------------------------------
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # -------------------------------------------------------
+      # Step 5: Branch management
+      # -------------------------------------------------------
+      - name: Setup branch
+        id: branch
+        env:
+          BRANCH_NAME: ${{ inputs.branch_name }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${BRANCH_NAME}" ]; then
+            TARGET_BRANCH="${BRANCH_NAME}"
+          elif [ "${ISSUE_NUMBER}" != "0" ] && [ -n "${ISSUE_NUMBER}" ]; then
+            TARGET_BRANCH="agentic-loop/issue-${ISSUE_NUMBER}"
+          else
+            TARGET_BRANCH=""
+          fi
+
+          if [ -n "${TARGET_BRANCH}" ]; then
+            # Check if branch exists on remote
+            if git ls-remote --exit-code --heads origin "${TARGET_BRANCH}" >/dev/null 2>&1; then
+              echo "Checking out existing branch: ${TARGET_BRANCH}"
+              git checkout "${TARGET_BRANCH}"
+              git pull origin "${TARGET_BRANCH}" --rebase --autostash || true
+            else
+              echo "Creating new branch: ${TARGET_BRANCH}"
+              git checkout -b "${TARGET_BRANCH}"
+            fi
+            echo "branch=${TARGET_BRANCH}" >> "$GITHUB_OUTPUT"
+          else
+            echo "Working on current branch: $(git branch --show-current)"
+            echo "branch=$(git branch --show-current)" >> "$GITHUB_OUTPUT"
+          fi
+
+      # -------------------------------------------------------
+      # Step 6: Restore checkpoint (if resuming)
+      # -------------------------------------------------------
+      - name: Restore checkpoint
+        if: inputs.resume_from_checkpoint != ''
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.resume_from_checkpoint }}
+          path: .agentic-state/
+        continue-on-error: true
+
+      - name: Load checkpoint state
+        id: checkpoint
+        if: inputs.resume_from_checkpoint != ''
+        run: |
+          set -euo pipefail
+
+          if [ -f ".agentic-state/checkpoint.json" ]; then
+            echo "Restoring from checkpoint..."
+            LAST_ITERATION=$(python3 -c "
+          import json
+          with open('.agentic-state/checkpoint.json') as f:
+              data = json.load(f)
+          print(data.get('iteration', 0))
+          ")
+            echo "start_iteration=${LAST_ITERATION}" >> "$GITHUB_OUTPUT"
+            echo "::notice::Resuming from iteration ${LAST_ITERATION}"
+          else
+            echo "start_iteration=0" >> "$GITHUB_OUTPUT"
+            echo "::notice::No checkpoint found, starting from iteration 0"
+          fi
+
+      # -------------------------------------------------------
+      # Step 7: Convergence loop
+      # -------------------------------------------------------
+      - name: Run convergence loop
+        id: loop
+        env:
+          TASK_PROMPT: ${{ inputs.task_prompt }}
+          SUCCESS_COMMAND: ${{ inputs.success_command }}
+          VALIDATION_PROMPT: ${{ inputs.validation_prompt }}
+          MAX_ITERATIONS: ${{ inputs.max_iterations }}
+          MODEL: ${{ inputs.model }}
+          BACKEND: ${{ inputs.backend }}
+          CLI_CMD: ${{ steps.cli.outputs.cli_cmd }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          HUMAN_FEEDBACK: ${{ inputs.human_feedback }}
+          START_ITERATION: ${{ steps.checkpoint.outputs.start_iteration || '0' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # --- Initialize state directory ---
+          mkdir -p .agentic-state
+          MANIFEST=".agentic-state/manifest.jsonl"
+          COMPLETED="false"
+          ITERATION="${START_ITERATION:-0}"
+          MAX="${MAX_ITERATIONS:-15}"
+          LOOP_EXIT_CODE=0
+
+          # --- Validate API credentials ---
+          if [ "${BACKEND}" = "claude" ] && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not configured. Add it to repository secrets."
+            exit 1
+          fi
+
+          # --- Log session start ---
+          export MANIFEST ITERATION MAX
+          python3 << 'PYEOF'
+          import json, datetime, os
+
+          entry = {
+              "event": "session_start",
+              "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+              "task_prompt": os.environ.get("TASK_PROMPT", "")[:200],
+              "model": os.environ.get("MODEL", "unknown"),
+              "backend": os.environ.get("BACKEND", "unknown"),
+              "max_iterations": int(os.environ.get("MAX", 15)),
+              "start_iteration": int(os.environ.get("ITERATION", 0)),
+              "issue_number": int(os.environ.get("ISSUE_NUMBER", 0)),
+          }
+
+          manifest = os.environ.get("MANIFEST", ".agentic-state/manifest.jsonl")
+          with open(manifest, "a") as f:
+              f.write(json.dumps(entry) + "\n")
+          PYEOF
+
+          echo "::group::Convergence loop configuration"
+          echo "Task: ${TASK_PROMPT:0:200}..."
+          echo "Model: ${MODEL}"
+          echo "Backend: ${BACKEND}"
+          echo "Max iterations: ${MAX}"
+          echo "Start iteration: ${ITERATION}"
+          echo "Success command: ${SUCCESS_COMMAND:-none}"
+          echo "::endgroup::"
+
+          # --- Inject human feedback on first iteration ---
+          EFFECTIVE_PROMPT="${TASK_PROMPT}"
+          if [ -n "${HUMAN_FEEDBACK:-}" ] && [ "${ITERATION}" = "0" ]; then
+            EFFECTIVE_PROMPT="${TASK_PROMPT}
+
+          Human feedback from previous session:
+          ${HUMAN_FEEDBACK}"
+          fi
+
+          # --- Convergence loop ---
+          while [ "${ITERATION}" -lt "${MAX}" ]; do
+            ITERATION=$((ITERATION + 1))
+            ITER_START=$(date +%s)
+            echo ""
+            echo "=========================================="
+            echo "  Iteration ${ITERATION} / ${MAX}"
+            echo "=========================================="
+
+            # --- Build agent prompt ---
+            if [ "${ITERATION}" -gt 1 ] && [ -n "${VALIDATION_PROMPT:-}" ]; then
+              AGENT_PROMPT="${EFFECTIVE_PROMPT}
+
+          Self-validation instruction: ${VALIDATION_PROMPT}
+
+          This is iteration ${ITERATION} of ${MAX}. Review your previous work and continue improving."
+            else
+              AGENT_PROMPT="${EFFECTIVE_PROMPT}
+
+          This is iteration ${ITERATION} of ${MAX}. Work toward completing the task."
+            fi
+
+            # --- Execute agent ---
+            AGENT_EXIT_CODE=0
+            AGENT_OUTPUT_FILE=".agentic-state/iteration-${ITERATION}-output.txt"
+
+            case "${BACKEND}" in
+              claude)
+                timeout 1800 claude --print --model "${MODEL}" --max-turns 30 \
+                  "${AGENT_PROMPT}" > "${AGENT_OUTPUT_FILE}" 2>&1 || AGENT_EXIT_CODE=$?
+                ;;
+              copilot)
+                # Copilot CLI uses different invocation
+                echo "${AGENT_PROMPT}" | timeout 1800 gh copilot suggest \
+                  --target shell > "${AGENT_OUTPUT_FILE}" 2>&1 || AGENT_EXIT_CODE=$?
+                ;;
+            esac
+
+            ITER_END=$(date +%s)
+            ITER_DURATION=$((ITER_END - ITER_START))
+
+            echo "::group::Iteration ${ITERATION} output (last 50 lines)"
+            tail -50 "${AGENT_OUTPUT_FILE}" 2>/dev/null || echo "(no output captured)"
+            echo "::endgroup::"
+
+            # --- Check success condition ---
+            SUCCESS_EXIT_CODE=1
+            SUCCESS_OUTPUT=""
+            if [ -n "${SUCCESS_COMMAND}" ]; then
+              echo "Running success check: ${SUCCESS_COMMAND}"
+              SUCCESS_OUTPUT=$(eval "${SUCCESS_COMMAND}" 2>&1) && SUCCESS_EXIT_CODE=0 || SUCCESS_EXIT_CODE=$?
+              echo "Success command exit code: ${SUCCESS_EXIT_CODE}"
+              if [ ${SUCCESS_EXIT_CODE} -eq 0 ]; then
+                echo "::notice::Success command passed on iteration ${ITERATION}"
+              fi
+            else
+              # No success command — single iteration with agent exit code
+              if [ ${AGENT_EXIT_CODE} -eq 0 ]; then
+                SUCCESS_EXIT_CODE=0
+              fi
+            fi
+
+            # --- Log iteration to manifest ---
+            export ITERATION AGENT_EXIT_CODE SUCCESS_EXIT_CODE ITER_DURATION
+
+            python3 << 'PYEOF'
+          import json, datetime, os
+
+          entry = {
+              "event": "iteration",
+              "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+              "iteration": int(os.environ.get("ITERATION", 0)),
+              "max_iterations": int(os.environ.get("MAX", 15)),
+              "agent_exit_code": int(os.environ.get("AGENT_EXIT_CODE", 1)),
+              "success_exit_code": int(os.environ.get("SUCCESS_EXIT_CODE", 1)),
+              "duration_seconds": int(os.environ.get("ITER_DURATION", 0)),
+              "model": os.environ.get("MODEL", "unknown"),
+              "backend": os.environ.get("BACKEND", "unknown"),
+          }
+
+          manifest = os.environ.get("MANIFEST", ".agentic-state/manifest.jsonl")
+          with open(manifest, "a") as f:
+              f.write(json.dumps(entry) + "\n")
+          PYEOF
+
+            # --- Save incremental checkpoint ---
+            python3 << 'PYEOF'
+          import json, datetime, os
+
+          checkpoint = {
+              "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+              "iteration": int(os.environ.get("ITERATION", 0)),
+              "max_iterations": int(os.environ.get("MAX", 15)),
+              "completed": os.environ.get("SUCCESS_EXIT_CODE", "1") == "0",
+              "model": os.environ.get("MODEL", "unknown"),
+              "backend": os.environ.get("BACKEND", "unknown"),
+              "branch": os.environ.get("BRANCH", ""),
+              "issue_number": int(os.environ.get("ISSUE_NUMBER", 0)),
+          }
+
+          with open(".agentic-state/checkpoint.json", "w") as f:
+              json.dump(checkpoint, f, indent=2)
+          PYEOF
+
+            # --- Check for convergence ---
+            if [ ${SUCCESS_EXIT_CODE} -eq 0 ]; then
+              COMPLETED="true"
+              echo "::notice::Loop converged on iteration ${ITERATION}"
+              break
+            fi
+
+            # --- AI-powered failure analysis (on agent failure) ---
+            if [ ${AGENT_EXIT_CODE} -ne 0 ]; then
+              echo "::warning::Agent exited with code ${AGENT_EXIT_CODE} on iteration ${ITERATION}"
+
+              # Brief failure analysis for the manifest
+              FAILURE_TAIL=$(tail -20 "${AGENT_OUTPUT_FILE}" 2>/dev/null | head -10 || echo "no output")
+              export FAILURE_TAIL
+
+              python3 << 'PYEOF'
+          import json, datetime, os
+
+          entry = {
+              "event": "agent_failure",
+              "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+              "iteration": int(os.environ.get("ITERATION", 0)),
+              "agent_exit_code": int(os.environ.get("AGENT_EXIT_CODE", 1)),
+              "output_tail": os.environ.get("FAILURE_TAIL", "")[:500],
+          }
+
+          manifest = os.environ.get("MANIFEST", ".agentic-state/manifest.jsonl")
+          with open(manifest, "a") as f:
+              f.write(json.dumps(entry) + "\n")
+          PYEOF
+            fi
+
+            # --- Rate limiting: 10-second delay between iterations ---
+            if [ "${ITERATION}" -lt "${MAX}" ]; then
+              echo "Waiting 10 seconds before next iteration..."
+              sleep 10
+            fi
+          done
+
+          # --- Final state ---
+          if [ "${COMPLETED}" != "true" ]; then
+            echo "::warning::Loop did not converge after ${ITERATION} iterations"
+            LOOP_EXIT_CODE=1
+          fi
+
+          # --- Log session end ---
+          export COMPLETED
+          python3 << 'PYEOF'
+          import json, datetime, os
+
+          entry = {
+              "event": "session_end",
+              "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+              "completed": os.environ.get("COMPLETED", "false") == "true",
+              "total_iterations": int(os.environ.get("ITERATION", 0)),
+              "max_iterations": int(os.environ.get("MAX", 15)),
+          }
+
+          manifest = os.environ.get("MANIFEST", ".agentic-state/manifest.jsonl")
+          with open(manifest, "a") as f:
+              f.write(json.dumps(entry) + "\n")
+          PYEOF
+
+          echo "completed=${COMPLETED}" >> "$GITHUB_OUTPUT"
+          echo "iterations=${ITERATION}" >> "$GITHUB_OUTPUT"
+
+          # Do not fail the step — let downstream steps decide
+          exit 0
+
+      # -------------------------------------------------------
+      # Step 8: Judge evaluation
+      # -------------------------------------------------------
+      - name: Judge evaluation
+        id: judge
+        if: always()
+        env:
+          BACKEND: ${{ inputs.backend }}
+          MODEL: ${{ inputs.model }}
+          TASK_PROMPT: ${{ inputs.task_prompt }}
+          COMPLETED: ${{ steps.loop.outputs.completed }}
+          ITERATIONS: ${{ steps.loop.outputs.iterations }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          FEEDBACK="No judge evaluation performed."
+
+          # Only run judge if we have a CLI and the loop ran
+          if [ -z "${ITERATIONS:-}" ] || [ "${ITERATIONS:-0}" = "0" ]; then
+            echo "feedback=${FEEDBACK}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Collect evidence for the judge
+          DIFF_SUMMARY=$(git diff --stat HEAD 2>/dev/null | tail -20 || echo "no changes")
+          MANIFEST_TAIL=$(tail -5 .agentic-state/manifest.jsonl 2>/dev/null || echo "no manifest")
+
+          JUDGE_PROMPT="You are a judge evaluating whether an AI agent completed its task.
+
+          Task: ${TASK_PROMPT}
+          Converged: ${COMPLETED}
+          Iterations used: ${ITERATIONS}
+
+          Git diff summary:
+          ${DIFF_SUMMARY}
+
+          Recent manifest entries:
+          ${MANIFEST_TAIL}
+
+          Evaluate the work. Respond with a single JSON object:
+          {\"verdict\": \"pass|fail|partial\", \"confidence\": 0.0-1.0, \"summary\": \"one-line summary\"}"
+
+          JUDGE_OUTPUT=""
+          case "${BACKEND}" in
+            claude)
+              JUDGE_OUTPUT=$(timeout 120 claude --print --model "${MODEL}" --max-turns 1 \
+                "${JUDGE_PROMPT}" 2>/dev/null || echo '{"verdict":"error","confidence":0,"summary":"Judge evaluation failed"}')
+              ;;
+            *)
+              JUDGE_OUTPUT='{"verdict":"skipped","confidence":0,"summary":"Judge not available for this backend"}'
+              ;;
+          esac
+
+          # Extract summary for the output (truncate for safety)
+          FEEDBACK=$(echo "${JUDGE_OUTPUT}" | python3 -c "
+          import sys, json
+          try:
+              data = json.loads(sys.stdin.read())
+              print(f\"{data.get('verdict','unknown')}: {data.get('summary','no summary')}\")
+          except Exception:
+              print('Judge output could not be parsed')
+          " 2>/dev/null || echo "Judge evaluation completed")
+
+          echo "feedback=${FEEDBACK:0:500}" >> "$GITHUB_OUTPUT"
+
+          # Log judge result to manifest
+          export FEEDBACK
+          python3 << 'PYEOF'
+          import json, datetime, os
+
+          entry = {
+              "event": "judge_evaluation",
+              "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+              "feedback": os.environ.get("FEEDBACK", "")[:500],
+          }
+
+          with open(".agentic-state/manifest.jsonl", "a") as f:
+              f.write(json.dumps(entry) + "\n")
+          PYEOF
+
+          echo "::notice::Judge: ${FEEDBACK}"
+
+      # -------------------------------------------------------
+      # Step 9: Commit and push changes
+      # -------------------------------------------------------
+      - name: Detect changes
+        id: changes
+        run: |
+          # Check for any uncommitted changes (excluding .agentic-state)
+          CHANGED=$(git status --porcelain -- ':!.agentic-state' | head -100)
+          if [ -n "${CHANGED}" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Agent produced changes"
+            echo "${CHANGED}"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No changes detected"
+          fi
+
+      - name: Commit and push
+        if: steps.changes.outputs.has_changes == 'true'
+        env:
+          BRANCH: ${{ steps.branch.outputs.branch }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          ITERATIONS: ${{ steps.loop.outputs.iterations }}
+        run: |
+          set -euo pipefail
+
+          # Stage all changes except .agentic-state
+          git add --all -- ':!.agentic-state'
+
+          # Build commit message
+          ISSUE_REF=""
+          if [ "${ISSUE_NUMBER}" != "0" ] && [ -n "${ISSUE_NUMBER}" ]; then
+            ISSUE_REF=" (#${ISSUE_NUMBER})"
+          fi
+
+          git commit -m "feat: agentic loop iteration ${ITERATIONS}${ISSUE_REF}" \
+            -m "Automated commit from agentic convergence loop." \
+            -m "Model: ${{ inputs.model }}" \
+            -m "Backend: ${{ inputs.backend }}" \
+            -m "Iterations: ${ITERATIONS}" || {
+              echo "::notice::Nothing to commit"
+              exit 0
+            }
+
+          # Safe push with rebase conflict resolution
+          MAX_PUSH_RETRIES=3
+          RETRY=0
+          while [ ${RETRY} -lt ${MAX_PUSH_RETRIES} ]; do
+            if git push origin "${BRANCH}" 2>&1; then
+              echo "::notice::Pushed to ${BRANCH}"
+              break
+            else
+              RETRY=$((RETRY + 1))
+              echo "::warning::Push failed (attempt ${RETRY}/${MAX_PUSH_RETRIES}), rebasing..."
+              git pull origin "${BRANCH}" --rebase --autostash || {
+                echo "::error::Rebase failed — aborting push"
+                git rebase --abort 2>/dev/null || true
+                exit 1
+              }
+            fi
+          done
+
+          if [ ${RETRY} -ge ${MAX_PUSH_RETRIES} ]; then
+            echo "::error::Failed to push after ${MAX_PUSH_RETRIES} attempts"
+            exit 1
+          fi
+
+      # -------------------------------------------------------
+      # Step 10: Create pull request (if requested)
+      # -------------------------------------------------------
+      - name: Create pull request
+        if: inputs.create_pr && steps.changes.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.branch.outputs.branch }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+          TASK_PROMPT: ${{ inputs.task_prompt }}
+          ITERATIONS: ${{ steps.loop.outputs.iterations }}
+          COMPLETED: ${{ steps.loop.outputs.completed }}
+          JUDGE_FEEDBACK: ${{ steps.judge.outputs.feedback }}
+          MODEL: ${{ inputs.model }}
+          BACKEND: ${{ inputs.backend }}
+        run: |
+          set -euo pipefail
+
+          DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name')
+
+          # Check if PR already exists for this branch
+          EXISTING_PR=$(gh pr list --head "${BRANCH}" --json number --jq '.[0].number // empty' 2>/dev/null || true)
+          if [ -n "${EXISTING_PR}" ]; then
+            echo "::notice::PR #${EXISTING_PR} already exists for branch ${BRANCH}"
+            exit 0
+          fi
+
+          # Build PR title
+          PR_TITLE="feat: ${TASK_PROMPT:0:60}"
+          if [ "${ISSUE_NUMBER}" != "0" ] && [ -n "${ISSUE_NUMBER}" ]; then
+            PR_TITLE="${PR_TITLE} (#${ISSUE_NUMBER})"
+          fi
+
+          # Build PR body
+          CLOSES_LINE=""
+          if [ "${ISSUE_NUMBER}" != "0" ] && [ -n "${ISSUE_NUMBER}" ]; then
+            CLOSES_LINE="Closes #${ISSUE_NUMBER}"
+          fi
+
+          gh pr create \
+            --base "${DEFAULT_BRANCH}" \
+            --head "${BRANCH}" \
+            --title "${PR_TITLE:0:120}" \
+            --body "$(cat <<PREOF
+          ## Summary
+
+          Automated PR from the agentic convergence loop.
+
+          - **Task:** ${TASK_PROMPT:0:200}
+          - **Model:** ${MODEL}
+          - **Backend:** ${BACKEND}
+          - **Iterations:** ${ITERATIONS}
+          - **Converged:** ${COMPLETED}
+          - **Judge:** ${JUDGE_FEEDBACK:-N/A}
+
+          ${CLOSES_LINE}
+
+          ---
+          *Generated by [agentic-loop](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) workflow*
+          PREOF
+          )"
+
+          echo "::notice::Pull request created"
+
+      # -------------------------------------------------------
+      # Step 11: Save checkpoint artifact
+      # -------------------------------------------------------
+      - name: Save checkpoint artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-checkpoint-${{ inputs.issue_number || github.run_id }}-${{ github.run_attempt }}
+          path: .agentic-state/
+          retention-days: 30
+          if-no-files-found: ignore

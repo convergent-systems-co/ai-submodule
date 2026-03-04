@@ -1,0 +1,16 @@
+{
+  "test_id": "documentation-review-complete-docs-001",
+  "panel": "documentation-review",
+  "description": "New feature with complete documentation updates including API docs, README, and inline docstrings",
+  "input": {
+    "diff": "diff --git a/src/api/routes.py b/src/api/routes.py\nindex 1a2b3c4..f6a7b8c 100644\n--- a/src/api/routes.py\n+++ b/src/api/routes.py\n@@ -15,6 +15,18 @@ from .auth import require_auth\n from .models import User\n \n+@app.route('/api/v2/users/export', methods=['GET'])\n+@require_auth\n+def export_users():\n+    \"\"\"Export user list as CSV.\n+\n+    Returns a CSV file containing all active users.\n+    Requires admin role. Rate limited to 10 req/min.\n+    \"\"\"\n+    users = User.query.filter_by(active=True).all()\n+    return generate_csv(users), 200, {'Content-Type': 'text/csv'}\ndiff --git a/docs/api/users.md b/docs/api/users.md\nindex 2b3c4d5..a8b9c0d 100644\n--- a/docs/api/users.md\n+++ b/docs/api/users.md\n@@ -40,3 +40,15 @@ Returns user profile by ID.\n+## GET /api/v2/users/export\n+\n+Export all active users as CSV.\n+\n+**Authentication:** Required (admin role)\n+**Rate limit:** 10 requests per minute\n+\n+### Response\n+- `200 OK` — CSV file with columns: id, username, email\n+- `401 Unauthorized` — Missing or invalid token\n+- `403 Forbidden` — Insufficient permissions\ndiff --git a/README.md b/README.md\nindex 3c4d5e6..b9c0d1e 100644\n--- a/README.md\n+++ b/README.md\n@@ -25,6 +25,7 @@ Available API endpoints:\n - `GET /api/v2/users/:id` — Get user profile\n+- `GET /api/v2/users/export` — Export users as CSV (admin only)",
+    "files_changed": ["src/api/routes.py", "docs/api/users.md", "README.md"],
+    "change_type": "feat"
+  },
+  "expected": {
+    "min_findings_critical": 0,
+    "min_findings_high": 0,
+    "expected_categories": [],
+    "expected_verdict": "approve"
+  }
+}

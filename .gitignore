@@ -1,0 +1,46 @@
+# Local overrides
+context.md
+*.local.md
+*.local.json
+# Legacy: project.yaml now lives at project root; ignored here for backward compat
+project.yaml
+
+# OS files
+.DS_Store
+
+# Build artifacts
+*.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+
+# Claude Code worktrees
+.claude/worktrees/
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
+.vscode/
+
+# Checkpoints (runtime state, not committed — but keep the directory)
+.checkpoints/*.json
+
+# Issue monitor runtime files
+bin/*.log
+bin/.issue-monitor-state
+
+# Go binary output
+src/bin/
+src/dark-governance
+src/dist/
+src/internal/embed/_content/*
+!src/internal/embed/_content/.gitkeep
+
+# VHS e2e test outputs (regenerable via `vhs` / `generate-narrated.sh`)
+tests/e2e/output/
+
+# dark-governance install cache (runtime artifact)
+versions/

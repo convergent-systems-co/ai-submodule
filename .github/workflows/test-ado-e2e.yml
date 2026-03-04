@@ -1,0 +1,121 @@
+# ADO Bidirectional Sync E2E Tests
+#
+# Runs mock-based tests on every push/PR and live ADO tests daily.
+# Live tests require ADO_PAT_E2E_TEST, ADO_ORGANIZATION, ADO_PROJECT
+# secrets configured in the repository.
+#
+# See: docs/guides/ado-integration.md#end-to-end-testing
+
+name: ADO E2E Tests
+
+on:
+  schedule:
+    # Daily at 02:00 UTC
+    - cron: "0 2 * * *"
+  push:
+    paths:
+      - "governance/integrations/ado/**"
+      - ".github/workflows/test-ado-e2e.yml"
+  pull_request:
+    paths:
+      - "governance/integrations/ado/**"
+      - ".github/workflows/test-ado-e2e.yml"
+  workflow_dispatch:
+    inputs:
+      run_live_tests:
+        description: "Run live ADO tests (requires credentials)"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+jobs:
+  # -------------------------------------------------------------------
+  # Mock-based tests — run on every push/PR, no credentials needed
+  # -------------------------------------------------------------------
+  mock-tests:
+    name: Mock E2E Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml requests
+
+      - name: Run mock E2E tests
+        run: |
+          python -m pytest governance/integrations/ado/tests/test_bidirectional_e2e.py \
+            -x --tb=short -v \
+            -m "not ado_live" \
+            --junitxml=.artifacts/test-results/ado-e2e-mock.xml
+        env:
+          PYTHONPATH: .
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ado-e2e-mock-results
+          path: .artifacts/test-results/
+          retention-days: 30
+
+  # -------------------------------------------------------------------
+  # Live tests — scheduled daily or triggered manually
+  # -------------------------------------------------------------------
+  live-tests:
+    name: Live ADO E2E Tests
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && inputs.run_live_tests == 'true')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml requests
+
+      - name: Mask credentials
+        run: |
+          echo "::add-mask::${{ secrets.ADO_PAT_E2E_TEST }}"
+
+      - name: Run live E2E tests
+        run: |
+          python -m pytest governance/integrations/ado/tests/test_bidirectional_e2e.py \
+            -x --tb=short -v \
+            -m "ado_live" \
+            --junitxml=.artifacts/test-results/ado-e2e-live.xml
+        env:
+          PYTHONPATH: .
+          ADO_PAT: ${{ secrets.ADO_PAT_E2E_TEST }}
+          ADO_ORGANIZATION: ${{ secrets.ADO_ORGANIZATION }}
+          ADO_PROJECT: ${{ secrets.ADO_PROJECT }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ado-e2e-live-results
+          path: .artifacts/test-results/
+          retention-days: 30

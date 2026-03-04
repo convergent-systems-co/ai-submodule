@@ -1,0 +1,26 @@
+# Example: Log Aggregation API Polling Adapter
+#
+# Polls a log aggregation API for error pattern alerts. Designed for systems
+# that detect error spikes or anomalous log patterns and expose them via a
+# REST endpoint (e.g., Elasticsearch Watcher, Splunk saved searches, or
+# any log analysis service with an alerts API).
+#
+# See docs/architecture/runtime-feedback.md, Section 1 for the full spec.
+
+adapter_name: "log-aggregator-poller"
+adapter_version: "1.0.0"
+source_type: "polling"
+endpoint: "${LOG_API_BASE_URL}/api/v2/alerts"
+auth_method: "api_key_header"
+auth_secret_ref: "log-aggregator-api-key"
+polling_interval_seconds: 120
+timeout_seconds: 15
+retry_count: 3
+retry_backoff_base_seconds: 5
+
+signal_mapping:
+  severity: "$.alert.priority"
+  category: "$.alert.type"
+  component: "$.alert.source.service"
+  message: "$.alert.description"
+  timestamp: "$.alert.triggered_at"

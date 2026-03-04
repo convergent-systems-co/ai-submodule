@@ -1,0 +1,404 @@
+# Homebrew Bottle Build and Publish to GitHub Releases
+#
+# Triggered after a GoReleaser release. Builds Homebrew bottles for
+# macOS (arm64, x86_64) and Linux (x86_64), then publishes them as
+# GitHub Release assets so that `brew install` can download prebuilt binaries.
+#
+# Architecture:
+#   1. Release triggers this workflow (on release published)
+#   2. Matrix builds bottles on native runners per platform
+#   3. Bottles are uploaded as GitHub Release assets
+#   4. Formula is updated with bottle SHA256 checksums via PR
+#
+# Prerequisites:
+#   - HOMEBREW_TAP_TOKEN secret (PAT with repo + packages scope)
+#   - GoReleaser release must have completed (binaries on GitHub Releases)
+
+name: Homebrew Bottles
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build bottles for (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: homebrew-bottle-${{ github.event.release.tag_name || inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Stage 1: Determine the release tag and validate prerequisites
+  # --------------------------------------------------------------------------
+  prepare:
+    name: Prepare
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.value }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - name: Determine tag
+        id: tag
+        run: |
+          TAG="${{ github.event.release.tag_name || inputs.tag }}"
+          if [[ -z "$TAG" ]]; then
+            echo "::error::No release tag found"
+            exit 1
+          fi
+          echo "value=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Building bottles for $TAG"
+
+      - name: Verify release exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "${{ steps.tag.outputs.value }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json tagName --jq '.tagName'
+
+  # --------------------------------------------------------------------------
+  # Stage 2: Build bottles on each platform
+  # --------------------------------------------------------------------------
+  build-bottle:
+    name: Build (${{ matrix.os_name }})
+    needs: prepare
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14           # Apple Silicon (arm64)
+            os_name: arm64_sonoma
+            goos: darwin
+            goarch: arm64
+            archive_suffix: darwin_arm64
+          - runner: macos-13           # Intel (x86_64)
+            os_name: sonoma
+            goos: darwin
+            goarch: amd64
+            archive_suffix: darwin_amd64
+          - runner: ubuntu-latest      # Linux x86_64
+            os_name: x86_64_linux
+            goos: linux
+            goarch: amd64
+            archive_suffix: linux_amd64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download release binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ needs.prepare.outputs.tag }}"
+          VERSION="${{ needs.prepare.outputs.version }}"
+          ARCHIVE="dark-governance_${VERSION}_${{ matrix.archive_suffix }}.tar.gz"
+
+          echo "Downloading $ARCHIVE from release $TAG"
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ARCHIVE" \
+            --dir ./download
+
+          echo "Extracting binary..."
+          mkdir -p ./binary
+          tar xzf "./download/$ARCHIVE" -C ./binary
+
+          # Verify binary
+          if [ "${{ matrix.goos }}" != "windows" ]; then
+            chmod +x ./binary/dark-governance
+            ./binary/dark-governance version || echo "::warning::Binary verification skipped (cross-platform)"
+          fi
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Create bottle
+        id: bottle
+        run: |
+          VERSION="${{ needs.prepare.outputs.version }}"
+          OS_NAME="${{ matrix.os_name }}"
+          FORMULA_NAME="dark-governance"
+
+          # Create a temporary formula that points to our binary
+          BOTTLE_DIR="$(mktemp -d)"
+          INSTALL_DIR="$BOTTLE_DIR/$FORMULA_NAME/$VERSION"
+          mkdir -p "$INSTALL_DIR/bin"
+          cp ./binary/dark-governance "$INSTALL_DIR/bin/"
+          chmod +x "$INSTALL_DIR/bin/dark-governance"
+
+          # Create bottle tarball in Homebrew format
+          BOTTLE_FILE="${FORMULA_NAME}-${VERSION}.${OS_NAME}.bottle.tar.gz"
+          cd "$BOTTLE_DIR"
+          tar czf "$GITHUB_WORKSPACE/$BOTTLE_FILE" \
+            -C "$BOTTLE_DIR" \
+            "$FORMULA_NAME"
+
+          cd "$GITHUB_WORKSPACE"
+
+          # Compute SHA256
+          if command -v sha256sum &>/dev/null; then
+            SHA256=$(sha256sum "$BOTTLE_FILE" | awk '{print $1}')
+          else
+            SHA256=$(shasum -a 256 "$BOTTLE_FILE" | awk '{print $1}')
+          fi
+
+          echo "Bottle: $BOTTLE_FILE"
+          echo "SHA256: $SHA256"
+
+          echo "bottle_file=$BOTTLE_FILE" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA256" >> "$GITHUB_OUTPUT"
+          echo "os_name=$OS_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Push bottle to GitHub Releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BOTTLE_FILE="${{ steps.bottle.outputs.bottle_file }}"
+          VERSION="${{ needs.prepare.outputs.version }}"
+
+          echo "Pushing $BOTTLE_FILE to GitHub Releases..."
+          # Upload bottle as a GitHub release asset (accessible via bottle root_url)
+          TAG="${{ needs.prepare.outputs.tag }}"
+          gh release upload "$TAG" "$BOTTLE_FILE" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+          echo "Bottle uploaded to GitHub Release $TAG"
+
+      - name: Upload bottle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bottle-${{ matrix.os_name }}
+          path: ${{ steps.bottle.outputs.bottle_file }}
+
+      - name: Write bottle metadata
+        run: |
+          mkdir -p metadata
+          cat > "metadata/${{ matrix.os_name }}.json" <<METAEOF
+          {
+            "os_name": "${{ matrix.os_name }}",
+            "sha256": "${{ steps.bottle.outputs.sha256 }}",
+            "bottle_file": "${{ steps.bottle.outputs.bottle_file }}"
+          }
+          METAEOF
+
+      - name: Upload metadata
+        uses: actions/upload-artifact@v4
+        with:
+          name: metadata-${{ matrix.os_name }}
+          path: metadata/
+
+  # --------------------------------------------------------------------------
+  # Stage 3: Update formula with bottle checksums
+  # --------------------------------------------------------------------------
+  update-formula:
+    name: Update Formula
+    needs: [prepare, build-bottle]
+    runs-on: ubuntu-latest
+    env:
+      FORMULA_PATH: Formula/dark-governance.rb
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: SET-Apps/homebrew-tap
+          ref: main
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Download all metadata
+        uses: actions/download-artifact@v4
+        with:
+          pattern: metadata-*
+          path: metadata
+          merge-multiple: true
+
+      - name: Update formula bottle block
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          echo "Updating formula for version $VERSION"
+
+          # Read SHA256 values from metadata
+          ARM64_SONOMA_SHA=""
+          SONOMA_SHA=""
+          LINUX_SHA=""
+
+          for f in metadata/*.json; do
+            OS_NAME=$(jq -r '.os_name' "$f")
+            SHA256=$(jq -r '.sha256' "$f")
+            case "$OS_NAME" in
+              arm64_sonoma) ARM64_SONOMA_SHA="$SHA256" ;;
+              sonoma)       SONOMA_SHA="$SHA256" ;;
+              x86_64_linux) LINUX_SHA="$SHA256" ;;
+            esac
+          done
+
+          echo "SHA256 values:"
+          echo "  arm64_sonoma: $ARM64_SONOMA_SHA"
+          echo "  sonoma:       $SONOMA_SHA"
+          echo "  x86_64_linux: $LINUX_SHA"
+
+          # Generate updated bottle block
+          BOTTLE_BLOCK="  bottle do
+            root_url \"https://github.com/convergent-systems-co/dark-forge/releases/download/${TAG}\""
+
+          if [ -n "$ARM64_SONOMA_SHA" ]; then
+            BOTTLE_BLOCK="$BOTTLE_BLOCK
+            sha256 cellar: :any_skip_relocation, arm64_sonoma: \"$ARM64_SONOMA_SHA\""
+          fi
+          if [ -n "$SONOMA_SHA" ]; then
+            BOTTLE_BLOCK="$BOTTLE_BLOCK
+            sha256 cellar: :any_skip_relocation, sonoma:       \"$SONOMA_SHA\""
+          fi
+          if [ -n "$LINUX_SHA" ]; then
+            BOTTLE_BLOCK="$BOTTLE_BLOCK
+            sha256 cellar: :any_skip_relocation, x86_64_linux: \"$LINUX_SHA\""
+          fi
+          BOTTLE_BLOCK="$BOTTLE_BLOCK
+          end"
+
+          # Update version in formula
+          sed -i "s/version \".*\"/version \"$VERSION\"/" "$FORMULA_PATH"
+
+          # Export BOTTLE_BLOCK so Python can read it from the environment
+          export BOTTLE_BLOCK
+
+          # Replace the bottle block using Python for reliable multi-line replacement
+          python3 << 'PYEOF'
+          import os
+
+          formula_path = os.environ["FORMULA_PATH"]
+
+          with open(formula_path, "r") as f:
+              content = f.read()
+
+          lines = content.split("\n")
+          new_lines = []
+          in_bottle = False
+          bottle_replaced = False
+
+          for line in lines:
+              if "bottle do" in line and not in_bottle:
+                  in_bottle = True
+                  bottle_replaced = True
+                  new_lines.append(os.environ.get("BOTTLE_BLOCK", ""))
+                  continue
+              if in_bottle:
+                  if line.strip() == "end":
+                      in_bottle = False
+                  continue
+              new_lines.append(line)
+
+          if bottle_replaced:
+              with open(formula_path, "w") as f:
+                  f.write("\n".join(new_lines))
+              print("Formula updated with bottle checksums")
+          else:
+              print("::warning::Could not find bottle block to update")
+          PYEOF
+
+          echo "Formula updated:"
+          head -80 "$FORMULA_PATH"
+
+      - name: Create PR with formula update
+        env:
+          GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          BRANCH="bot/homebrew-bottle-${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "$BRANCH"
+          git add "$FORMULA_PATH"
+
+          if git diff --cached --quiet; then
+            echo "No formula changes to commit"
+            exit 0
+          fi
+
+          git commit -m "feat(homebrew): update bottle checksums for v${VERSION}
+
+          Automated update of Homebrew bottle SHA256 checksums after
+          successful bottle builds for v${VERSION}.
+
+          Platforms: arm64_sonoma, sonoma, x86_64_linux"
+
+          git push origin "$BRANCH"
+
+          gh pr create \
+            --repo SET-Apps/homebrew-tap \
+            --title "feat(homebrew): update bottle checksums for v${VERSION}" \
+            --body "Automated PR to update Homebrew formula bottle checksums after release v${VERSION}.
+
+          ## Changes
+          - Updated bottle SHA256 checksums for arm64_sonoma, sonoma, x86_64_linux
+          - Version bumped to ${VERSION}
+
+          ## Verification
+          Bottles were built and uploaded by the homebrew-bottle workflow.
+
+          Auto-generated by homebrew-bottle.yml workflow." \
+            --base main \
+            --head "$BRANCH"
+
+  # --------------------------------------------------------------------------
+  # Stage 4: Smoke test the bottle installation
+  # --------------------------------------------------------------------------
+  smoke-test:
+    name: Smoke Test (${{ matrix.os_name }})
+    needs: [prepare, build-bottle]
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-14
+            os_name: arm64_sonoma
+          - runner: macos-13
+            os_name: sonoma
+          - runner: ubuntu-latest
+            os_name: x86_64_linux
+    steps:
+      - name: Download bottle
+        uses: actions/download-artifact@v4
+        with:
+          name: bottle-${{ matrix.os_name }}
+
+      - name: Verify bottle contents
+        run: |
+          BOTTLE_FILE=$(ls dark-governance-*.bottle.tar.gz 2>/dev/null | head -1)
+          if [ -z "$BOTTLE_FILE" ]; then
+            echo "::error::No bottle file found"
+            exit 1
+          fi
+
+          echo "Inspecting $BOTTLE_FILE"
+          tar tzf "$BOTTLE_FILE"
+
+          # Extract and run
+          mkdir -p extract
+          tar xzf "$BOTTLE_FILE" -C extract
+
+          BINARY=$(find extract -name "dark-governance" -type f | head -1)
+          if [ -z "$BINARY" ]; then
+            echo "::error::dark-governance binary not found in bottle"
+            exit 1
+          fi
+
+          chmod +x "$BINARY"
+          "$BINARY" version
+          echo "Smoke test passed for ${{ matrix.os_name }}"

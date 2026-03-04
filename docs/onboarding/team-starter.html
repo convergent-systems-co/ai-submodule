@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Forge — Team Starter Guide</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3352;
+      --accent: #5b8dee;
+      --accent2: #7c3aed;
+      --green: #22c55e;
+      --yellow: #facc15;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --code-bg: #0d1117;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Layout */
+    .page { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+    .hero { text-align: center; padding: 48px 0 40px; border-bottom: 1px solid var(--border); margin-bottom: 48px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 700; letter-spacing: -0.5px; }
+    .hero h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { color: var(--muted); margin-top: 12px; font-size: 1.05rem; max-width: 560px; margin-left: auto; margin-right: auto; }
+    .badge { display: inline-block; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 14px; font-size: 0.8rem; color: var(--muted); margin-top: 16px; }
+
+    /* Sections */
+    .section { margin-bottom: 56px; }
+    h2 { font-size: 1.4rem; font-weight: 600; color: var(--text); margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    h2 .icon { font-size: 1.2rem; }
+    h3 { font-size: 1.05rem; font-weight: 600; color: var(--accent); margin: 24px 0 12px; }
+
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: 4px; }
+    .step { display: flex; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; transition: border-color 0.2s; }
+    .step:hover { border-color: var(--accent); }
+    .step-num { flex-shrink: 0; width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; color: #fff; margin-top: 2px; }
+    .step-body { flex: 1; }
+    .step-title { font-weight: 600; margin-bottom: 6px; }
+    .step-desc { color: var(--muted); font-size: 0.9rem; margin-bottom: 10px; }
+    .step-note { display: inline-flex; align-items: center; gap: 6px; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 0.8rem; color: var(--yellow); margin-top: 4px; }
+
+    /* Code blocks */
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 10px 0; font-size: 0.85rem; line-height: 1.6; }
+    code { font-family: 'Cascadia Code', 'Consolas', monospace; }
+    p code, li code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 0.85em; }
+    .comment { color: #6b7280; }
+    .cmd { color: #93c5fd; }
+    .str { color: #86efac; }
+    .flag { color: #fcd34d; }
+
+    /* Cards / grid */
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .card-grid { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+    .card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 6px; }
+    .card p { color: var(--muted); font-size: 0.88rem; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: var(--surface2); color: var(--muted); font-weight: 600; text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    td:first-child { font-weight: 500; color: var(--accent); white-space: nowrap; }
+    .tag { display: inline-block; border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; font-weight: 600; }
+    .tag-green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .tag-yellow { background: rgba(250,204,21,0.15); color: var(--yellow); }
+    .tag-blue { background: rgba(91,141,238,0.15); color: var(--accent); }
+
+    /* Callout */
+    .callout { border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 8px 8px 0; padding: 14px 18px; margin: 16px 0; font-size: 0.92rem; }
+    .callout.warn { border-color: var(--yellow); }
+    .callout.success { border-color: var(--green); }
+    .callout strong { color: var(--text); }
+
+    /* Prereq list */
+    .prereq-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .prereq-list li { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-size: 0.9rem; }
+    .prereq-list li .icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+    /* Mode toggle */
+    .mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .mode-grid { grid-template-columns: 1fr; } }
+    .mode-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+    .mode-card h4 { font-weight: 600; margin-bottom: 8px; }
+    .mode-card ul { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+    .mode-card ul li::before { content: '✓ '; color: var(--green); }
+    .mode-card ul li.no::before { content: '✗ '; color: var(--muted); }
+    .mode-card ul li { font-size: 0.88rem; color: var(--muted); }
+
+    /* Before/After table */
+    .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .before-after { grid-template-columns: 1fr; } }
+    .ba-col { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+    .ba-col.before { border-color: var(--muted); }
+    .ba-col.after  { border-color: var(--accent2); }
+    .ba-header { padding: 10px 16px; font-weight: 700; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.07em; }
+    .ba-col.before .ba-header { background: var(--surface2); color: var(--muted); }
+    .ba-col.after  .ba-header { background: rgba(124,58,237,0.15); color: var(--accent2); }
+    .ba-body { padding: 14px 16px; background: var(--surface); }
+    .file-tree { list-style: none; display: flex; flex-direction: column; gap: 3px; font-family: 'Cascadia Code','Consolas',monospace; font-size: 0.8rem; }
+    .file-tree li { color: var(--muted); padding: 1px 0; }
+    .file-tree li.new { color: var(--accent2); font-weight: 600; }
+    .file-tree li.new::before { content: '+ '; color: var(--green); }
+    .file-tree li.warn { color: var(--yellow); }
+    .file-tree li.warn::before { content: '⚠ '; }
+    .file-tree li.dir { color: var(--text); }
+    .file-tree .indent { padding-left: 16px; }
+    .file-tree .comment { color: #4b5563; font-style: italic; }
+
+    /* Footprint breakdown table */
+    .footprint-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 20px; }
+    .footprint-table th { background: var(--surface2); color: var(--muted); font-weight: 600; text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--border); }
+    .footprint-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .footprint-table tr:last-child td { border-bottom: none; }
+    .footprint-table td:first-child { font-family: 'Cascadia Code','Consolas',monospace; font-size: 0.8rem; color: var(--accent); white-space: nowrap; }
+    .impact-low  { color: var(--green);  font-weight: 600; }
+    .impact-med  { color: var(--yellow); font-weight: 600; }
+    .impact-high { color: var(--red);    font-weight: 600; }
+
+    /* Footer */
+    footer { text-align: center; color: var(--muted); font-size: 0.82rem; padding-top: 40px; border-top: 1px solid var(--border); margin-top: 40px; }
+
+    /* TOC Nav */
+    .toc { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 48px; }
+    .toc-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+    .toc-links { display: flex; flex-wrap: wrap; gap: 8px; }
+    .toc-links a { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 14px; font-size: 0.82rem; color: var(--text); transition: border-color 0.15s, color 0.15s; }
+    .toc-links a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+
+    /* Doc relationship banner */
+    .doc-banner { display: flex; align-items: flex-start; gap: 16px; background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent2); border-radius: 0 10px 10px 0; padding: 18px 20px; margin-bottom: 48px; }
+    .doc-banner .icon { font-size: 1.8rem; flex-shrink: 0; line-height: 1; }
+    .doc-banner h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+    .doc-banner p { font-size: 0.88rem; color: var(--muted); line-height: 1.5; }
+    .doc-banner a { color: var(--accent); font-weight: 600; }
+
+    /* Copy button on code blocks */
+    .code-wrap { position: relative; }
+    .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; color: var(--muted); font-size: 0.72rem; font-family: 'Segoe UI', system-ui, sans-serif; padding: 3px 10px; cursor: pointer; transition: all 0.15s; }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+    /* README link card — featured */
+    .card.featured { border-color: var(--accent2); background: linear-gradient(135deg, var(--surface), #1e1733); }
+    .card.featured h4 a { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>🏭 <span>Dark Forge</span> Team Starter</h1>
+    <p>Get your first AI-governed project running in under 10 minutes. No prior experience needed.</p>
+    <div class="badge">Based on <a href="https://github.com/SET-Apps/ai-submodule">SET-Apps/ai-submodule</a> · Updated Feb 2026</div>
+  </div>
+
+  <!-- TOC -->
+  <nav class="toc">
+    <div class="toc-title">Jump to</div>
+    <div class="toc-links">
+      <a href="#what">💡 What Is This</a>
+      <a href="#prereqs">📦 Before You Start</a>
+      <a href="#quickstart">🚀 Quick Start</a>
+      <a href="#footprint">📁 Repo Footprint</a>
+      <a href="#modes">🔀 Local vs Remote</a>
+      <a href="#mental-model">⚙️ Mental Model</a>
+      <a href="#plans">📂 .plans Folder</a>
+      <a href="#update">🔄 Keeping Updated</a>
+      <a href="#recovery">🛟 When Stuck</a>
+      <a href="#links">🔗 Key Links</a>
+    </div>
+  </nav>
+
+  <!-- DOC RELATIONSHIP BANNER -->
+  <div class="doc-banner">
+    <div class="icon">⚠️</div>
+    <div>
+      <h3>Heads up — this is the on-ramp, not the manual</h3>
+      <p>
+        <strong>This page</strong> gets you running in 10 minutes on Windows at JM. It's opinionated on purpose.<br>
+        <strong>Everything else</strong> — 7 agentic personas, 21 review prompts, policy profiles, compliance rules, CI pipeline, runtime feedback, and advanced config — lives in the
+        <strong><a href="https://github.com/SET-Apps/ai-submodule/blob/main/README.md" target="_blank">Official README ↗</a></strong>.<br>
+        Once you're set up and curious, that's where you go. Bookmark it.
+      </p>
+    </div>
+  </div>
+
+  <!-- WHAT IS THIS -->
+  <div class="section" id="what">
+    <h2><span class="icon">💡</span> What Is This?</h2>
+    <div class="card-grid">
+      <div class="card">
+        <h4>🤖 A Virtual Engineering Team</h4>
+        <p>Drop a <code>.ai</code> submodule into any repo and get a full AI team: planner, coder, security reviewer, data governance reviewer, and more — all automated.</p>
+      </div>
+      <div class="card">
+        <h4>📋 Governed by Panels</h4>
+        <p>Every code change goes through review panels. If panels pass, it auto-merges. If they fail, it fixes itself and tries again.</p>
+      </div>
+      <div class="card">
+        <h4>🗂️ Plans as Audit Trail</h4>
+        <p>Every decision is written to <code>.artifacts/plans/</code>. Team members can see exactly why a change was made and how it evolved.</p>
+      </div>
+      <div class="card">
+        <h4>🌐 Local or GitHub</h4>
+        <p>Works offline with no GitHub remote (local mode) or fully connected with issue tracking, PRs, and auto-merge (remote mode).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREREQUISITES -->
+  <div class="section" id="prereqs">
+    <h2><span class="icon">📦</span> Before You Start</h2>
+    <ul class="prereq-list">
+      <li>
+        <span class="icon">🐍</span>
+        <div><strong>Python 3.12+</strong> — Required for the governance policy engine.<br>
+        <a href="https://www.python.org/downloads/">Download from python.org</a> and make sure it's in your PATH.<br>
+        Verify: <code>python --version</code></div>
+      </li>
+      <li>
+        <span class="icon">🔧</span>
+        <div><strong>Git</strong> — Standard git installation.<br>
+        Verify: <code>git --version</code></div>
+      </li>
+      <li>
+        <span class="icon">🤖</span>
+        <div><strong>AI Tool (one of):</strong> Claude Code or GitHub Copilot.<br>
+        The framework works with both. Instructions are shared automatically via symlinks.</div>
+      </li>
+      <li>
+        <span class="icon">🔑</span>
+        <div><strong>GitHub access to SET-Apps org</strong> — Needed to clone the submodule.<br>
+        Use SSH: <code>git@github.com:SET-Apps/ai-submodule.git</code></div>
+      </li>
+    </ul>
+    <div class="callout warn" style="margin-top:16px">
+      <strong>Windows tip:</strong> For symlinks to work (so <code>.github/copilot-instructions.md</code> and <code>CLAUDE.md</code> stay in sync automatically), enable <strong>Developer Mode</strong>: Settings → System → For developers → Developer Mode → On. Otherwise the script falls back to file copies — everything still works, but you'll need to re-run <code>init.ps1</code> after submodule updates.
+    </div>
+  </div>
+
+  <!-- QUICK START -->
+  <div class="section" id="quickstart">
+    <h2><span class="icon">🚀</span> Quick Start (Windows)</h2>
+    <div class="steps">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Create your project folder</div>
+          <div class="step-desc">Start a new folder for your project and initialize git.</div>
+          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="cmd">mkdir</span> <span class="str">my-project</span>
+<span class="cmd">cd</span> <span class="str">my-project</span>
+<span class="cmd">git init</span></code></pre></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Add the .ai governance submodule</div>
+          <div class="step-desc">This pulls the entire governance framework into your repo as a <code>.ai</code> folder.</div>
+          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="cmd">git submodule add</span> <span class="str">git@github.com:SET-Apps/ai-submodule.git</span> <span class="flag">.ai</span></code></pre></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Bootstrap the framework</div>
+          <div class="step-desc">Run the init script. It creates symlinks for all AI tools, sets up <code>.artifacts/plans/</code> and <code>.artifacts/panels/</code> folders, copies governance workflows, and generates CODEOWNERS.</div>
+          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="cmd">powershell</span> <span class="flag">-ExecutionPolicy Bypass -File</span> <span class="str">.ai\bin\init.ps1</span> <span class="flag">-InstallDeps</span></code></pre></div>
+          <div class="step-note">⚡ <code>-InstallDeps</code> creates a Python venv and installs <code>jsonschema</code> + <code>pyyaml</code> automatically</div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Pick your language template (optional)</div>
+          <div class="step-desc">Copy a template for your stack, or skip this — the Tech Lead will auto-detect your codebase and generate <code>project.yaml</code> during the first agentic session.</div>
+          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="comment"># Optional: choose one: python / node / go / csharp / react</span>
+<span class="cmd">Copy-Item</span> <span class="str">.ai\templates\node\project.yaml</span> <span class="str">project.yaml</span>
+<span class="comment"># Or skip this — /startup will auto-generate it</span></code></pre></div>
+          If you copied a template, open <code>project.yaml</code> and set your project name. Otherwise, the Tech Lead will create it during <code>/startup</code> based on your repo contents.
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Commit the setup</div>
+          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="cmd">git add</span> <span class="flag">-A</span>
+<span class="cmd">git commit</span> <span class="flag">-m</span> <span class="str">"chore: add .ai governance submodule"</span></code></pre></div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Start the agentic loop</div>
+          <div class="step-desc">Open your AI tool (Claude Code or GitHub Copilot) in this folder and type:</div>
+          <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code>/startup</code></pre></div>
+          <div class="step-note">🤖 Four AI personas activate: DevOps Engineer (triage) → Tech Lead (plan) → Coder (implement) → Tester (evaluate). If no <code>project.yaml</code> exists, the Tech Lead creates one first.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- REPO FOOTPRINT -->
+  <div class="section" id="footprint">
+    <h2><span class="icon">📁</span> What It Adds to Your Repo</h2>
+    <p style="color:var(--muted);margin-bottom:20px">You already have a repo. Here's exactly what changes — and what doesn't.</p>
+
+    <div class="before-after">
+      <div class="ba-col before">
+        <div class="ba-header">📂 Before — Your repo today</div>
+        <div class="ba-body">
+          <ul class="file-tree">
+            <li class="dir">my-repo/</li>
+            <li class="indent">src/</li>
+            <li class="indent">tests/</li>
+            <li class="indent">.github/</li>
+            <li class="indent indent">workflows/</li>
+            <li class="indent indent indent">ci.yml</li>
+            <li class="indent">README.md</li>
+            <li class="indent">package.json</li>
+            <li class="indent comment">... your existing files</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="ba-col after">
+        <div class="ba-header">✨ After — With Dark Forge</div>
+        <div class="ba-body">
+          <ul class="file-tree">
+            <li class="dir">my-repo/</li>
+            <li class="indent new">.ai/  <span class="comment">&nbsp;← 1 git pointer, ~200 files inside</span></li>
+            <li class="indent new">.gitmodules</li>
+            <li class="indent new">CLAUDE.md  <span class="comment">&nbsp;← symlink</span></li>
+            <li class="indent new">project.yaml  <span class="comment">&nbsp;← you configure this</span></li>
+            <li class="indent new">.artifacts/  <span class="comment">&nbsp;← plans, panels, checkpoints, state</span></li>
+            <li class="indent warn">CODEOWNERS  <span class="comment">&nbsp;← generated, check for conflicts</span></li>
+            <li class="indent">src/</li>
+            <li class="indent">tests/</li>
+            <li class="indent">.github/</li>
+            <li class="indent indent">copilot-instructions.md <span style="color:var(--accent2)">new</span></li>
+            <li class="indent indent">workflows/</li>
+            <li class="indent indent indent">ci.yml</li>
+            <li class="indent indent indent new">dark-factory-governance.yml</li>
+            <li class="indent indent indent new">plan-archival.yml</li>
+            <li class="indent indent indent new">jm-compliance.yml</li>
+            <li class="indent indent indent new">+ 2 more</li>
+            <li class="indent">README.md</li>
+            <li class="indent">package.json</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <table class="footprint-table" style="margin-top:20px">
+      <tr><th>What's added</th><th>Impact on your repo</th><th>Concern level</th></tr>
+      <tr>
+        <td>.ai/</td>
+        <td>Submodule — git tracks it as <strong>one commit pointer</strong>. Won't clutter <code>git status</code> or diffs.</td>
+        <td><span class="impact-low">Low</span></td>
+      </tr>
+      <tr>
+        <td>CLAUDE.md</td>
+        <td>Symlink at root (or file copy on Windows without Developer Mode). Visible but inert.</td>
+        <td><span class="impact-low">Low</span></td>
+      </tr>
+      <tr>
+        <td>project.yaml</td>
+        <td>Single config file you own. Name your project, set policy profile. That's it.</td>
+        <td><span class="impact-low">Low</span></td>
+      </tr>
+      <tr>
+        <td>.artifacts/</td>
+        <td>New folders. Add to <code>.gitignore</code> if you don't want plans committed (or let them accumulate — Thomas recommends keeping them initially).</td>
+        <td><span class="impact-low">Low</span></td>
+      </tr>
+      <tr>
+        <td>.github/workflows/<br>5 new YAMLs</td>
+        <td>Governance CI runs on every PR. Won't break existing workflows but <strong>will add extra CI time</strong>. Review before enabling on high-frequency repos.</td>
+        <td><span class="impact-med">Medium</span></td>
+      </tr>
+      <tr>
+        <td>CODEOWNERS</td>
+        <td>Generated fresh. <strong>Will overwrite</strong> your existing CODEOWNERS if you have one. Back it up first.</td>
+        <td><span class="impact-high">Check first</span></td>
+      </tr>
+    </table>
+
+    <div class="callout warn" style="margin-top:16px">
+      <strong>Quick gut check before you run init:</strong> Do you have a <code>CODEOWNERS</code> file? Back it up. Do you have existing CI workflows you care about? Review the 5 new YAMLs before they go live.
+      <br><br>👉 <a href="risks-mitigation.html"><strong>Full Risks &amp; Mitigation Guide →</strong></a> — step-by-step, copy-paste commands, zero-risk checklist
+    </div>
+  </div>
+
+  <!-- LOCAL VS REMOTE -->
+  <div class="section" id="modes">
+    <h2><span class="icon">🔀</span> Local Mode vs. Remote Mode</h2>
+    <p style="color:var(--muted);margin-bottom:16px;">The framework auto-detects whether you have a GitHub remote. Both modes run the full governance pipeline.</p>
+    <div class="mode-grid">
+      <div class="mode-card">
+        <h4>💻 Local Mode <span class="tag tag-yellow">No remote needed</span></h4>
+        <ul>
+          <li>Plans written to <code>.artifacts/plans/</code></li>
+          <li>Panels run and evaluate code</li>
+          <li>Code generated and tested</li>
+          <li class="no">No GitHub issues created</li>
+          <li class="no">No PRs or auto-merge</li>
+        </ul>
+        <p style="margin-top:12px;font-size:0.82rem;color:var(--muted);">Perfect for learning and POC. Start here.</p>
+      </div>
+      <div class="mode-card">
+        <h4>☁️ Remote Mode <span class="tag tag-green">Full pipeline</span></h4>
+        <ul>
+          <li>Plans written to <code>.artifacts/plans/</code></li>
+          <li>Panels run and evaluate code</li>
+          <li>Code generated and tested</li>
+          <li>GitHub issues created automatically</li>
+          <li>PRs created and auto-merged if panels pass</li>
+        </ul>
+        <p style="margin-top:12px;font-size:0.82rem;color:var(--muted);">Production workflow. Add <code>git remote add origin</code> to activate.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="section" id="mental-model">
+    <h2><span class="icon">⚙️</span> How It Works (The Mental Model)</h2>
+    <div class="callout success">
+      <strong>🧑‍💻 "Keyboard Karen" (a real dev, first day with the framework):</strong> "What I basically created was not an app, but was the app <em>and</em> the ecosystem that I can talk to — to create new issues, add new features, document something, test something, add new code. It's an ecosystem. It's like I created a virtual team."
+    </div>
+
+    <table style="margin-top:20px">
+      <tr><th>You say</th><th>What happens</th></tr>
+      <tr><td>"Build me a theme switcher"</td><td>DevOps Engineer triages → Tech Lead plans → Coder implements → Tester evaluates → Security review → merge</td></tr>
+      <tr><td>"Add Nord and Solarized themes"</td><td>Same 5-phase pipeline, scoped to the new request. Plans updated.</td></tr>
+      <tr><td>"Update GOALS.md"</td><td>Framework reads what was implemented and rewrites GOALS.md in standard format</td></tr>
+      <tr><td>/startup</td><td>DevOps Engineer scans open PRs → triages issues → Tech Lead orchestrates → Coder + Tester loop → merge</td></tr>
+    </table>
+  </div>
+
+  <!-- PLANS FOLDER -->
+  <div class="section" id="plans">
+    <h2><span class="icon">📂</span> Understanding the .plans Folder</h2>
+    <p style="color:var(--muted);margin-bottom:16px;">Every non-trivial action creates a plan file. This is your audit trail.</p>
+    <div class="card-grid">
+      <div class="card">
+        <h4>📄 What's in a plan?</h4>
+        <p>What was asked, what was decided, what was implemented, and why. Each plan = one session or one feature.</p>
+      </div>
+      <div class="card">
+        <h4>👀 Who reads them?</h4>
+        <p>New team members who need to understand <em>why</em> the code looks the way it does. Plans are the "how did we get here" trail.</p>
+      </div>
+      <div class="card">
+        <h4>🧹 Can we delete them?</h4>
+        <p>Yes, once the team is comfortable. Thomas: "Once people get comfortable we can change the framework to stop saving plans."</p>
+      </div>
+      <div class="card">
+        <h4>📦 Where do they go?</h4>
+        <p>Archived to GitHub Releases automatically when a PR merges (via <code>plan-archival.yml</code> workflow).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEEPING IT CURRENT -->
+  <div class="section" id="update">
+    <h2><span class="icon">🔄</span> Keeping the Framework Updated</h2>
+    <div class="code-wrap"><button class="copy-btn" onclick="copyCode(this)">Copy</button><pre><code><span class="comment"># Pull latest governance updates from SET-Apps/ai-submodule</span>
+<span class="cmd">git submodule update</span> <span class="flag">--remote</span> <span class="str">.ai</span>
+<span class="cmd">git add</span> <span class="str">.ai</span>
+<span class="cmd">git commit</span> <span class="flag">-m</span> <span class="str">"chore: update .ai submodule"</span></code></pre></div>
+    <div class="callout">The startup loop auto-runs this check at the start of every session. You usually don't need to do this manually.</div>
+  </div>
+
+  <!-- RECOVERY -->
+  <div class="section" id="recovery">
+    <h2><span class="icon">🛟</span> When Things Get Stuck</h2>
+    <table>
+      <tr><th>Situation</th><th>What to do</th></tr>
+      <tr><td>Agent stopped mid-session</td><td><code>/startup</code> — it resumes from the most recent checkpoint or open PR</td></tr>
+      <tr><td>Context is full / agent repeating itself</td><td>Say: <em>"Write a checkpoint and stop"</em> → <code>/clear</code> → <em>"Resume from checkpoint"</em></td></tr>
+      <tr><td>Dirty git state</td><td><code>git add -A && git commit -m "wip: recovery"</code> then <code>/startup</code></td></tr>
+      <tr><td>PR stuck / CI failing</td><td>Say: <em>"Resume PR #N"</em> — agent re-enters the review loop</td></tr>
+      <tr><td>Don't know where you are</td><td><code>git status</code> · <code>git branch --show-current</code> · <code>ls .artifacts/checkpoints/</code></td></tr>
+    </table>
+  </div>
+
+  <!-- LINKS -->
+  <div class="section" id="links">
+    <h2><span class="icon">🔗</span> Key Links</h2>
+    <div class="card-grid">
+      <div class="card featured">
+        <h4><a href="https://github.com/SET-Apps/ai-submodule/blob/main/README.md" target="_blank">📘 Official README</a></h4>
+        <p>Full architecture, all personas & panels, policy profiles, CI pipeline, compliance — the complete reference once you're up and running.</p>
+      </div>
+      <div class="card" style="border-color:var(--orange);background:rgba(249,115,22,0.07)">
+        <h4><a href="architecture.html">🗺️ Architecture Diagram</a></h4>
+        <p>High-level flow — how your request becomes governed, tested, and merged code.</p>
+      </div>
+      <div class="card" style="border-color:var(--yellow);background:rgba(250,204,21,0.05)">
+        <h4><a href="risks-mitigation.html">🛡️ Risks &amp; Mitigation</a></h4>
+        <p>Two risks, five mitigations, zero-risk pre-flight checklist. Read before running init.</p>
+      </div>
+      <div class="card">
+        <h4><a href="https://github.com/SET-Apps/ai-submodule/blob/main/DEVELOPER_GUIDE.md" target="_blank">📖 Developer Guide</a></h4>
+        <p>Quick-start onboarding, recovery, diagnostics, and troubleshooting</p>
+      </div>
+      <div class="card">
+        <h4><a href="https://github.com/SET-Apps/ai-submodule/blob/main/governance/prompts/reviews/" target="_blank">👥 Review Prompts</a></h4>
+        <p>21 consolidated review prompts and 7 agentic personas — who does what</p>
+      </div>
+      <div class="card">
+        <h4><a href="https://github.com/SET-Apps/ai-submodule/blob/main/governance/prompts/startup.md" target="_blank">▶️ Startup Prompt</a></h4>
+        <p>The 5-phase multi-agent agentic loop protocol</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Dark Forge · SET-Apps · Generated Feb 24, 2026<br>
+    Folder: <code>C:\development\jm\lab\dark-factory-learning\</code>
+  </footer>
+
+</div>
+<script>
+  function copyCode(btn) {
+    const pre = btn.nextElementSibling;
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>

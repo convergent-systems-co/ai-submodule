@@ -1,0 +1,120 @@
+# Collision Domain Configuration
+# Defines path-based grouping of repository areas to reduce merge risk
+# in multi-agent parallelization scenarios.
+# Part of Phase 5e — Scalable Policy-Bound Autonomy.
+#
+# Collision domains prevent multiple workers from modifying the same
+# sensitive areas simultaneously. The orchestrator enforces
+# max_per_collision_domain from orchestrator-config.schema.json.
+
+policy_name: collision_domains
+policy_version: "1.0.0"
+description: >
+  Path-based collision domain definitions for the Dark Forge Mass
+  Parallelization Model. Each domain groups related paths that should
+  not be modified by multiple workers simultaneously (or should be
+  limited to max_per_collision_domain concurrent sessions).
+
+# Domain Definitions
+# Each domain has a name, paths, and concurrency constraints.
+domains:
+  - name: policy-core
+    description: >
+      Governance policy files and enforcement schemas. Changes here
+      affect all other governance decisions. Strict serialization required.
+    paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "governance/bin/**"
+    max_concurrent_workers: 1
+    risk_level: critical
+    rationale: >
+      Policy and schema changes are foundational — concurrent modifications
+      could produce conflicting governance rules. Serialize all changes.
+
+  - name: panel-definitions
+    description: >
+      Review prompts and agentic persona definitions. Changes affect
+      review behavior across all consuming repos.
+    paths:
+      - "governance/prompts/reviews/**"
+      - "governance/personas/agentic/**"
+    max_concurrent_workers: 1
+    risk_level: high
+    rationale: >
+      Review prompt changes affect review quality and scoring. Two workers
+      modifying prompts simultaneously could produce inconsistent review criteria.
+
+  - name: documentation
+    description: >
+      Documentation files. Low conflict risk — docs are largely
+      independent of each other.
+    paths:
+      - "docs/**"
+      - "README.md"
+      - "DEVELOPER_GUIDE.md"
+      - "GOALS.md"
+      - "CLAUDE.md"
+    max_concurrent_workers: 3
+    risk_level: low
+    rationale: >
+      Documentation changes rarely conflict at the content level.
+      Multiple workers can update different docs simultaneously.
+
+  - name: workflows
+    description: >
+      GitHub Actions workflows and CI configuration.
+    paths:
+      - ".github/workflows/**"
+      - "config.yaml"
+    max_concurrent_workers: 1
+    risk_level: high
+    rationale: >
+      Workflow changes affect CI behavior for all PRs. Serialize
+      to prevent conflicting CI configurations.
+
+  - name: prompts
+    description: >
+      Agentic prompts, workflow templates, and consolidated review prompts.
+    paths:
+      - "governance/prompts/**"
+      - "governance/prompts/reviews/**"
+    max_concurrent_workers: 2
+    risk_level: medium
+    rationale: >
+      Prompts are generally independent, but the startup.md and
+      init.md prompts are system-critical. Two workers can safely
+      modify different prompts.
+
+  - name: templates
+    description: >
+      Language-specific templates for consuming repos.
+    paths:
+      - "governance/templates/**"
+    max_concurrent_workers: 3
+    risk_level: low
+    rationale: >
+      Language templates are fully independent of each other.
+      Multiple workers can add or modify different templates simultaneously.
+
+  - name: bootstrap
+    description: >
+      Bootstrap scripts and initialization.
+    paths:
+      - "bin/init.sh"
+      - "bin/init.ps1"
+      - "instructions.md"
+      - "instructions/**"
+    max_concurrent_workers: 1
+    risk_level: high
+    rationale: >
+      Bootstrap scripts are consumed by all repos. Changes must be
+      serialized to prevent conflicting initialization behavior.
+
+# Default behavior for paths not covered by any domain
+default:
+  max_concurrent_workers: 2
+  risk_level: low
+  description: >
+    Paths not covered by any named domain use default concurrency limits.
+    The orchestrator applies standard conflict detection for these paths.

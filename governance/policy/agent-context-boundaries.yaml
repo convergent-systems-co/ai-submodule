@@ -1,0 +1,200 @@
+# Agent Context Boundaries — Per-Persona Receive/Never-Receive Specification
+#
+# Defines the information boundary for each agentic persona. The envelope
+# builder (governance/engine/envelope.py) uses this spec to construct agent
+# context windows. Content not listed in `receives` is stripped; content
+# listed in `never_receives` triggers a validation violation.
+#
+# See: governance/prompts/agent-protocol.md (Envelope and Authentication sections)
+# See: docs/architecture/agent-architecture.md (Context Boundary Model)
+
+schema_version: "1.0"
+
+boundaries:
+  project-manager:
+    description: "Portfolio orchestrator — sees aggregated results, never implementation details"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/project-manager.md
+      - type: protocol_messages
+        message_types: [RESULT, STATUS, ESCALATE, WATCH]
+      - type: config
+        path: project.yaml
+        section: governance
+      - type: orchestrator_state
+        path: .artifacts/state/sessions/
+    never_receives:
+      - other_agent_context
+      - implementation_details
+      - raw_issue_bodies
+      - source_code
+      - test_output
+      - coder_internal_reasoning
+
+  devops-engineer:
+    description: "Session lifecycle and triage — sees issue metadata, never implementation"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/devops-engineer.md
+      - type: protocol_messages
+        message_types: [ASSIGN, RESULT, STATUS, ESCALATE, CANCEL]
+      - type: config
+        path: project.yaml
+      - type: issue_metadata
+        description: "Issue titles, labels, priorities — not raw bodies"
+      - type: orchestrator_state
+        path: .artifacts/state/sessions/
+      - type: checkpoint
+        path: .artifacts/checkpoints/
+    never_receives:
+      - coder_internal_reasoning
+      - tech_lead_panel_selections
+      - test_evaluator_feedback_details
+      - source_code
+      - other_agent_context
+
+  tech-lead:
+    description: "Orchestrator — sees plans and results for assigned issues only"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/tech-lead.md
+      - type: protocol_messages
+        message_types: [ASSIGN, RESULT, STATUS, ESCALATE, FEEDBACK, APPROVE, BLOCK, CANCEL]
+      - type: plan_files
+        path: .artifacts/plans/
+        scope: assigned_issues_only
+      - type: config
+        path: project.yaml
+      - type: issue_metadata
+        description: "Full issue bodies for assigned issues"
+      - type: panel_prompts
+        path: governance/prompts/reviews/
+    never_receives:
+      - other_tech_lead_context
+      - pm_triage_reasoning
+      - devops_preflight_details
+      - other_batch_plans
+
+  coder:
+    description: "Worker — sees only its assigned plan and scoped source files"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/coder.md
+      - type: protocol_messages
+        message_types: [ASSIGN, FEEDBACK, CANCEL]
+      - type: plan_file
+        path: .artifacts/plans/
+        scope: assigned_issue_only
+      - type: source_files
+        scope: plan_scope_only
+      - type: config
+        path: project.yaml
+        section: conventions
+    never_receives:
+      - tech_lead_panel_selections
+      - other_coder_context
+      - test_evaluator_history
+      - pm_or_devops_context
+      - other_issue_plans
+      - triage_reasoning
+
+  iac-engineer:
+    description: "Infrastructure worker — sees infra-scoped plan and IaC files only"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/iac-engineer.md
+      - type: protocol_messages
+        message_types: [ASSIGN, FEEDBACK, CANCEL]
+      - type: plan_file
+        path: .artifacts/plans/
+        scope: assigned_issue_only
+      - type: source_files
+        scope: infra_paths_only
+      - type: config
+        path: project.yaml
+        section: conventions
+    never_receives:
+      - application_source_code
+      - other_agent_context
+      - test_evaluator_history
+      - pm_or_devops_context
+
+  test-evaluator:
+    description: "Evaluator — sees coder output only, never internal reasoning"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/test-evaluator.md
+      - type: protocol_messages
+        message_types: [ASSIGN, CANCEL]
+      - type: coder_result
+        scope: result_payload_only
+      - type: source_files
+        scope: diff_scope_only
+      - type: config
+        path: project.yaml
+        section: conventions
+    never_receives:
+      - coder_internal_reasoning
+      - tech_lead_instructions_to_coder
+      - plan_rationale
+      - other_agent_context
+      - pm_or_devops_context
+
+  test-writer:
+    description: "Test author — sees coder output and test framework config"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/test-writer.md
+      - type: protocol_messages
+        message_types: [ASSIGN, FEEDBACK, CANCEL]
+      - type: coder_result
+        scope: result_payload_only
+      - type: source_files
+        scope: diff_scope_only
+      - type: config
+        path: project.yaml
+        section: conventions
+    never_receives:
+      - coder_internal_reasoning
+      - tech_lead_panel_selections
+      - other_agent_context
+      - pm_or_devops_context
+
+  document-writer:
+    description: "Documentation worker — sees diffs and doc files only"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/document-writer.md
+      - type: protocol_messages
+        message_types: [ASSIGN, FEEDBACK, CANCEL]
+      - type: source_files
+        scope: diff_scope_only
+      - type: documentation_files
+        scope: affected_docs_only
+      - type: config
+        path: project.yaml
+        section: conventions
+    never_receives:
+      - coder_internal_reasoning
+      - test_results_details
+      - other_agent_context
+      - pm_or_devops_context
+
+  documentation-reviewer:
+    description: "Documentation evaluator — sees doc changes for review"
+    receives:
+      - type: persona_definition
+        path: governance/personas/agentic/documentation-reviewer.md
+      - type: protocol_messages
+        message_types: [ASSIGN, CANCEL]
+      - type: documentation_files
+        scope: diff_scope_only
+      - type: config
+        path: project.yaml
+        section: conventions
+    never_receives:
+      - source_code_changes
+      - coder_internal_reasoning
+      - other_agent_context
+      - pm_or_devops_context
+      - test_results_details

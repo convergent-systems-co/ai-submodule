@@ -1,0 +1,47 @@
+# Drift-specific policy engine rules
+# Applied when the policy engine evaluates DIs tagged with "drift"
+# See: docs/architecture/runtime-feedback.md Section 4
+
+drift_policy:
+  version: "1.0.0"
+
+  # Drift DIs carry a "drift" tag that the policy engine recognizes
+  di_tag: "drift"
+
+  # Drift against a component with an active incident is always escalated
+  active_incident_rule:
+    condition: "component has active incident DI"
+    action: "escalate_to_human"
+    rationale: "Drift during an active incident may indicate ongoing attack or cascading failure."
+
+  # Drift that reverses a recent remediation is flagged as regression
+  regression_rule:
+    condition: "drift fingerprint matches a remediated drift within 7 days"
+    action: "escalate_severity_by_one"
+    tag: "regression"
+    rationale: "Recurring drift indicates remediation was insufficient."
+
+  # Configuration drift for components under change freeze
+  change_freeze_rule:
+    condition: "component is in change_freeze window"
+    action: "block_auto_remediation"
+    escalation: "immediate_human_review"
+    rationale: "No automated changes during change freeze."
+
+  # Compliance drift generates compliance-specific audit entries
+  compliance_audit_rule:
+    condition: "drift_type == compliance"
+    action: "generate_compliance_audit_entry"
+    requires: "compliance-officer persona review"
+    manifest_tag: "compliance_drift"
+
+  merge_decision_overrides:
+    # Drift-originated DIs cannot produce auto_merge decisions
+    # They can only produce: auto_remediate, human_review_required, or block
+    allowed_decisions:
+      - "auto_remediate"
+      - "human_review_required"
+      - "block"
+    prohibited_decisions:
+      - "auto_merge"
+    rationale: "Drift is a post-merge concern. 'auto_merge' is not a meaningful response to drift."

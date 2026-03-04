@@ -1,0 +1,149 @@
+name: Event-Driven Governance Trigger
+
+# Triggers governance sessions automatically when key repository events occur.
+# Dispatches to issue-monitor.yml for evaluation and processing.
+#
+# This workflow is part of Phase 5c (Always-On Orchestration) and replaces
+# the need for manual workflow_dispatch calls to issue-monitor.yml.
+#
+# Add to consuming repos via init.sh (listed as optional in config.yaml).
+
+on:
+  issues:
+    types: [opened, labeled, unlabeled]
+  pull_request:
+    types: [opened, synchronize]
+  deployment_status:
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+  actions: write    # Required to dispatch issue-monitor workflow
+
+concurrency:
+  group: event-trigger-${{ github.event.issue.number || github.event.pull_request.number || github.event.deployment.id || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------------------------------------------------------
+  # Job 1: Filter events and extract issue number
+  # -----------------------------------------------------------
+  filter:
+    name: filter
+    runs-on: ubuntu-latest
+    outputs:
+      should_dispatch: ${{ steps.evaluate.outputs.should_dispatch }}
+      issue_number: ${{ steps.evaluate.outputs.issue_number }}
+      reason: ${{ steps.evaluate.outputs.reason }}
+    steps:
+      - name: Evaluate event
+        id: evaluate
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          # Issue fields
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_AUTHOR_TYPE: ${{ github.event.issue.user.type }}
+          ISSUE_AUTHOR_LOGIN: ${{ github.event.issue.user.login }}
+          ISSUE_LABELS: ${{ toJson(github.event.issue.labels) }}
+          # PR fields
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_DRAFT: ${{ github.event.pull_request.draft }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+          # Deployment fields
+          DEPLOYMENT_STATE: ${{ github.event.deployment_status.state }}
+        run: |
+          should_dispatch="false"
+          issue_number=""
+          reason=""
+
+          case "$EVENT_NAME" in
+            issues)
+              issue_number="$ISSUE_NUMBER"
+
+              # Skip bot-created issues to prevent feedback loops
+              if [ "$ISSUE_AUTHOR_TYPE" = "Bot" ] || echo "$ISSUE_AUTHOR_LOGIN" | grep -qiE '\[bot\]$'; then
+                reason="Skipped: bot-created issue (author: $ISSUE_AUTHOR_LOGIN)"
+              # Skip issues with exclusion labels (exit 0 = no exclusions, exit 1 = has exclusions)
+              elif echo "$ISSUE_LABELS" | python3 -c "
+          import json, sys
+          labels = json.load(sys.stdin)
+          names = [l['name'] for l in labels] if labels else []
+          exclusions = {'blocked', 'wontfix', 'duplicate', 'refine'}
+          found = exclusions.intersection(names)
+          if found:
+              print(','.join(found))
+              sys.exit(1)
+          sys.exit(0)
+          " 2>/dev/null; then
+                should_dispatch="true"
+                reason="Issue event ($EVENT_ACTION) — dispatching #$issue_number"
+              else
+                reason="Skipped: issue has exclusion label"
+              fi
+              ;;
+
+            pull_request)
+              # PRs don't have a direct issue number; skip dispatch.
+              # The governance workflow (dark-factory-governance.yml) already
+              # handles PR events directly. This trigger is for issue-based work.
+              if [ "$PR_DRAFT" = "true" ]; then
+                reason="Skipped: draft PR"
+              elif [ "$PR_AUTHOR_TYPE" = "Bot" ] || echo "$PR_AUTHOR_LOGIN" | grep -qiE '\[bot\]$'; then
+                reason="Skipped: bot-created PR (author: $PR_AUTHOR_LOGIN)"
+              else
+                # Log for visibility but don't dispatch — governance workflow handles PRs
+                reason="PR event ($EVENT_ACTION) — handled by dark-factory-governance.yml, no issue dispatch needed"
+              fi
+              ;;
+
+            deployment_status)
+              if [ "$DEPLOYMENT_STATE" = "failure" ]; then
+                # Deployment failures could indicate drift; log for visibility.
+                # Future: create an incident-to-DI issue automatically.
+                reason="Deployment failure detected (state: $DEPLOYMENT_STATE) — logged for drift monitoring"
+              else
+                reason="Skipped: deployment state is $DEPLOYMENT_STATE (only failures are monitored)"
+              fi
+              ;;
+
+            *)
+              reason="Skipped: unhandled event type $EVENT_NAME"
+              ;;
+          esac
+
+          echo "should_dispatch=$should_dispatch" >> "$GITHUB_OUTPUT"
+          echo "issue_number=$issue_number" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "::notice::$reason"
+
+  # -----------------------------------------------------------
+  # Job 2: Dispatch to issue-monitor workflow
+  # -----------------------------------------------------------
+  dispatch:
+    name: dispatch
+    needs: filter
+    if: needs.filter.outputs.should_dispatch == 'true' && needs.filter.outputs.issue_number != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger issue-monitor workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER="${{ needs.filter.outputs.issue_number }}"
+          REPO="${{ github.repository }}"
+
+          echo "Dispatching issue-monitor for issue #$ISSUE_NUMBER..."
+
+          gh workflow run issue-monitor.yml \
+            --repo "$REPO" \
+            --field issue_number="$ISSUE_NUMBER" 2>&1 || {
+              echo "::warning::Failed to dispatch issue-monitor workflow. It may not be enabled or the workflow file may be missing."
+              echo "::warning::Ensure issue-monitor.yml exists in .github/workflows/ and is enabled."
+              exit 0  # Non-blocking — log and continue
+            }
+
+          echo "::notice::Dispatched issue-monitor for issue #$ISSUE_NUMBER"

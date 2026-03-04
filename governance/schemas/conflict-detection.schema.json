@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/conflict-detection.schema.json",
+  "title": "ConflictDetection",
+  "description": "Records a potential or actual conflict between multiple agent sessions modifying overlapping files or governance state. Used by multi-agent coordinators to detect, classify, and resolve conflicts before they produce merge failures. This is Phase 5d (Multi-Agent Coordination) governance artifact.",
+  "type": "object",
+  "required": [
+    "conflict_id",
+    "detected_at",
+    "agents",
+    "overlap",
+    "severity",
+    "resolution"
+  ],
+  "properties": {
+    "conflict_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this conflict detection record."
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when the conflict was detected."
+    },
+    "detection_phase": {
+      "type": "string",
+      "enum": ["pre_execution", "in_progress", "post_execution", "pre_merge"],
+      "description": "When in the agent lifecycle the conflict was detected. 'pre_execution' = before agents start work (planning phase). 'in_progress' = while agents are actively modifying files. 'post_execution' = after agents complete but before PR creation. 'pre_merge' = during PR merge sequencing."
+    },
+    "agents": {
+      "type": "array",
+      "minItems": 2,
+      "description": "The agent sessions involved in the conflict. At least two agents are required for a conflict.",
+      "items": {
+        "type": "object",
+        "required": ["agent_id", "session_id", "issue_number", "branch"],
+        "properties": {
+          "agent_id": {
+            "type": "string",
+            "description": "Identifier of the agent (e.g., 'tech-lead', 'coder-1', 'coder-2')."
+          },
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique session identifier for this agent's execution context."
+          },
+          "issue_number": {
+            "type": "integer",
+            "description": "GitHub issue number the agent is working on."
+          },
+          "branch": {
+            "type": "string",
+            "description": "Git branch name the agent is working on."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When this agent session began."
+          },
+          "files_modified": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "modification_type"],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "File path relative to repository root."
+                },
+                "modification_type": {
+                  "type": "string",
+                  "enum": ["create", "modify", "delete", "rename"],
+                  "description": "Type of modification the agent made or plans to make."
+                },
+                "sections_affected": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Specific sections or line ranges affected within the file (e.g., 'lines 10-25', 'function doAuth', 'Phase 5 section'). Optional — used for fine-grained overlap detection."
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Files this agent has modified or plans to modify."
+          },
+          "governance_state_modified": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["state_type", "identifier"],
+              "properties": {
+                "state_type": {
+                  "type": "string",
+                  "enum": ["policy_profile", "schema", "panel_definition", "persona", "workflow", "emission", "manifest"],
+                  "description": "Type of governance artifact modified."
+                },
+                "identifier": {
+                  "type": "string",
+                  "description": "Identifier of the specific governance artifact (e.g., 'default.yaml', 'panel-output.schema.json')."
+                },
+                "change_description": {
+                  "type": "string",
+                  "description": "Brief description of the governance state change."
+                }
+              },
+              "additionalProperties": false
+            },
+            "description": "Governance artifacts this agent has modified or plans to modify."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "overlap": {
+      "type": "object",
+      "required": ["overlap_type", "overlapping_paths"],
+      "description": "Details of the detected overlap between agents.",
+      "properties": {
+        "overlap_type": {
+          "type": "string",
+          "enum": ["exact_file", "directory", "governance_state", "semantic"],
+          "description": "Classification of overlap. 'exact_file' = same file modified by multiple agents. 'directory' = different files in the same directory modified. 'governance_state' = same governance artifact modified. 'semantic' = logically related changes that may conflict even without file overlap."
+        },
+        "overlapping_paths": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "File paths or governance artifact identifiers where overlap was detected."
+        },
+        "overlapping_sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "File path where section-level overlap was detected."
+              },
+              "agent_sections": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["agent_id", "sections"],
+                  "properties": {
+                    "agent_id": {
+                      "type": "string",
+                      "description": "Agent that modified these sections."
+                    },
+                    "sections": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "Sections modified by this agent."
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "description": "Per-agent section breakdown for this file."
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Fine-grained section-level overlap details. Optional — populated when section data is available."
+        },
+        "overlap_description": {
+          "type": "string",
+          "description": "Human-readable description of what overlaps and why it may cause a conflict."
+        }
+      },
+      "additionalProperties": false
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["blocking", "advisory"],
+      "description": "Conflict severity. 'blocking' = agents cannot proceed without resolution (e.g., exact file overlap with incompatible changes). 'advisory' = overlap detected but agents may proceed with caution (e.g., directory-level overlap on different files)."
+    },
+    "resolution": {
+      "type": "object",
+      "required": ["strategy", "status"],
+      "description": "How the conflict was or should be resolved.",
+      "properties": {
+        "strategy": {
+          "type": "string",
+          "enum": ["serialize", "rebase", "merge", "abort", "human_escalate", "section_partition", "pending"],
+          "description": "Resolution strategy. 'serialize' = execute agents sequentially instead of in parallel. 'rebase' = later agent rebases onto earlier agent's changes. 'merge' = attempt automatic merge. 'abort' = cancel one agent's work. 'human_escalate' = require human decision. 'section_partition' = agents work on non-overlapping sections of the same file. 'pending' = resolution not yet determined."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "resolved", "escalated", "failed"],
+          "description": "Current resolution status."
+        },
+        "resolved_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the conflict was resolved."
+        },
+        "resolved_by": {
+          "type": "string",
+          "description": "Agent or human who resolved the conflict."
+        },
+        "priority_agent": {
+          "type": "string",
+          "description": "Agent ID given priority in the resolution (e.g., the agent working on a higher-priority issue)."
+        },
+        "priority_reason": {
+          "type": "string",
+          "description": "Why this agent was given priority (e.g., 'P0 issue vs P2 issue', 'security fix vs enhancement')."
+        },
+        "merge_result": {
+          "type": "string",
+          "enum": ["clean", "conflict", "not_attempted"],
+          "description": "Result of merge attempt, if strategy was 'merge' or 'rebase'."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Additional context about the resolution."
+        }
+      },
+      "additionalProperties": false
+    },
+    "correlation_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Trace IDs or other identifiers for cross-referencing with orchestration logs."
+    }
+  },
+  "additionalProperties": false
+}

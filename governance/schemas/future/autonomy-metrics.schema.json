@@ -1,0 +1,279 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/autonomy-metrics.schema.json",
+  "title": "Autonomy Metrics",
+  "description": "Weekly metrics for measuring autonomous operation effectiveness. Generated from run manifests, checkpoints, and issue lifecycle data. Used by the weekly report template and autonomy threshold evaluation.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_id",
+    "period",
+    "throughput",
+    "quality",
+    "efficiency",
+    "safety"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for this metrics format."
+    },
+    "report_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this metrics report."
+    },
+    "period": {
+      "type": "object",
+      "description": "The time period this report covers.",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of the reporting period (ISO 8601)."
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of the reporting period (ISO 8601)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "throughput": {
+      "type": "object",
+      "description": "Volume metrics — how much work was completed autonomously.",
+      "required": [
+        "issues_processed",
+        "issues_completed",
+        "issues_escalated",
+        "prs_created",
+        "prs_merged",
+        "prs_abandoned",
+        "commits_total",
+        "sessions_run"
+      ],
+      "properties": {
+        "issues_processed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total issues the agent attempted to work on."
+        },
+        "issues_completed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Issues that were fully implemented and merged."
+        },
+        "issues_escalated": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Issues escalated to human review (refine, blocked, or exceeded review cycles)."
+        },
+        "issues_skipped": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Issues skipped due to unclear intent or insufficient detail."
+        },
+        "prs_created": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total PRs created by the agent."
+        },
+        "prs_merged": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "PRs successfully merged."
+        },
+        "prs_abandoned": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "PRs closed without merging (blocked, superseded, or failed)."
+        },
+        "commits_total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total commits made across all PRs."
+        },
+        "sessions_run": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of agentic sessions executed."
+        }
+      },
+      "additionalProperties": false
+    },
+    "quality": {
+      "type": "object",
+      "description": "Quality metrics — how good was the autonomous work.",
+      "required": [
+        "merge_success_rate",
+        "review_cycles_per_pr",
+        "copilot_findings_per_pr",
+        "copilot_findings_implemented",
+        "copilot_findings_dismissed",
+        "governance_approval_rate",
+        "human_intervention_rate"
+      ],
+      "properties": {
+        "merge_success_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Ratio of PRs merged vs. PRs created. Target: > 0.80."
+        },
+        "review_cycles_per_pr": {
+          "type": "object",
+          "description": "Review cycle statistics across all PRs.",
+          "properties": {
+            "mean": { "type": "number", "minimum": 0 },
+            "median": { "type": "number", "minimum": 0 },
+            "max": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "copilot_findings_per_pr": {
+          "type": "object",
+          "description": "Copilot findings statistics per PR.",
+          "properties": {
+            "mean": { "type": "number", "minimum": 0 },
+            "total": { "type": "integer", "minimum": 0 },
+            "by_severity": {
+              "type": "object",
+              "properties": {
+                "critical": { "type": "integer", "minimum": 0 },
+                "high": { "type": "integer", "minimum": 0 },
+                "medium": { "type": "integer", "minimum": 0 },
+                "low": { "type": "integer", "minimum": 0 },
+                "info": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "copilot_findings_implemented": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Copilot findings that were implemented (fixed)."
+        },
+        "copilot_findings_dismissed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Copilot findings dismissed with rationale."
+        },
+        "governance_approval_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Ratio of governance reviews resulting in auto_merge. Target: > 0.70."
+        },
+        "human_intervention_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Ratio of PRs requiring human intervention. Target: < 0.20."
+        },
+        "filter_mismatch_events": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of Copilot filter-mismatch warnings (Step 7b diagnostic pre-fetch). Target: 0."
+        }
+      },
+      "additionalProperties": false
+    },
+    "efficiency": {
+      "type": "object",
+      "description": "Efficiency metrics — resource consumption and throughput rate.",
+      "required": [
+        "avg_context_usage_percent",
+        "context_shutdowns",
+        "avg_issues_per_session",
+        "avg_review_cycles_before_merge"
+      ],
+      "properties": {
+        "avg_context_usage_percent": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 100.0,
+          "description": "Average context window usage at session end. Target: < 70%."
+        },
+        "context_shutdowns": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of sessions that hit the 80% context capacity limit."
+        },
+        "context_compactions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of sessions that reached context compaction (should always be 0)."
+        },
+        "avg_issues_per_session": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Average issues completed per session. Max possible: 3."
+        },
+        "avg_review_cycles_before_merge": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Average number of 7a-7f cycles before successful merge."
+        },
+        "checkpoints_written": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total checkpoint files created (should equal or exceed issues completed)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "safety": {
+      "type": "object",
+      "description": "Safety metrics — guardrail effectiveness and incident indicators.",
+      "required": [
+        "unresolved_threads_at_merge_attempt",
+        "max_review_cycles_hit",
+        "dirty_context_compactions",
+        "escalations_to_human"
+      ],
+      "properties": {
+        "unresolved_threads_at_merge_attempt": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Times the Step 7f-bis gate caught unresolved threads before merge. Non-zero is a save, not a failure."
+        },
+        "max_review_cycles_hit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "PRs that exhausted the 3-cycle review limit and escalated to human."
+        },
+        "dirty_context_compactions": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Context compactions with uncommitted changes. Must always be 0."
+        },
+        "escalations_to_human": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total escalations to human review (any reason)."
+        },
+        "governance_blocks": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "PRs where the policy engine returned a block decision."
+        },
+        "merge_without_thread_verification": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Merges that bypassed Step 7f-bis. Must always be 0."
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text observations, anomalies, or context for this reporting period."
+    }
+  },
+  "additionalProperties": false
+}

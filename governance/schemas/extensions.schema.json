@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/extensions.schema.json",
+  "title": "Extensions Configuration",
+  "description": "Schema for the governance.extensions block in project.yaml. Defines custom phases, panel types, and lifecycle hooks that extend the orchestrator without forking.",
+  "type": "object",
+  "properties": {
+    "phases": {
+      "type": "array",
+      "description": "Custom phases that extend the orchestrator pipeline.",
+      "items": {
+        "type": "object",
+        "required": ["name", "script"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Unique identifier for the custom phase.",
+            "minLength": 1
+          },
+          "script": {
+            "type": "string",
+            "description": "Path to the script to execute, relative to repo root.",
+            "minLength": 1
+          },
+          "after_phase": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 7,
+            "default": 5,
+            "description": "Phase number after which this plugin runs."
+          },
+          "timeout_seconds": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 300,
+            "description": "Maximum execution time in seconds."
+          },
+          "required": {
+            "type": "boolean",
+            "default": true,
+            "description": "If true, failure blocks the pipeline. If false, advisory only."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "panel_types": {
+      "type": "array",
+      "description": "Custom review panel types for the governance pipeline.",
+      "items": {
+        "type": "object",
+        "required": ["name", "prompt"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Panel identifier (e.g., 'custom-security').",
+            "minLength": 1
+          },
+          "prompt": {
+            "type": "string",
+            "description": "Path to the prompt markdown file, relative to repo root.",
+            "minLength": 1
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "default": 0.05,
+            "description": "Confidence weight for policy engine aggregation."
+          },
+          "required": {
+            "type": "boolean",
+            "default": false,
+            "description": "If true, emission is required for merge decisions."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "hooks": {
+      "type": "object",
+      "description": "Lifecycle hook scripts triggered at specific pipeline points.",
+      "properties": {
+        "pre_dispatch": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Scripts to run before agent dispatch (after Phase 2)."
+        },
+        "post_review": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Scripts to run after review collection (after Phase 4)."
+        },
+        "post_merge": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Scripts to run after PR merge (after Phase 5)."
+        },
+        "on_shutdown": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Scripts to run on orchestrator shutdown or session completion."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

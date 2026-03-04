@@ -1,0 +1,106 @@
+name: Go Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Run tests before release
+        working-directory: src
+        run: go test -race -count=1 ./...
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: '~> v2'
+          args: release --clean
+          workdir: src
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Sign checksums with Cosign
+        working-directory: src/dist
+        env:
+          COSIGN_YES: 'true'
+        run: |
+          if [ -f checksums.txt ]; then
+            cosign sign-blob --output-signature checksums.txt.sig \
+              --output-certificate checksums.txt.pem \
+              checksums.txt
+            echo "Checksums signed successfully"
+          else
+            echo "::warning::checksums.txt not found, skipping signing"
+          fi
+
+      - name: Upload signatures to release
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          cd src/dist
+          for f in checksums.txt.sig checksums.txt.pem; do
+            if [ -f "$f" ]; then
+              gh release upload "$TAG" "$f" --clobber
+            fi
+          done
+
+  verify:
+    name: Verify release artifacts
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for release assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          echo "Verifying release $TAG"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY"
+
+      - name: Download and verify Linux binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          mkdir -p verify && cd verify
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "dark-governance_*_linux_amd64.tar.gz" \
+            --pattern "checksums.txt"
+
+          # Verify checksum
+          sha256sum --check --ignore-missing checksums.txt
+
+          # Extract and verify binary runs
+          tar xzf dark-governance_*_linux_amd64.tar.gz
+          ./dark-governance version

@@ -1,0 +1,368 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/persona-effectiveness.schema.json",
+  "title": "Persona Effectiveness Scoring",
+  "description": "Tracks per-persona signal-to-noise ratio across governance runs. Used by the threshold auto-tuning policy and governance change proposal workflow (Phase 5b) to adjust persona weights based on historical effectiveness data.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_id",
+    "period",
+    "governance_version",
+    "personas",
+    "summary"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for this persona effectiveness format."
+    },
+    "report_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this effectiveness report."
+    },
+    "period": {
+      "type": "object",
+      "description": "The time period this report covers.",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of the reporting period (ISO 8601)."
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of the reporting period (ISO 8601)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "governance_version": {
+      "type": "string",
+      "description": "Git commit SHA of the .ai submodule at the time of report generation.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "retrospective_report_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to the retrospective aggregation report this was derived from."
+    },
+    "personas": {
+      "type": "array",
+      "description": "Per-persona effectiveness metrics for the reporting period.",
+      "items": {
+        "$ref": "#/$defs/persona_metrics"
+      },
+      "minItems": 1
+    },
+    "summary": {
+      "type": "object",
+      "description": "Aggregate statistics and weight adjustment recommendations.",
+      "required": [
+        "total_personas_evaluated",
+        "mean_signal_to_noise",
+        "recommendations"
+      ],
+      "properties": {
+        "total_personas_evaluated": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of personas with at least one finding in this period."
+        },
+        "mean_signal_to_noise": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Average signal-to-noise ratio across all evaluated personas."
+        },
+        "high_signal_personas": {
+          "type": "array",
+          "description": "Personas with signal-to-noise ratio above the high threshold.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "low_signal_personas": {
+          "type": "array",
+          "description": "Personas with signal-to-noise ratio below the low threshold.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "recommendations": {
+          "type": "array",
+          "description": "Weight adjustment recommendations based on effectiveness data.",
+          "items": {
+            "$ref": "#/$defs/weight_recommendation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "thresholds": {
+      "type": "object",
+      "description": "Signal-to-noise thresholds used for classification and recommendations.",
+      "properties": {
+        "high_signal": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.75,
+          "description": "S/N ratio at or above this value classifies a persona as high-signal."
+        },
+        "low_signal": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.30,
+          "description": "S/N ratio at or below this value classifies a persona as low-signal."
+        },
+        "minimum_findings": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 5,
+          "description": "Minimum total findings required before a persona is eligible for weight adjustment. Prevents small-sample bias."
+        },
+        "auto_adjust_threshold": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.20,
+          "description": "S/N ratio below this triggers automatic weight reduction (no human approval needed)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text observations or context for this report."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "persona_metrics": {
+      "type": "object",
+      "description": "Effectiveness metrics for a single persona.",
+      "required": [
+        "persona_name",
+        "category",
+        "findings_raised",
+        "findings_accepted",
+        "findings_dismissed",
+        "signal_to_noise_ratio"
+      ],
+      "properties": {
+        "persona_name": {
+          "type": "string",
+          "description": "Name of the persona (e.g., 'security-auditor', 'rust-engineer')."
+        },
+        "category": {
+          "type": "string",
+          "description": "Persona category (e.g., 'security', 'language', 'platform', 'review')."
+        },
+        "panels_participated": {
+          "type": "array",
+          "description": "List of panels this persona contributed to during the period.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "findings_raised": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total findings this persona surfaced across all panel evaluations."
+        },
+        "findings_accepted": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Findings that were implemented (signal)."
+        },
+        "findings_dismissed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Findings that were dismissed with documented rationale (noise)."
+        },
+        "findings_pending": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Findings not yet resolved (escalated or deferred)."
+        },
+        "signal_to_noise_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Ratio of accepted findings to total findings (accepted / raised). 1.0 = all findings were signal."
+        },
+        "false_positive_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Ratio of dismissed findings to total findings (dismissed / raised)."
+        },
+        "severity_distribution": {
+          "type": "object",
+          "description": "Breakdown of findings by severity classification.",
+          "properties": {
+            "critical": { "type": "integer", "minimum": 0 },
+            "high": { "type": "integer", "minimum": 0 },
+            "medium": { "type": "integer", "minimum": 0 },
+            "low": { "type": "integer", "minimum": 0 },
+            "info": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "current_weight": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "default": 1.0,
+          "description": "Current weight multiplier for this persona's contribution to aggregate confidence. 1.0 = default weight."
+        },
+        "recommended_weight": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Recommended weight based on effectiveness data. Null if no adjustment recommended."
+        },
+        "trend": {
+          "type": "string",
+          "enum": ["improving", "stable", "declining"],
+          "description": "Trend direction of this persona's S/N ratio compared to the previous period."
+        }
+      },
+      "additionalProperties": false
+    },
+    "weight_recommendation": {
+      "type": "object",
+      "description": "A specific weight adjustment recommendation for a persona.",
+      "required": [
+        "persona_name",
+        "action",
+        "rationale"
+      ],
+      "properties": {
+        "persona_name": {
+          "type": "string",
+          "description": "Name of the persona to adjust."
+        },
+        "action": {
+          "type": "string",
+          "enum": ["increase_weight", "decrease_weight", "flag_for_review", "no_change"],
+          "description": "Recommended action for this persona."
+        },
+        "current_weight": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Current weight value."
+        },
+        "proposed_weight": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Proposed new weight value."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Explanation for the recommendation."
+        },
+        "requires_human_approval": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether this adjustment requires human sign-off before applying. Automatic adjustments (S/N below auto_adjust_threshold with sufficient sample size) may set this to false."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "schema_version": "1.0.0",
+      "report_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "period": {
+        "start": "2026-02-17T00:00:00Z",
+        "end": "2026-02-23T23:59:59Z"
+      },
+      "governance_version": "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0",
+      "retrospective_report_id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+      "personas": [
+        {
+          "persona_name": "security-auditor",
+          "category": "security",
+          "panels_participated": ["security-review", "threat-modeling"],
+          "findings_raised": 12,
+          "findings_accepted": 10,
+          "findings_dismissed": 2,
+          "findings_pending": 0,
+          "signal_to_noise_ratio": 0.83,
+          "false_positive_rate": 0.17,
+          "severity_distribution": {
+            "critical": 1,
+            "high": 3,
+            "medium": 5,
+            "low": 2,
+            "info": 1
+          },
+          "current_weight": 1.0,
+          "recommended_weight": 1.1,
+          "trend": "stable"
+        },
+        {
+          "persona_name": "cost-analyst",
+          "category": "review",
+          "panels_participated": ["cost-analysis"],
+          "findings_raised": 8,
+          "findings_accepted": 2,
+          "findings_dismissed": 6,
+          "findings_pending": 0,
+          "signal_to_noise_ratio": 0.25,
+          "false_positive_rate": 0.75,
+          "severity_distribution": {
+            "critical": 0,
+            "high": 0,
+            "medium": 2,
+            "low": 4,
+            "info": 2
+          },
+          "current_weight": 1.0,
+          "recommended_weight": 0.7,
+          "trend": "declining"
+        }
+      ],
+      "summary": {
+        "total_personas_evaluated": 2,
+        "mean_signal_to_noise": 0.54,
+        "high_signal_personas": ["security-auditor"],
+        "low_signal_personas": ["cost-analyst"],
+        "recommendations": [
+          {
+            "persona_name": "security-auditor",
+            "action": "increase_weight",
+            "current_weight": 1.0,
+            "proposed_weight": 1.1,
+            "rationale": "Consistently high S/N (0.83) with meaningful severity distribution. Increase weight to amplify security findings in aggregate confidence.",
+            "requires_human_approval": true
+          },
+          {
+            "persona_name": "cost-analyst",
+            "action": "flag_for_review",
+            "current_weight": 1.0,
+            "proposed_weight": 0.7,
+            "rationale": "Low S/N (0.25) — 75% of findings dismissed. Review persona definition for over-broad evaluation criteria.",
+            "requires_human_approval": true
+          }
+        ]
+      },
+      "thresholds": {
+        "high_signal": 0.75,
+        "low_signal": 0.30,
+        "minimum_findings": 5,
+        "auto_adjust_threshold": 0.20
+      }
+    }
+  ]
+}

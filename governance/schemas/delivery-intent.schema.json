@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/delivery-intent.schema.json",
+  "title": "Delivery Intent Manifest",
+  "description": "Declares what files were delivered, what configuration was changed, and what the expected deployed state should be after a governance change lands in a consumer repository.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "intent_id",
+    "created_at",
+    "source",
+    "deliverables",
+    "expected_state"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version this intent conforms to.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "const": "1.0.0"
+    },
+    "intent_id": {
+      "type": "string",
+      "description": "Unique identifier for this delivery intent. Format: di-YYYY-MM-DD-{random6chars}.",
+      "pattern": "^di-\\d{4}-\\d{2}-\\d{2}-[a-z0-9]{6}$"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of intent creation."
+    },
+    "source": {
+      "type": "object",
+      "description": "Metadata about the change that produced this intent.",
+      "required": ["branch", "commit"],
+      "properties": {
+        "pr": {
+          "type": "string",
+          "description": "Pull request reference (e.g., '#750')."
+        },
+        "branch": {
+          "type": "string",
+          "description": "Source branch name."
+        },
+        "commit": {
+          "type": "string",
+          "description": "Commit SHA of the change.",
+          "pattern": "^[0-9a-f]{7,40}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "deliverables": {
+      "type": "array",
+      "description": "Files and directories delivered by this change.",
+      "items": {
+        "$ref": "#/$defs/deliverable"
+      },
+      "minItems": 1
+    },
+    "expected_state": {
+      "type": "object",
+      "description": "Expected governance state after this intent is applied.",
+      "required": ["governance_version", "policy_profile"],
+      "properties": {
+        "governance_version": {
+          "type": "string",
+          "description": "Expected governance binary version.",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "policy_profile": {
+          "type": "string",
+          "description": "Expected active policy profile name."
+        },
+        "required_panels": {
+          "type": "array",
+          "description": "Panel names that must be configured.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_workflows": {
+          "type": "array",
+          "description": "Workflow filenames that must exist in .github/workflows/.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_directories": {
+          "type": "array",
+          "description": "Directory paths that must exist.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "deliverable": {
+      "type": "object",
+      "description": "A single file or directory delivered by the change.",
+      "required": ["type", "path", "action"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Category of the deliverable.",
+          "enum": ["workflow", "policy", "schema", "prompt", "config", "directory", "persona", "document"]
+        },
+        "path": {
+          "type": "string",
+          "description": "Path relative to the repository root."
+        },
+        "action": {
+          "type": "string",
+          "description": "What action was taken on this deliverable.",
+          "enum": ["create", "update", "delete"]
+        },
+        "checksum": {
+          "type": "string",
+          "description": "SHA-256 checksum of the file content. Format: sha256:<hex>.",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of this deliverable, if applicable."
+        },
+        "expected_state": {
+          "type": "string",
+          "description": "Expected state for directory deliverables.",
+          "enum": ["exists", "not_exists"]
+        },
+        "required_keys": {
+          "type": "array",
+          "description": "Required configuration keys for config deliverables.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

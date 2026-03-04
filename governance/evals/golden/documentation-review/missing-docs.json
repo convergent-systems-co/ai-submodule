@@ -1,0 +1,15 @@
+{
+  "test_id": "documentation-review-missing-docs-001",
+  "panel": "documentation-review",
+  "description": "New public API endpoint added without any documentation updates to README or API docs",
+  "input": {
+    "diff": "diff --git a/src/api/routes.py b/src/api/routes.py\nindex 1a2b3c4..e5f6a7b 100644\n--- a/src/api/routes.py\n+++ b/src/api/routes.py\n@@ -15,6 +15,22 @@ from .auth import require_auth\n from .models import User, Order\n from .schemas import OrderSchema\n \n+@app.route('/api/v2/orders/bulk', methods=['POST'])\n+@require_auth\n+def create_bulk_orders():\n+    \"\"\"Create multiple orders in a single request.\"\"\"\n+    payload = request.get_json()\n+    orders = payload.get('orders', [])\n+    if len(orders) > 100:\n+        return jsonify({'error': 'Max 100 orders per batch'}), 400\n+    results = []\n+    for order_data in orders:\n+        schema = OrderSchema()\n+        order = schema.load(order_data)\n+        db.session.add(order)\n+        results.append(order.id)\n+    db.session.commit()\n+    return jsonify({'created': results}), 201",
+    "files_changed": ["src/api/routes.py"],
+    "change_type": "feat"
+  },
+  "expected": {
+    "min_findings_medium": 1,
+    "expected_categories": ["missing-documentation"],
+    "expected_verdict": "request_changes"
+  }
+}

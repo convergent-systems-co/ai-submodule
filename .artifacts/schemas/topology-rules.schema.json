@@ -1,0 +1,55 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Topology Rules",
+  "description": "Defines PM mode topology constraints for the dark-governance binary.",
+  "type": "object",
+  "required": ["pm_mode_enabled", "constraints"],
+  "properties": {
+    "pm_mode_enabled": {
+      "type": "boolean",
+      "description": "Whether PM mode is active."
+    },
+    "parallel_team_leads": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of parallel team leads."
+    },
+    "parallel_coders": {
+      "type": "integer",
+      "minimum": -1,
+      "description": "Number of parallel coders per team lead. -1 for unlimited."
+    },
+    "required_personas": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["PM", "TechLead", "Coder", "DevOps"]
+      },
+      "description": "List of personas required in the topology."
+    },
+    "constraints": {
+      "type": "object",
+      "required": [
+        "every_techLead_must_have_coders",
+        "every_coder_must_have_parent",
+        "devops_required_in_pm_mode"
+      ],
+      "properties": {
+        "every_techLead_must_have_coders": {
+          "type": "boolean",
+          "description": "Every TechLead must have at least one Coder child."
+        },
+        "every_coder_must_have_parent": {
+          "type": "boolean",
+          "description": "Every Coder must have a TechLead parent."
+        },
+        "devops_required_in_pm_mode": {
+          "type": "boolean",
+          "description": "DevOps agent is required when PM mode is active."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

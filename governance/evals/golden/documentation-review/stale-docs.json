@@ -1,0 +1,15 @@
+{
+  "test_id": "documentation-review-stale-docs-001",
+  "panel": "documentation-review",
+  "description": "Endpoint behavior changed from synchronous to async with new response format, but API docs still describe the old synchronous behavior",
+  "input": {
+    "diff": "diff --git a/src/api/routes.py b/src/api/routes.py\nindex 4d5e6f7..c0d1e2f 100644\n--- a/src/api/routes.py\n+++ b/src/api/routes.py\n@@ -30,10 +30,16 @@ from .tasks import process_report_async\n @app.route('/api/v2/reports', methods=['POST'])\n @require_auth\n def create_report():\n-    \"\"\"Generate a report synchronously.\"\"\"\n+    \"\"\"Queue a report for async generation.\"\"\"\n     payload = request.get_json()\n-    report = generate_report(payload['type'], payload['filters'])\n-    return jsonify(report.to_dict()), 200\n+    task_id = process_report_async.delay(\n+        report_type=payload['type'],\n+        filters=payload['filters'],\n+        requester=g.current_user.id\n+    )\n+    return jsonify({\n+        'task_id': str(task_id),\n+        'status_url': f'/api/v2/reports/status/{task_id}'\n+    }), 202\ndiff --git a/docs/api/reports.md b/docs/api/reports.md\nindex 5e6f7a8..d1e2f3a 100644\n--- a/docs/api/reports.md\n+++ b/docs/api/reports.md\n@@ -1,5 +1,5 @@\n # Reports API\n \n-Last updated: 2025-06-15\n+Last updated: 2026-02-27",
+    "files_changed": ["src/api/routes.py", "docs/api/reports.md"],
+    "change_type": "feat"
+  },
+  "expected": {
+    "min_findings_high": 1,
+    "expected_categories": ["stale-documentation"],
+    "expected_verdict": "request_changes"
+  }
+}

@@ -1,0 +1,1059 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/project.schema.json",
+  "title": "Project Configuration",
+  "description": "Schema for project.yaml configuration, including repository settings applied by init.sh. The repository section declares GitHub repo settings (auto-merge, branch protection, CODEOWNERS) as code.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Project name identifier."
+    },
+    "language": {
+      "type": "string",
+      "description": "Primary programming language (single-language projects).",
+      "examples": [
+        "python",
+        "typescript",
+        "go",
+        "java"
+      ]
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Project languages (multi-language projects). Use this instead of 'language' when the project uses more than one language.",
+      "examples": [
+        ["python", "markdown", "json"],
+        ["typescript", "python"]
+      ]
+    },
+    "framework": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null,
+      "description": "Framework used, or null if none.",
+      "examples": [
+        "react",
+        "django",
+        "spring-boot",
+        null
+      ]
+    },
+    "governance": {
+      "type": "object",
+      "description": "Governance configuration overrides.",
+      "properties": {
+        "policy_profile": {
+          "type": "string",
+          "description": "Policy profile to use. Maps to a file in governance/policy/.",
+          "default": "default",
+          "examples": [
+            "default",
+            "fin_pii_high",
+            "infrastructure_critical",
+            "reduced_touchpoint"
+          ]
+        },
+        "skip_panel_validation": {
+          "type": "boolean",
+          "default": false,
+          "description": "Opt out of mandatory panel validation. Use with caution."
+        },
+        "ai_submodule_pin": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Pin the .ai submodule to a specific commit SHA or tag.",
+          "examples": [
+            "v2.1.0",
+            "abc123def456"
+          ]
+        },
+        "parallel_coders": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 10,
+          "default": 5,
+          "description": "Maximum number of concurrent Coder agents spawned during parallel dispatch. Default is 5. Set to -1 for unlimited (context-monitored) \u2014 the pipeline processes issues until context pressure triggers the shutdown protocol and checkpoint."
+        },
+        "use_project_manager": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable Project Manager mode. When true, the PM persona orchestrates Tech Leads who each manage a pool of Coders. Default is false (standard mode)."
+        },
+        "parallel_tech_leads": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 3,
+          "description": "Maximum number of concurrent Tech Lead agents when Project Manager mode is enabled. Each Tech Lead dispatches its own pool of Coders. Default is 3."
+        },
+        "parallel_code_managers": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "default": 3,
+          "description": "Deprecated: use parallel_tech_leads instead. Kept for backward compatibility."
+        },
+        "evaluation_tier": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "full",
+            "lightweight"
+          ],
+          "default": "auto",
+          "description": "Controls which evaluation tier the governance workflow uses. auto: use full engine if available, fall back to lightweight inline validation. full: require the full policy engine \u2014 fail if unavailable. lightweight: explicitly accept reduced-coverage inline validation."
+        },
+        "require_python_engine": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true (default), the PR is blocked when the Python policy engine is unavailable - no silent fallback to lightweight inline validation. If false, the lightweight fallback is used with a warning when the engine is missing. Cross-org repos that cannot bundle the submodule in CI should set this to false."
+        },
+        "coder_min": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 1,
+          "description": "Minimum number of Coder agents to dispatch per batch."
+        },
+        "coder_max": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 20,
+          "default": 5,
+          "description": "Maximum number of Coder agents to dispatch per batch. Use -1 for unlimited."
+        },
+        "require_worktree": {
+          "type": "boolean",
+          "default": true,
+          "description": "If true (default), all Coder agents must run in isolated git worktrees. The primary repo always stays on main."
+        },
+        "models": {
+          "type": "object",
+          "description": "Model routing configuration. Controls which AI model runs which panel or persona. When omitted, all tasks use the invoking model. When default is 'auto', the engine routes by task criticality tier.",
+          "properties": {
+            "default": {
+              "type": "string",
+              "default": "auto",
+              "description": "Default model for all tasks. 'auto' enables tier-based routing.",
+              "examples": [
+                "auto",
+                "opus",
+                "sonnet",
+                "haiku"
+              ]
+            },
+            "tiers": {
+              "type": "object",
+              "description": "Map criticality tiers to model IDs. Used when default is 'auto'.",
+              "properties": {
+                "high": {
+                  "type": "string",
+                  "default": "opus",
+                  "description": "Model for high-criticality tasks (security-review, threat-modeling, tester)."
+                },
+                "standard": {
+                  "type": "string",
+                  "default": "sonnet",
+                  "description": "Model for standard-criticality tasks (code-review, coder, tech-lead)."
+                },
+                "low": {
+                  "type": "string",
+                  "default": "haiku",
+                  "description": "Model for low-criticality tasks (documentation-review, cost-analysis)."
+                }
+              },
+              "additionalProperties": false
+            },
+            "panels": {
+              "type": "object",
+              "description": "Per-panel model overrides. Keys are panel names, values are model IDs.",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "examples": [
+                {
+                  "security-review": "opus",
+                  "documentation-review": "haiku"
+                }
+              ]
+            },
+            "personas": {
+              "type": "object",
+              "description": "Per-persona model overrides. Keys are persona names, values are model IDs.",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "examples": [
+                {
+                  "test-evaluator": "opus",
+                  "coder": "sonnet"
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "panel_models": {
+          "type": "object",
+          "description": "Alternative per-panel model assignment syntax using defaults/overrides pattern. When both governance.models.panels and governance.panel_models.overrides are set, panel_models overrides take precedence.",
+          "properties": {
+            "defaults": {
+              "type": "object",
+              "description": "Default model for all panels. Used when a panel has no specific override.",
+              "properties": {
+                "model": {
+                  "type": "string",
+                  "description": "Default model identifier for all panels.",
+                  "examples": ["claude-sonnet-4-6", "sonnet", "auto"]
+                }
+              },
+              "additionalProperties": false
+            },
+            "overrides": {
+              "type": "object",
+              "description": "Per-panel model overrides. Keys are panel names.",
+              "additionalProperties": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "model": {
+                        "type": "string",
+                        "description": "Model identifier for this panel."
+                      }
+                    },
+                    "required": ["model"],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "string",
+                    "description": "Shorthand: model identifier directly as a string."
+                  }
+                ]
+              },
+              "examples": [
+                {
+                  "security-review": {"model": "claude-opus-4-6"},
+                  "documentation-review": {"model": "claude-haiku-4-5"}
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "deployment": {
+          "type": "object",
+          "description": "Optional deployment configuration for phases 6-7. When enabled, the orchestrator extends with Build & Package (phase 6) and Deploy & Verify (phase 7) after the merge phase.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "Enable deployment phases 6-7. When false, the orchestrator skips from merge to loop/done."
+            },
+            "target": {
+              "type": "string",
+              "enum": ["aks", "ecs", "lambda", "static", "custom"],
+              "default": "custom",
+              "description": "Deployment target platform."
+            },
+            "environments": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["dev", "staging", "production"]
+              },
+              "default": ["dev"],
+              "description": "Ordered list of deployment environments. Must follow promotion order: dev -> staging -> production."
+            },
+            "rollback_on_failure": {
+              "type": "boolean",
+              "default": true,
+              "description": "Automatically rollback on deployment verification failure."
+            },
+            "skip_build": {
+              "type": "boolean",
+              "default": false,
+              "description": "Skip phase 6 (Build & Package). Useful when builds are handled externally."
+            },
+            "skip_deploy": {
+              "type": "boolean",
+              "default": false,
+              "description": "Skip phase 7 (Deploy & Verify). Useful for build-only pipelines."
+            },
+            "verify_timeout_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 300,
+              "description": "Timeout in seconds for deployment verification checks."
+            },
+            "artifact_registry": {
+              "type": "string",
+              "description": "Artifact registry URL for publishing built artifacts."
+            },
+            "helm_chart": {
+              "type": "string",
+              "description": "Path to the Helm chart for Kubernetes deployments."
+            },
+            "iac_path": {
+              "type": "string",
+              "description": "Path to IaC templates (Terraform, Bicep) for infrastructure deployment."
+            },
+            "smoke_test_command": {
+              "type": "string",
+              "description": "Command to run for smoke testing after deployment."
+            }
+          },
+          "additionalProperties": false
+        },
+        "extensions": {
+          "type": "object",
+          "description": "Plugin extensions for custom phases, panel types, and lifecycle hooks. Allows consuming repos to extend the orchestrator without modifying framework source.",
+          "properties": {
+            "phases": {
+              "type": "array",
+              "description": "Custom phases that extend the orchestrator pipeline.",
+              "items": {
+                "type": "object",
+                "required": ["name", "script"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Unique identifier for the custom phase."
+                  },
+                  "script": {
+                    "type": "string",
+                    "description": "Path to the script to execute, relative to repo root."
+                  },
+                  "after_phase": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 7,
+                    "default": 5,
+                    "description": "Phase number after which this plugin runs."
+                  },
+                  "timeout_seconds": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 300,
+                    "description": "Maximum execution time in seconds."
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "If true, failure blocks the pipeline. If false, advisory only."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "panel_types": {
+              "type": "array",
+              "description": "Custom review panel types for the governance pipeline.",
+              "items": {
+                "type": "object",
+                "required": ["name", "prompt"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Panel identifier (e.g., 'custom-security')."
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "description": "Path to the prompt markdown file, relative to repo root."
+                  },
+                  "weight": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "default": 0.05,
+                    "description": "Confidence weight for policy engine aggregation."
+                  },
+                  "required": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, emission is required for merge decisions."
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "hooks": {
+              "type": "object",
+              "description": "Lifecycle hook scripts triggered at specific pipeline points.",
+              "properties": {
+                "post_merge": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": [],
+                  "description": "Scripts to run after PR merge."
+                },
+                "pre_dispatch": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": [],
+                  "description": "Scripts to run before agent dispatch."
+                },
+                "post_review": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": [],
+                  "description": "Scripts to run after review collection."
+                },
+                "on_shutdown": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "default": [],
+                  "description": "Scripts to run on orchestrator shutdown."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "storage": {
+          "type": "object",
+          "description": "Storage backend configuration for governance state and artifacts. Controls where transient state (sessions, checkpoints, logs) and archived artifacts (historical plans, panel reports) are stored.",
+          "properties": {
+            "state": {
+              "type": "string",
+              "enum": ["local", "repo"],
+              "default": "local",
+              "description": "Where transient state lives during active sessions. 'local' uses XDG-compliant local directory (~/.local/state/dark-governance/). 'repo' uses .artifacts/ in the repo (current behavior, backward compat)."
+            },
+            "archive": {
+              "type": "string",
+              "enum": ["local", "repo"],
+              "default": "local",
+              "description": "Where archived artifacts go after PR merge. 'local' stores in the same local directory (default for solo developers). 'repo' keeps in the repo (backward compat)."
+            },
+            "config": {
+              "type": "object",
+              "description": "Backend-specific configuration. Keys depend on the selected backend.",
+              "additionalProperties": true
+            },
+            "retention": {
+              "type": "object",
+              "description": "Controls what stays in-repo vs what gets externalized.",
+              "properties": {
+                "plans_in_repo": {
+                  "type": "string",
+                  "enum": ["active_only", "all", "none"],
+                  "default": "active_only",
+                  "description": "Plan retention in repo. 'active_only' keeps plans for open issues/PRs. 'all' keeps everything. 'none' externalizes immediately."
+                },
+                "emissions_in_repo": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Keep emission templates in repo (small, static)."
+                },
+                "panels_in_repo": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Keep panel reports in repo. Default false (archive after PR merge)."
+                },
+                "logs_in_repo": {
+                  "type": "boolean",
+                  "default": false,
+                  "description": "Keep agent logs in repo. Default false (never commit)."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "delivery_intent": {
+          "type": "object",
+          "description": "Delivery intent manifest configuration. Controls whether the document-writer persona emits delivery intents during Phase 4.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false,
+              "description": "When true, delivery intent manifests are emitted to .artifacts/delivery-intents/ during the document-writer phase."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "personas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "quality/code-reviewer.md",
+        "quality/adversarial-reviewer.md",
+        "engineering/test-engineer.md",
+        "engineering/performance-engineer.md",
+        "compliance/security-auditor.md"
+      ],
+      "description": "List of persona file paths to activate.",
+      "examples": [
+        [
+          "agentic/devops-engineer.md",
+          "agentic/tech-lead.md"
+        ]
+      ]
+    },
+    "panels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "code-review.md",
+        "security-review.md",
+        "threat-modeling.md",
+        "cost-analysis.md",
+        "documentation-review.md",
+        "data-governance-review.md"
+      ],
+      "description": "List of panel file paths to activate. Defaults to the 6 panels required by governance/policy/default.yaml.",
+      "examples": [
+        [
+          "code-review.md",
+          "security-review.md"
+        ]
+      ]
+    },
+    "conventions": {
+      "type": "object",
+      "description": "Project coding conventions. Language templates may add additional sections (architecture, tooling, naming, registry) and additional properties within each section.",
+      "properties": {
+        "testing": {
+          "type": "object",
+          "properties": {
+            "framework": {
+              "type": "string",
+              "examples": [
+                "pytest",
+                "jest",
+                "junit"
+              ]
+            },
+            "coverage_target": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 80
+            },
+            "naming": {
+              "type": "string",
+              "examples": [
+                "test_",
+                "Test",
+                "spec."
+              ]
+            }
+          },
+          "additionalProperties": true
+        },
+        "style": {
+          "type": "object",
+          "properties": {
+            "max_line_length": {
+              "type": "integer",
+              "default": 100
+            },
+            "indent": {
+              "type": "string",
+              "enum": [
+                "spaces",
+                "tabs"
+              ],
+              "default": "spaces"
+            },
+            "indent_size": {
+              "type": "integer",
+              "default": 2
+            }
+          },
+          "additionalProperties": true
+        },
+        "git": {
+          "type": "object",
+          "properties": {
+            "branch_pattern": {
+              "type": "string",
+              "default": "feature/{ticket}-{description}"
+            },
+            "commit_style": {
+              "type": "string",
+              "enum": [
+                "conventional",
+                "freeform"
+              ],
+              "default": "conventional"
+            },
+            "pr_template": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "architecture": {
+          "type": "object",
+          "description": "Architecture conventions (layout, patterns, error handling).",
+          "additionalProperties": true
+        },
+        "tooling": {
+          "type": "object",
+          "description": "Tooling conventions (package managers, build tools, formatters).",
+          "additionalProperties": true
+        },
+        "naming": {
+          "type": "object",
+          "description": "Resource naming conventions (IaC projects).",
+          "additionalProperties": true
+        },
+        "registry": {
+          "type": "object",
+          "description": "Module registry conventions (IaC projects).",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "instructions": {
+      "type": "string",
+      "default": "",
+      "description": "Freeform project-specific instructions for AI assistants."
+    },
+    "repository": {
+      "type": "object",
+      "description": "GitHub repository settings applied by init.sh via gh api. All fields are optional; defaults come from config.yaml.",
+      "properties": {
+        "auto_merge": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable GitHub auto-merge. Required for the agentic loop to merge PRs after CI + approval. Default is false (opt-in) \u2014 consuming repos must explicitly enable."
+        },
+        "delete_branch_on_merge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically delete feature branches after PR merge."
+        },
+        "allow_squash_merge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow squash-and-merge strategy for PRs."
+        },
+        "allow_merge_commit": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow merge commit strategy for PRs."
+        },
+        "allow_rebase_merge": {
+          "type": "boolean",
+          "default": true,
+          "description": "Allow rebase-and-merge strategy for PRs."
+        },
+        "codeowners": {
+          "type": "object",
+          "description": "CODEOWNERS file generation configuration.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "Whether to generate a CODEOWNERS file during init."
+            },
+            "default_owner": {
+              "type": "string",
+              "description": "Default code owner for all files (e.g., '@org/team').",
+              "examples": [
+                "@SET-Apps/approvers"
+              ]
+            },
+            "rules": {
+              "type": "array",
+              "description": "Ordered list of CODEOWNERS rules. Later rules take precedence.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "pattern",
+                  "owners"
+                ],
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "File pattern (CODEOWNERS glob syntax).",
+                    "examples": [
+                      "/.github/workflows/",
+                      "/infra/",
+                      "/.ai"
+                    ]
+                  },
+                  "owners": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "description": "GitHub teams or users who own files matching this pattern.",
+                    "examples": [
+                      [
+                        "@SET-Apps/devops_engineers"
+                      ]
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "branch_protection": {
+          "type": "object",
+          "description": "Branch protection expectations. These are validated (not applied) by init.sh to surface misconfigurations.",
+          "properties": {
+            "expected_rulesets": {
+              "type": "array",
+              "description": "Rulesets expected to be configured at the org or repo level.",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the expected ruleset."
+                  },
+                  "required_approving_review_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Expected minimum number of approving reviews."
+                  },
+                  "require_code_owner_review": {
+                    "type": "boolean",
+                    "description": "Whether code owner review is expected to be required."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "issue_tracker": {
+      "type": "object",
+      "description": "Issue tracking configuration. Controls which systems are used for work item management.",
+      "properties": {
+        "provider": {
+          "type": "string",
+          "enum": ["issues", "ado", "issues, ado"],
+          "default": "issues",
+          "description": "Which issue tracking systems to use. 'issues' = GitHub Issues only, 'ado' = Azure DevOps only, 'issues, ado' = both systems."
+        },
+        "bidirectional": {
+          "type": "boolean",
+          "default": true,
+          "description": "When ADO is in the provider list, enable bidirectional sync between GitHub and ADO. Set to false for one-way sync (GitHub to ADO only). Only applies when provider includes 'ado'."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ado_integration": {
+      "type": "object",
+      "description": "Azure DevOps integration configuration for work item sync.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether the ADO integration is active. Set to false to disable sync without removing configuration."
+        },
+        "organization": {
+          "type": "string",
+          "description": "Azure DevOps organization name."
+        },
+        "default_project": {
+          "type": "string",
+          "description": "Default ADO project name for API calls."
+        },
+        "project": {
+          "type": "string",
+          "description": "ADO project name for sync operations. Distinct from default_project which is used by the client library."
+        },
+        "access_method": {
+          "type": "string",
+          "enum": [
+            "api",
+            "az_cli"
+          ],
+          "default": "api",
+          "description": "How to reach ADO. 'api' uses the REST API via requests (default). 'az_cli' shells out to az boards / az devops invoke commands."
+        },
+        "auth_method": {
+          "type": "string",
+          "enum": [
+            "pat",
+            "service_principal",
+            "managed_identity"
+          ],
+          "default": "pat",
+          "description": "Authentication method for ADO API. For az_cli access_method, auth is handled by the az login session."
+        },
+        "auth_secret_name": {
+          "type": "string",
+          "default": "ADO_PAT",
+          "description": "Name of the GitHub Actions secret or environment variable containing the authentication credential."
+        },
+        "api_version": {
+          "type": "string",
+          "default": "7.1",
+          "description": "Azure DevOps REST API version."
+        },
+        "max_retries": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Maximum retry attempts for failed API calls."
+        },
+        "timeout": {
+          "type": "number",
+          "default": 30.0,
+          "description": "HTTP request timeout in seconds."
+        },
+        "sync": {
+          "type": "object",
+          "description": "Synchronisation behaviour configuration controlling direction, automation, and conflict resolution.",
+          "properties": {
+            "direction": {
+              "type": "string",
+              "enum": [
+                "bidirectional",
+                "github_to_ado",
+                "ado_to_github",
+                "disabled"
+              ],
+              "default": "github_to_ado",
+              "description": "Sync direction between GitHub and ADO."
+            },
+            "auto_create": {
+              "type": "boolean",
+              "default": true,
+              "description": "Automatically create ADO work items when new GitHub issues are opened."
+            },
+            "auto_close": {
+              "type": "boolean",
+              "default": true,
+              "description": "Automatically close ADO work items when linked GitHub issues are closed."
+            },
+            "grace_period_seconds": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 5,
+              "description": "Seconds to wait after a change event before syncing, to debounce rapid updates."
+            },
+            "conflict_strategy": {
+              "type": "string",
+              "enum": [
+                "last_write",
+                "field_ownership",
+                "github_wins",
+                "ado_wins"
+              ],
+              "default": "last_write",
+              "description": "Strategy for resolving conflicting updates between GitHub and ADO."
+            },
+            "sync_comments": {
+              "type": "boolean",
+              "default": false,
+              "description": "Sync comments between GitHub issues and ADO work items."
+            },
+            "sync_attachments": {
+              "type": "boolean",
+              "default": false,
+              "description": "Sync file attachments between GitHub issues and ADO work items."
+            }
+          },
+          "additionalProperties": false
+        },
+        "state_mapping": {
+          "type": "object",
+          "description": "Maps GitHub issue states to ADO work item states. Keys are GitHub states, values are ADO state names.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "type_mapping": {
+          "type": "object",
+          "description": "Maps GitHub issue type labels to ADO work item types. The 'default' key specifies the fallback type.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "field_mapping": {
+          "type": "object",
+          "description": "Configures how GitHub issue metadata maps to ADO work item fields.",
+          "properties": {
+            "area_path": {
+              "type": "string",
+              "default": "",
+              "description": "Default ADO area path for new work items."
+            },
+            "iteration_path": {
+              "type": "string",
+              "default": "@CurrentIteration",
+              "description": "Default ADO iteration path."
+            },
+            "priority_labels": {
+              "type": "object",
+              "description": "Maps GitHub label names to ADO priority values (1-4).",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "user_mapping": {
+          "type": "object",
+          "description": "Maps GitHub usernames to ADO user emails for assignee sync.",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "filters": {
+          "type": "object",
+          "description": "Controls which GitHub issues are eligible for ADO sync.",
+          "properties": {
+            "include_labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [],
+              "description": "Only sync issues with at least one of these labels. Empty means all eligible."
+            },
+            "exclude_labels": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": [
+                "internal",
+                "governance"
+              ],
+              "description": "Never sync issues with any of these labels."
+            },
+            "ado_area_path_filter": {
+              "type": "string",
+              "default": "",
+              "description": "Only sync ADO work items under this area path."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "organization"
+      ],
+      "additionalProperties": false
+    },
+    "escalation": {
+      "type": "object",
+      "description": "Cross-repo issue escalation configuration. When enabled, the agentic loop detects framework-level issues and escalates them to the upstream governance repository.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable cross-repo escalation. Must be explicitly set to true \u2014 disabled by default."
+        },
+        "target_repository": {
+          "type": "string",
+          "default": "convergent-systems-co/dark-forge",
+          "pattern": "^[a-zA-Z0-9_.-]+/[a-zA-Z0-9_.-]+$",
+          "description": "Upstream repository to escalate framework-level issues to."
+        },
+        "auth_method": {
+          "type": "string",
+          "enum": [
+            "GITHUB_TOKEN",
+            "PAT",
+            "GITHUB_APP"
+          ],
+          "default": "GITHUB_TOKEN",
+          "description": "Authentication method for creating issues on the target repository."
+        },
+        "token_secret": {
+          "type": "string",
+          "description": "Name of the repository secret containing the PAT. Only used when auth_method is PAT.",
+          "examples": [
+            "ESCALATION_TOKEN"
+          ]
+        },
+        "app_id_secret": {
+          "type": "string",
+          "description": "Name of the secret containing the GitHub App ID. Only used when auth_method is GITHUB_APP."
+        },
+        "private_key_secret": {
+          "type": "string",
+          "description": "Name of the secret containing the GitHub App private key. Only used when auth_method is GITHUB_APP."
+        },
+        "rate_limit": {
+          "type": "integer",
+          "default": 3,
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum number of escalations per agentic session. Prevents spam from misconfigured repos."
+        },
+        "criteria": {
+          "type": "object",
+          "description": "Which detection criteria are active. All default to true when escalation is enabled.",
+          "properties": {
+            "path_based": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when issues involve .ai/governance/ files."
+            },
+            "workflow_failure": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when the governance workflow fails due to framework code errors."
+            },
+            "policy_gap": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when the policy engine encounters unmatched scenarios."
+            },
+            "schema_validation": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when governance schema validation fails on valid-looking artifacts."
+            },
+            "init_failure": {
+              "type": "boolean",
+              "default": true,
+              "description": "Escalate when init.sh fails due to missing governance files."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

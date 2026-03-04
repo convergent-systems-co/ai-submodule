@@ -1,0 +1,41 @@
+{
+  "manifest_version": "1.0.0",
+  "manifest_id": "20260220-181500-406a655",
+  "timestamp": "2026-02-20T18:15:00Z",
+  "persona_set_commit": "406a6552de55671dbd6fc0a2c84ea6ee8b3fba4e",
+  "panel_graph_version": "1.0.0",
+  "policy_profile_used": "default",
+  "model_version": "claude-opus-4-6",
+  "aggregate_confidence": 0.89,
+  "risk_level": "negligible",
+  "human_intervention": {
+    "required": false,
+    "occurred": false
+  },
+  "decision": {
+    "action": "auto_merge",
+    "rationale": "Additive persona and panel creation. Documentation Review and Security Review panels approved. MITRE Specialist persona and Threat Modeling panel follow established patterns. No policy flags."
+  },
+  "panels_executed": [
+    {
+      "panel_name": "documentation-review",
+      "verdict": "approve",
+      "confidence_score": 0.90,
+      "artifact_path": "manifests/panels/pr16-documentation-review.json"
+    },
+    {
+      "panel_name": "security-review",
+      "verdict": "approve",
+      "confidence_score": 0.88,
+      "artifact_path": "manifests/panels/pr16-security-review.json"
+    }
+  ],
+  "repository": {
+    "name": "dark-forge",
+    "owner": "SET-Apps",
+    "branch": "itsfwcp/7-mitre-specialist",
+    "base_branch": "main",
+    "commit_sha": "406a6552de55671dbd6fc0a2c84ea6ee8b3fba4e",
+    "pr_number": 16
+  }
+}

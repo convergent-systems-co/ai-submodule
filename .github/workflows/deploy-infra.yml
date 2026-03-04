@@ -1,0 +1,77 @@
+name: Deploy Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        type: choice
+        options:
+          - dev
+          - prod
+      app_id:
+        description: 'Application ID'
+        required: true
+        default: 'a'
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  LOB: set
+  PRODUCT: governance
+  ROLE: api
+
+jobs:
+  deploy:
+    name: Deploy Bicep (${{ inputs.environment }}/${{ inputs.app_id }})
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load environment config
+        run: |
+          # Load global env
+          if [ -f env/.env ]; then
+            set -a && source env/.env && set +a
+          fi
+          # Load stage-specific env
+          ENV_FILE="env/${{ inputs.environment }}/${{ inputs.app_id }}/.env"
+          if [ -f "$ENV_FILE" ]; then
+            set -a && source "$ENV_FILE" && set +a
+          fi
+          echo "RESOURCE_GROUP=${RESOURCE_GROUP}" >> "$GITHUB_ENV"
+          echo "AKS_CLUSTER=${AKS_CLUSTER}" >> "$GITHUB_ENV"
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Get AKS OIDC issuer URL
+        id: aks
+        run: |
+          ISSUER_URL=$(az aks show \
+            --resource-group "$RESOURCE_GROUP" \
+            --name "$AKS_CLUSTER" \
+            --query "oidcIssuerProfile.issuerUrl" \
+            --output tsv)
+          echo "oidc_issuer_url=$ISSUER_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Bicep
+        uses: azure/arm-deploy@v2
+        with:
+          resourceGroupName: ${{ env.RESOURCE_GROUP }}
+          template: infra/main.bicep
+          parameters: >-
+            stage=${{ inputs.environment }}
+            appId=${{ inputs.app_id }}
+            aksOidcIssuerUrl=${{ steps.aks.outputs.oidc_issuer_url }}
+          failOnStdErr: false

@@ -1,0 +1,35 @@
+{
+  "manifest_version": "1.0.0",
+  "manifest_id": "20260220-180500-d38d4c5",
+  "timestamp": "2026-02-20T18:05:00Z",
+  "persona_set_commit": "d38d4c50dfe953be266b328f82fb1aab720904e0",
+  "panel_graph_version": "1.0.0",
+  "policy_profile_used": "default",
+  "model_version": "claude-opus-4-6",
+  "aggregate_confidence": 0.95,
+  "risk_level": "low",
+  "human_intervention": {
+    "required": false,
+    "occurred": false
+  },
+  "decision": {
+    "action": "auto_merge",
+    "rationale": "Removal of MCP directories reduces scope and attack surface. Code Review panel approved with high confidence (0.95). No policy flags. Clean removal with all references updated."
+  },
+  "panels_executed": [
+    {
+      "panel_name": "code-review",
+      "verdict": "approve",
+      "confidence_score": 0.95,
+      "artifact_path": "manifests/panels/pr14-code-review.json"
+    }
+  ],
+  "repository": {
+    "name": "dark-forge",
+    "owner": "SET-Apps",
+    "branch": "itsfwcp/remove-mcp-directories",
+    "base_branch": "main",
+    "commit_sha": "d38d4c50dfe953be266b328f82fb1aab720904e0",
+    "pr_number": 14
+  }
+}

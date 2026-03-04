@@ -1,0 +1,28 @@
+# Deduplication window configuration for runtime signals
+# Prevents the governance pipeline from being overwhelmed by redundant signals
+# See: docs/architecture/runtime-feedback.md Section 1
+
+deduplication:
+  version: "1.0.0"
+
+  # Time window for considering signals as duplicates
+  window_duration_minutes: 15
+
+  # Number of deduplicated occurrences before re-forwarding with escalated severity
+  escalation_threshold: 10
+
+  # Maximum deduplication window before forced re-evaluation
+  max_window_duration_minutes: 60
+
+  # If a duplicate arrives with higher severity, reset window and forward
+  window_reset_on_severity_change: true
+
+  # Fingerprint computation method
+  fingerprint:
+    algorithm: "SHA-256"
+    fields:
+      - "category"
+      - "affected_component"
+      - "severity"
+      - "message"  # First 256 chars after whitespace normalization
+    message_truncation_length: 256

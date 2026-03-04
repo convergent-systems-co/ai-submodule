@@ -1,0 +1,110 @@
+# Integration Strategy Configuration
+# Defines how Worker session outputs are integrated into the main branch.
+# Part of Phase 5e — Scalable Policy-Bound Autonomy.
+#
+# Companion artifacts:
+#   - governance/schemas/orchestrator-config.schema.json
+#   - governance/schemas/integration-manifest.schema.json
+#   - governance/policy/collision-domains.yaml
+#   - governance/policy/merge-sequencing.yaml
+
+policy_name: integration_strategy
+policy_version: "1.0.0"
+description: >
+  Staged integration strategy for the Dark Forge Mass Parallelization
+  Model. Workers merge into domain branches, domain branches merge into
+  a release train, and the release train merges into main. This reduces
+  conflict risk by isolating changes until integration points.
+
+# Stage 1: Worker → Domain Branch
+# Workers merge their feature branches into collision domain integration branches.
+stage_1:
+  name: domain_integration
+  description: >
+    Each worker's PR merges into an integration branch for its collision
+    domain (e.g., integrate/policy-core, integrate/documentation).
+    The DevOps Integration Agent manages these branches.
+  branch_pattern: "integrate/{domain-name}"
+  merge_strategy: squash
+  governance_required: true
+  governance_checks:
+    - structured_emission_valid
+    - policy_decision
+    - conflict_schema_valid
+    - manifest_present
+
+# Stage 2: Domain Branch → Release Train
+# Domain integration branches merge into a time-boxed release train.
+stage_2:
+  name: release_train
+  description: >
+    Domain integration branches merge into a release train branch.
+    Cross-domain conflicts are detected and resolved at this stage.
+    The DevOps Integration Agent runs cross-domain validation.
+  branch_pattern: "release/train-{YYYYMMDD}"
+  merge_strategy: merge_commit
+  cross_domain_validation: true
+  validation_checks:
+    - no_cross_domain_conflicts
+    - aggregate_confidence_above_threshold
+    - all_domain_branches_green
+
+# Stage 3: Release Train → Main
+# The release train merges into main after full governance validation.
+stage_3:
+  name: main_merge
+  description: >
+    The release train merges into main. This is the final governance
+    gate — the integration manifest must be present and approved.
+  target_branch: main
+  merge_strategy: merge_commit
+  governance_required: true
+  governance_checks:
+    - integration_manifest_present
+    - aggregate_confidence_above_threshold
+    - no_unresolved_conflicts
+    - all_worker_manifests_valid
+  require_human_approval: false
+  human_approval_override: >
+    Human approval is required when: (1) any worker has a critical
+    finding, (2) policy_profile is fin_pii_high or infrastructure_critical,
+    (3) aggregate_confidence below 0.70.
+
+# DevOps Integration Agent
+# The agent responsible for managing integration branches and merge sequencing.
+devops_agent:
+  role: integration_authority
+  description: >
+    The DevOps Integration Agent owns all integration operations:
+    rebase, merge sequencing, conflict resolution, integration branch
+    hygiene, and manifest finalization. Workers do NOT have direct
+    merge authority — they create PRs that the DevOps agent integrates.
+  responsibilities:
+    - rebase_operations
+    - merge_sequencing
+    - conflict_resolution
+    - integration_branch_hygiene
+    - manifest_finalization
+  merge_sequencing_ref: "governance/policy/merge-sequencing.yaml"
+  conflict_detection_ref: "governance/schemas/conflict-detection.schema.json"
+
+# Confidence Thresholds
+# Minimum confidence scores for integration decisions.
+thresholds:
+  min_worker_confidence: 0.70
+  min_aggregate_confidence: 0.75
+  min_compliance_score: 0.70
+  description: >
+    Workers with confidence below min_worker_confidence are not integrated.
+    The aggregate confidence (minimum of all worker scores) must meet
+    min_aggregate_confidence for the release train to merge to main.
+
+# Fallback: Direct Integration
+# When staged integration is not available or appropriate.
+fallback:
+  mode: direct
+  description: >
+    When only one worker session is active (single-session mode), or when
+    the integration infrastructure is unavailable, workers merge directly
+    to main via standard PR flow. This is the current startup.md behavior.
+  condition: "max_concurrent_sessions == 1 or integration_infra_unavailable"

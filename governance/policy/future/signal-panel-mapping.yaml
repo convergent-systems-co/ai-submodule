@@ -1,0 +1,97 @@
+# Signal category to panel mapping
+# Defines which panels execute for each runtime signal category
+# Overridable per policy profile
+# See: docs/architecture/runtime-feedback.md Section 3
+
+signal_panel_mapping:
+  version: "1.0.0"
+
+  error:
+    primary: "panels/code-review.md"
+    secondary:
+      - "panels/production-readiness-review.md"
+    personas_required:
+      - "engineering/debugger.md"
+      - "operations/sre.md"
+      - "operations/failure-engineer.md"
+
+  latency:
+    primary: "panels/performance-review.md"
+    secondary:
+      - "panels/architecture-review.md"
+    personas_required:
+      - "engineering/performance-engineer.md"
+      - "operations/sre.md"
+      - "domain/backend-engineer.md"
+
+  security:
+    primary: "panels/security-review.md"
+    secondary:
+      - "panels/code-review.md"
+    personas_required:
+      - "compliance/security-auditor.md"
+      - "operations/infrastructure-engineer.md"
+      - "compliance/compliance-officer.md"
+
+  sla_violation:
+    primary: "panels/production-readiness-review.md"
+    secondary:
+      - "panels/performance-review.md"
+    personas_required:
+      - "operations/sre.md"
+      - "operations/observability-engineer.md"
+      - "operations/failure-engineer.md"
+
+  configuration_drift:
+    primary: "panels/architecture-review.md"
+    secondary:
+      - "panels/security-review.md"
+    personas_required:
+      - "operations/devops-engineer.md"
+      - "operations/infrastructure-engineer.md"
+      - "compliance/compliance-officer.md"
+
+  dependency_failure:
+    primary: "panels/architecture-review.md"
+    secondary:
+      - "panels/production-readiness-review.md"
+    personas_required:
+      - "architecture/systems-architect.md"
+      - "operations/failure-engineer.md"
+      - "operations/sre.md"
+
+  data_integrity:
+    primary: "panels/data-design-review.md"
+    secondary:
+      - "panels/security-review.md"
+    personas_required:
+      - "domain/data-architect.md"
+      - "compliance/compliance-officer.md"
+      - "engineering/debugger.md"
+
+  compliance_violation:
+    primary: "panels/security-review.md"
+    secondary: []
+    personas_required:
+      - "compliance/compliance-officer.md"
+      - "compliance/security-auditor.md"
+      - "compliance/accessibility-engineer.md"
+    force_human_review: true
+
+  resource_exhaustion:
+    primary: "panels/performance-review.md"
+    secondary:
+      - "panels/production-readiness-review.md"
+    personas_required:
+      - "operations/sre.md"
+      - "operations/infrastructure-engineer.md"
+      - "operations/cost-optimizer.md"
+
+  capacity:
+    primary: "panels/production-readiness-review.md"
+    secondary:
+      - "panels/architecture-review.md"
+    personas_required:
+      - "operations/sre.md"
+      - "operations/infrastructure-engineer.md"
+      - "operations/cost-optimizer.md"

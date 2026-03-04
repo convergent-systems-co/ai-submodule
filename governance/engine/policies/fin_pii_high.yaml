@@ -1,0 +1,168 @@
+# Financial PII High-Risk Policy Profile
+# For repositories handling financial data, PII, or regulated information.
+# Stricter thresholds, mandatory security and compliance panels, no auto-merge by default.
+
+profile_name: fin_pii_high
+profile_version: "1.1.0"
+description: >
+  High-security policy profile for financial services and PII-handling
+  repositories. Enforces strict compliance gating, mandatory security
+  review, and reduced automation thresholds. Designed for SOC2, PCI-DSS,
+  HIPAA, and GDPR compliance contexts.
+
+weighting:
+  model: weighted_average
+  weights:
+    code-review: 0.10
+    security-review: 0.25
+    architecture-review: 0.05
+    testing-review: 0.10
+    performance-review: 0.05
+    copilot-review: 0.05
+    documentation-review: 0.05
+    threat-modeling: 0.05
+    cost-analysis: 0.05
+    data-design-review: 0.15
+    data-governance-review: 0.10
+  missing_panel_behavior: block
+
+risk_aggregation:
+  model: highest_severity
+  rules:
+    - description: "Any panel reporting critical or high risk escalates to critical."
+      condition: any_panel_risk in ["critical", "high"]
+      result: critical
+    - description: "Two or more medium-risk panels escalates to high."
+      condition: count(panel_risk == "medium") >= 2
+      result: high
+    - description: "Single medium-risk panel stays medium."
+      condition: count(panel_risk == "medium") == 1
+      result: medium
+    - description: "All panels low or negligible."
+      condition: all_panels_risk in ["low", "negligible"]
+      result: low
+
+escalation:
+  rules:
+    - name: low_confidence
+      description: "Higher confidence threshold for financial data."
+      condition: aggregate_confidence < 0.85
+      action: human_review_required
+      notify:
+        - role: security_lead
+        - role: compliance_officer
+        - role: tech_lead
+
+    - name: any_risk_above_low
+      description: "Any risk above low requires human review for regulated data."
+      condition: risk_level in ["critical", "high", "medium"]
+      action: human_review_required
+      notify:
+        - role: security_lead
+        - role: compliance_officer
+
+    - name: pii_flag
+      description: "Any PII-related policy flag blocks merge."
+      condition: any_policy_flag starts_with "pii_"
+      action: block
+      notify:
+        - role: compliance_officer
+        - role: security_lead
+        - role: engineering_manager
+
+    - name: data_schema_change
+      description: "Data schema changes always require human review."
+      condition: files_changed_in ["db/", "migrations/", "schema/", "models/"]
+      action: human_review_required
+      notify:
+        - role: data_architect
+        - role: tech_lead
+
+auto_merge:
+  enabled: false
+  # Auto-merge is disabled for fin_pii_high repositories.
+  # All merges require explicit human approval.
+
+auto_remediate:
+  enabled: true
+  max_attempts: 2
+  cooldown_minutes: 10
+  conditions:
+    - risk_level == "low"
+    - all_policy_flags.auto_remediable == true
+    - aggregate_confidence >= 0.80
+    - no_policy_flag starts_with "pii_"
+    - no_policy_flag starts_with "security_"
+  allowed_actions:
+    - fix_linting
+    - add_missing_tests
+    - fix_type_errors
+  prohibited_actions:
+    - modify_security_controls
+    - change_api_contracts
+    - alter_data_schemas
+    - modify_infrastructure
+    - update_authentication
+    - change_encryption
+    - modify_access_controls
+
+block:
+  conditions:
+    - description: "Any PII exposure flag."
+      condition: any_policy_flag == "pii_exposure"
+    - description: "Missing required security panel."
+      condition: panel_missing("security-review")
+    - description: "Missing required data design panel."
+      condition: panel_missing("data-design-review") and data_files_changed
+    - description: "Confidence below elevated minimum."
+      condition: aggregate_confidence < 0.50
+    - description: "Authentication or authorization changes without security review."
+      condition: auth_files_changed and not panel_executed("security-review")
+
+override:
+  enabled: true
+  requirements:
+    min_approvals: 3
+    required_roles:
+      - senior_engineer
+      - security_lead
+      - compliance_officer
+    justification_required: true
+    justification_min_length: 100
+  audit:
+    log_to_manifest: true
+    create_github_issue: true
+    create_compliance_ticket: true
+    notify:
+      - role: compliance_officer
+      - role: engineering_manager
+      - role: ciso
+  expiry:
+    cooldown_hours: 48
+    post_override_review_required: true
+    post_override_audit_required: true
+
+required_panels:
+  - code-review
+  - security-review
+  - data-design-review
+  - testing-review
+  - threat-modeling
+  - cost-analysis
+  - finops-review
+  - documentation-review
+  - data-governance-review
+
+# NOTE: optional_panels triggers are advisory hints for AI agents, not machine-evaluated conditions.
+# Unlike policy conditions (e.g., "aggregate_confidence >= 0.85"), these trigger strings are
+# interpreted by AI agents to determine when a panel is relevant. They are not evaluated by the
+# policy engine.
+optional_panels:
+  - panel: architecture-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/"]
+  - panel: performance-review
+    trigger: files_changed_in ["src/", "bench/"]
+  - panel: copilot-review
+    trigger: always
+  - panel: migration-review
+    trigger: files_changed_in ["db/", "migrations/", "alembic/", "flyway/"]

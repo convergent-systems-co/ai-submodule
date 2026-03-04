@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/panels.schema.json",
+  "title": "Panel Configuration",
+  "description": "Schema for panels.defaults.json and panels.local.json. Defines per-panel pass/fail thresholds, scoring models, and trigger rules. The policy that local overrides must only increase strictness (higher thresholds, not lower, than defaults) is enforced by the configuration loader/validator, not by this JSON Schema.",
+  "type": "object",
+  "required": ["version", "panels"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the panel configuration format.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "panels": {
+      "type": "object",
+      "description": "Per-panel configuration keyed by panel name.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]+$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/panel_config"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "panel_config": {
+      "type": "object",
+      "required": ["enabled", "pass_criteria", "scoring"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this panel is active. Cannot be set to false if the panel is required in the policy profile."
+        },
+        "pass_criteria": {
+          "$ref": "#/$defs/pass_criteria"
+        },
+        "scoring": {
+          "$ref": "#/$defs/scoring_model"
+        },
+        "trigger": {
+          "type": "string",
+          "description": "Trigger condition for optional panels. Overrides the policy trigger if set. Use 'always' for unconditional execution."
+        },
+        "allowed_tools": {
+          "$ref": "#/$defs/tool_access",
+          "description": "Tool capabilities the executing agent should grant when running this panel. Defines what the panel can do beyond pure reasoning."
+        }
+      },
+      "additionalProperties": false
+    },
+    "pass_criteria": {
+      "type": "object",
+      "required": ["min_confidence", "max_critical_findings", "max_high_findings", "required_verdict", "min_compliance_score"],
+      "properties": {
+        "min_confidence": {
+          "type": "number",
+          "description": "Minimum confidence score (0.0-1.0) for the panel to pass. Local overrides can only increase this value.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "max_critical_findings": {
+          "type": "integer",
+          "description": "Maximum number of critical findings before the panel blocks. Local overrides can only decrease this value.",
+          "minimum": 0
+        },
+        "max_high_findings": {
+          "type": "integer",
+          "description": "Maximum number of high findings before the panel blocks. Local overrides can only decrease this value.",
+          "minimum": 0
+        },
+        "required_verdict": {
+          "type": "string",
+          "description": "Aggregate verdict required for the panel to pass. 'approve' means only approve verdicts pass; 'request_changes' means both approve and request_changes pass.",
+          "enum": ["approve", "request_changes"]
+        },
+        "min_compliance_score": {
+          "type": "number",
+          "description": "Minimum compliance score (0.0-1.0) for the panel to pass.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "scoring_model": {
+      "type": "object",
+      "required": ["confidence_base", "deductions"],
+      "properties": {
+        "confidence_base": {
+          "type": "number",
+          "description": "Starting confidence score before deductions.",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "deductions": {
+          "type": "object",
+          "description": "Confidence deductions per finding severity.",
+          "required": ["critical", "high", "medium", "low"],
+          "properties": {
+            "critical": {
+              "type": "number",
+              "description": "Confidence deducted per critical finding.",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "high": {
+              "type": "number",
+              "description": "Confidence deducted per high finding.",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "medium": {
+              "type": "number",
+              "description": "Confidence deducted per medium finding.",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "low": {
+              "type": "number",
+              "description": "Confidence deducted per low finding.",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "floor": {
+          "type": "number",
+          "description": "Minimum confidence score after deductions (prevents going below zero).",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "default": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "tool_access": {
+      "type": "object",
+      "description": "Tool capabilities the executing agent should grant when running this panel. Capabilities are platform-agnostic — the executing agent maps them to its own tool names.",
+      "properties": {
+        "capabilities": {
+          "type": "array",
+          "description": "List of tool capabilities this panel requires.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "file_read",
+              "file_search",
+              "code_analysis",
+              "test_execution",
+              "security_scan",
+              "dependency_audit",
+              "git_history",
+              "web_fetch"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Why these capabilities are needed for this panel."
+        }
+      },
+      "required": ["capabilities"],
+      "additionalProperties": false
+    }
+  }
+}

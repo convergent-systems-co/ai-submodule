@@ -1,0 +1,16 @@
+{
+  "test_id": "security-review-clean-code-001",
+  "panel": "security-review",
+  "description": "Secure code with parameterized queries, environment-based secrets, and proper input validation",
+  "input": {
+    "diff": "diff --git a/src/db.py b/src/db.py\nindex 1a2b3c4..9e8f7a6 100644\n--- a/src/db.py\n+++ b/src/db.py\n@@ -1,5 +1,6 @@\n import os\n import sqlite3\n+from typing import Optional\n \n db = sqlite3.connect(os.environ['DATABASE_URL'])\n \n+def get_user(username: str) -> Optional[dict]:\n+    \"\"\"Fetch user by username using parameterized query.\"\"\"\n+    if not isinstance(username, str) or len(username) > 128:\n+        raise ValueError(\"Invalid username\")\n+    cursor = db.cursor()\n+    cursor.execute(\n+        \"SELECT id, username, email FROM users WHERE username = ?\",\n+        (username,)\n+    )\n+    row = cursor.fetchone()\n+    if row is None:\n+        return None\n+    return {\"id\": row[0], \"username\": row[1], \"email\": row[2]}",
+    "files_changed": ["src/db.py"],
+    "change_type": "feat"
+  },
+  "expected": {
+    "min_findings_critical": 0,
+    "min_findings_high": 0,
+    "expected_categories": [],
+    "expected_verdict": "approve"
+  }
+}

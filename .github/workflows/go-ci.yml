@@ -1,0 +1,122 @@
+name: Go CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - '.github/workflows/go-ci.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - '.github/workflows/go-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Download dependencies
+        working-directory: src
+        run: go mod download
+
+      - name: Run tests
+        working-directory: src
+        run: go test -v -race -count=1 -coverprofile=coverage.out ./...
+
+      - name: Run vet
+        working-directory: src
+        run: go vet ./...
+
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: src/coverage.out
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: src
+
+  build:
+    name: Build (${{ matrix.goos }}/${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: src/go.mod
+          cache-dependency-path: src/go.sum
+
+      - name: Build
+        working-directory: src
+        env:
+          CGO_ENABLED: '0'
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          BINARY_NAME="dark-governance"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+          go build -trimpath \
+            -ldflags "-s -w \
+              -X github.com/convergent-systems-co/dark-forge/src/internal/version.Version=ci-$(git rev-parse --short HEAD) \
+              -X github.com/convergent-systems-co/dark-forge/src/internal/version.Commit=$(git rev-parse --short HEAD) \
+              -X github.com/convergent-systems-co/dark-forge/src/internal/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -o "dist/${BINARY_NAME}" \
+            ./cmd/dark-governance/
+
+      - name: Verify binary
+        if: matrix.goos == 'linux' && matrix.goarch == 'amd64'
+        working-directory: src
+        run: ./dist/dark-governance version

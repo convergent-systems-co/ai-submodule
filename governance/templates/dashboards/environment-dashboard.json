@@ -1,0 +1,409 @@
+{
+  "properties": {
+    "lenses": {
+      "0": {
+        "order": 0,
+        "parts": {
+          "0": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "colSpan": 12,
+              "rowSpan": 2
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "# {{APPLICATION_NAME}} — {{ENVIRONMENT}} Environment\n\nDashboard for the **{{ENVIRONMENT}}** environment in resource group `{{RESOURCE_GROUP}}`.",
+                    "title": "{{APPLICATION_NAME}} — {{ENVIRONMENT}}",
+                    "subtitle": "Environment Dashboard"
+                  }
+                }
+              }
+            }
+          },
+          "1": {
+            "position": {
+              "x": 0,
+              "y": 2,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/ResourceGroupMapPinnedPart",
+              "inputs": [
+                {
+                  "name": "resourceGroup",
+                  "value": "/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}"
+                }
+              ],
+              "isAdapter": true
+            }
+          },
+          "2": {
+            "position": {
+              "x": 6,
+              "y": 2,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+              "inputs": [
+                {
+                  "name": "options",
+                  "value": {
+                    "chart": {
+                      "metrics": [
+                        {
+                          "resourceMetadata": {
+                            "id": "/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}/providers/Microsoft.Insights/components/{{APP_INSIGHTS_NAME}}"
+                          },
+                          "name": "requests/duration",
+                          "aggregationType": 4,
+                          "namespace": "microsoft.insights/components",
+                          "metricVisualization": {
+                            "displayName": "Server response time",
+                            "resourceDisplayName": "{{APP_INSIGHTS_NAME}}"
+                          }
+                        }
+                      ],
+                      "title": "Server Response Time",
+                      "titleKind": 1,
+                      "visualization": {
+                        "chartType": 2,
+                        "legendVisualization": {
+                          "isVisible": true,
+                          "position": 2,
+                          "hideSubtitle": false
+                        },
+                        "axisVisualization": {
+                          "x": {
+                            "isVisible": true,
+                            "axisType": 2
+                          },
+                          "y": {
+                            "isVisible": true,
+                            "axisType": 1
+                          }
+                        }
+                      },
+                      "timespan": {
+                        "relative": {
+                          "duration": 86400000
+                        },
+                        "showUTCTime": false,
+                        "grain": 1
+                      }
+                    }
+                  },
+                  "isOptional": true
+                }
+              ],
+              "settings": {}
+            }
+          },
+          "3": {
+            "position": {
+              "x": 0,
+              "y": 6,
+              "colSpan": 4,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+              "inputs": [
+                {
+                  "name": "options",
+                  "value": {
+                    "chart": {
+                      "metrics": [
+                        {
+                          "resourceMetadata": {
+                            "id": "/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}/providers/Microsoft.Insights/components/{{APP_INSIGHTS_NAME}}"
+                          },
+                          "name": "requests/count",
+                          "aggregationType": 7,
+                          "namespace": "microsoft.insights/components",
+                          "metricVisualization": {
+                            "displayName": "Server requests",
+                            "resourceDisplayName": "{{APP_INSIGHTS_NAME}}"
+                          }
+                        }
+                      ],
+                      "title": "Request Rate",
+                      "titleKind": 1,
+                      "visualization": {
+                        "chartType": 2,
+                        "legendVisualization": {
+                          "isVisible": true,
+                          "position": 2,
+                          "hideSubtitle": false
+                        },
+                        "axisVisualization": {
+                          "x": {
+                            "isVisible": true,
+                            "axisType": 2
+                          },
+                          "y": {
+                            "isVisible": true,
+                            "axisType": 1
+                          }
+                        }
+                      },
+                      "timespan": {
+                        "relative": {
+                          "duration": 86400000
+                        },
+                        "showUTCTime": false,
+                        "grain": 1
+                      }
+                    }
+                  },
+                  "isOptional": true
+                }
+              ],
+              "settings": {}
+            }
+          },
+          "4": {
+            "position": {
+              "x": 4,
+              "y": 6,
+              "colSpan": 4,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+              "inputs": [
+                {
+                  "name": "options",
+                  "value": {
+                    "chart": {
+                      "metrics": [
+                        {
+                          "resourceMetadata": {
+                            "id": "/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}/providers/Microsoft.Insights/components/{{APP_INSIGHTS_NAME}}"
+                          },
+                          "name": "requests/failed",
+                          "aggregationType": 7,
+                          "namespace": "microsoft.insights/components",
+                          "metricVisualization": {
+                            "displayName": "Failed requests",
+                            "resourceDisplayName": "{{APP_INSIGHTS_NAME}}"
+                          }
+                        }
+                      ],
+                      "title": "Failure Rate",
+                      "titleKind": 1,
+                      "visualization": {
+                        "chartType": 2,
+                        "legendVisualization": {
+                          "isVisible": true,
+                          "position": 2,
+                          "hideSubtitle": false
+                        },
+                        "axisVisualization": {
+                          "x": {
+                            "isVisible": true,
+                            "axisType": 2
+                          },
+                          "y": {
+                            "isVisible": true,
+                            "axisType": 1
+                          }
+                        }
+                      },
+                      "timespan": {
+                        "relative": {
+                          "duration": 86400000
+                        },
+                        "showUTCTime": false,
+                        "grain": 1
+                      }
+                    }
+                  },
+                  "isOptional": true
+                }
+              ],
+              "settings": {}
+            }
+          },
+          "5": {
+            "position": {
+              "x": 8,
+              "y": 6,
+              "colSpan": 4,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+              "inputs": [
+                {
+                  "name": "options",
+                  "value": {
+                    "chart": {
+                      "metrics": [
+                        {
+                          "resourceMetadata": {
+                            "id": "/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}/providers/Microsoft.Insights/components/{{APP_INSIGHTS_NAME}}"
+                          },
+                          "name": "availabilityResults/availabilityPercentage",
+                          "aggregationType": 4,
+                          "namespace": "microsoft.insights/components",
+                          "metricVisualization": {
+                            "displayName": "Availability",
+                            "resourceDisplayName": "{{APP_INSIGHTS_NAME}}"
+                          }
+                        }
+                      ],
+                      "title": "Availability",
+                      "titleKind": 1,
+                      "visualization": {
+                        "chartType": 2,
+                        "legendVisualization": {
+                          "isVisible": true,
+                          "position": 2,
+                          "hideSubtitle": false
+                        },
+                        "axisVisualization": {
+                          "x": {
+                            "isVisible": true,
+                            "axisType": 2
+                          },
+                          "y": {
+                            "isVisible": true,
+                            "axisType": 1
+                          }
+                        }
+                      },
+                      "timespan": {
+                        "relative": {
+                          "duration": 86400000
+                        },
+                        "showUTCTime": false,
+                        "grain": 1
+                      }
+                    }
+                  },
+                  "isOptional": true
+                }
+              ],
+              "settings": {}
+            }
+          },
+          "6": {
+            "position": {
+              "x": 0,
+              "y": 10,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/Microsoft_Azure_Monitoring/PartType/MetricsChartPart",
+              "inputs": [
+                {
+                  "name": "options",
+                  "value": {
+                    "chart": {
+                      "metrics": [
+                        {
+                          "resourceMetadata": {
+                            "id": "/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}/providers/Microsoft.ContainerService/managedClusters/{{AKS_CLUSTER_NAME}}"
+                          },
+                          "name": "kube_pod_status_ready",
+                          "aggregationType": 4,
+                          "namespace": "microsoft.containerservice/managedclusters",
+                          "metricVisualization": {
+                            "displayName": "Pods in Ready state",
+                            "resourceDisplayName": "{{AKS_CLUSTER_NAME}}"
+                          }
+                        }
+                      ],
+                      "title": "AKS Pod Status — Ready Pods",
+                      "titleKind": 1,
+                      "visualization": {
+                        "chartType": 2,
+                        "legendVisualization": {
+                          "isVisible": true,
+                          "position": 2,
+                          "hideSubtitle": false
+                        },
+                        "axisVisualization": {
+                          "x": {
+                            "isVisible": true,
+                            "axisType": 2
+                          },
+                          "y": {
+                            "isVisible": true,
+                            "axisType": 1
+                          }
+                        }
+                      },
+                      "timespan": {
+                        "relative": {
+                          "duration": 86400000
+                        },
+                        "showUTCTime": false,
+                        "grain": 1
+                      }
+                    }
+                  },
+                  "isOptional": true
+                }
+              ],
+              "settings": {}
+            }
+          },
+          "7": {
+            "position": {
+              "x": 6,
+              "y": 10,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "## AKS Container Logs\n\nView live container logs for the **{{ENVIRONMENT}}** environment:\n\n- [Container Logs (Azure Portal)](https://portal.azure.com/#@/resource/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}/providers/Microsoft.ContainerService/managedClusters/{{AKS_CLUSTER_NAME}}/logs)\n- [Container Insights](https://portal.azure.com/#@/resource/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP}}/providers/Microsoft.ContainerService/managedClusters/{{AKS_CLUSTER_NAME}}/containerInsights)\n\n> If AKS is not deployed in this environment, these links will not resolve. Remove the AKS tiles from the dashboard JSON if not applicable.",
+                    "title": "AKS Logs",
+                    "subtitle": "{{AKS_CLUSTER_NAME}}"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "model": {
+        "timeRange": {
+          "value": {
+            "relative": {
+              "duration": 24,
+              "timeUnit": 1
+            }
+          },
+          "type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+        }
+      }
+    }
+  },
+  "name": "{{APPLICATION_NAME}}-{{ENVIRONMENT}}-dashboard",
+  "type": "Microsoft.Portal/dashboards",
+  "location": "{{AZURE_LOCATION}}",
+  "tags": {
+    "hidden-title": "{{APPLICATION_NAME}} — {{ENVIRONMENT}} Dashboard",
+    "Application": "{{APPLICATION_NAME}}",
+    "Environment": "{{ENVIRONMENT}}",
+    "ManagedBy": "dark-forge"
+  },
+  "apiVersion": "2020-09-01-preview"
+}

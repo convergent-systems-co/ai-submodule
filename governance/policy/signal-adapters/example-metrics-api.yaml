@@ -1,0 +1,25 @@
+# Example: Metrics/Alerting API Polling Adapter
+#
+# Polls an alerting API for active alerts. Designed for systems that expose
+# a REST endpoint listing currently firing alerts (e.g., Prometheus Alertmanager,
+# Grafana Alerting, or any custom alerting service).
+#
+# See docs/architecture/runtime-feedback.md, Section 1 for the full spec.
+
+adapter_name: "metrics-api-poller"
+adapter_version: "1.0.0"
+source_type: "polling"
+endpoint: "${METRICS_API_BASE_URL}/api/v1/alerts/active"
+auth_method: "bearer_token"
+auth_secret_ref: "metrics-api-token"
+polling_interval_seconds: 60
+timeout_seconds: 10
+retry_count: 3
+retry_backoff_base_seconds: 2
+
+signal_mapping:
+  severity: "$.alert.severity"
+  category: "$.alert.labels.category"
+  component: "$.alert.labels.service"
+  message: "$.alert.annotations.summary"
+  timestamp: "$.alert.startsAt"

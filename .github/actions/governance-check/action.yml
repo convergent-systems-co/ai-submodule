@@ -1,0 +1,165 @@
+name: "Dark Forge Check"
+description: >
+  Downloads governance engine artifacts from the dark-forge release,
+  extracts them, and runs the policy engine against local panel emissions.
+  Designed for consuming repos that cannot clone the private dark-forge in CI.
+
+inputs:
+  version:
+    description: "Release tag to download (default: latest)"
+    required: false
+    default: "latest"
+  governance-root:
+    description: "Path to the .governance directory containing panel emissions"
+    required: false
+    default: ".governance"
+  policy-profile:
+    description: "Policy profile name to evaluate against (without .yaml extension)"
+    required: false
+    default: "default"
+  artifact-repo:
+    description: "Repository to download governance artifacts from"
+    required: false
+    default: "convergent-systems-co/dark-forge"
+  token:
+    description: "GitHub token with read access to the artifact repository"
+    required: true
+
+outputs:
+  decision:
+    description: "Policy engine decision: auto_merge, block, human_review_required, or auto_remediate"
+    value: ${{ steps.evaluate.outputs.decision }}
+  confidence:
+    description: "Aggregate confidence score from evaluated panels"
+    value: ${{ steps.evaluate.outputs.confidence }}
+  manifest:
+    description: "Path to the generated run manifest JSON"
+    value: ${{ steps.evaluate.outputs.manifest }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Resolve release version
+      id: resolve
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        ARTIFACT_REPO: ${{ inputs.artifact-repo }}
+        REQUESTED_VERSION: ${{ inputs.version }}
+      run: |
+        if [ "$REQUESTED_VERSION" = "latest" ]; then
+          TAG=$(gh release view --repo "$ARTIFACT_REPO" --json tagName --jq '.tagName' 2>/dev/null || echo "")
+          if [ -z "$TAG" ]; then
+            echo "::error::No releases found in $ARTIFACT_REPO"
+            exit 1
+          fi
+        else
+          TAG="$REQUESTED_VERSION"
+        fi
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        echo "Resolved version: $TAG"
+
+    - name: Download governance engine tarball
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        ARTIFACT_REPO: ${{ inputs.artifact-repo }}
+        TAG: ${{ steps.resolve.outputs.tag }}
+        GOV_ROOT: ${{ inputs.governance-root }}
+      run: |
+        mkdir -p "$GOV_ROOT/engine"
+        ASSET_URL=$(gh release view "$TAG" --repo "$ARTIFACT_REPO" --json assets --jq '.assets[] | select(.name | startswith("governance-engine-")) | .url' 2>/dev/null || echo "")
+        if [ -z "$ASSET_URL" ]; then
+          echo "::error::No governance-engine tarball found in release $TAG of $ARTIFACT_REPO"
+          exit 1
+        fi
+        gh release download "$TAG" --repo "$ARTIFACT_REPO" --pattern "governance-engine-*.tar.gz" --dir /tmp/gov-download
+        TARBALL=$(ls /tmp/gov-download/governance-engine-*.tar.gz | head -1)
+        tar -xzf "$TARBALL" -C "$GOV_ROOT/"
+        echo "Extracted governance engine to $GOV_ROOT/engine/"
+        ls -la "$GOV_ROOT/engine/"
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      shell: bash
+      env:
+        GOV_ROOT: ${{ inputs.governance-root }}
+      run: |
+        if [ -f "$GOV_ROOT/engine/requirements.txt" ]; then
+          pip install -r "$GOV_ROOT/engine/requirements.txt" --quiet
+        else
+          pip install jsonschema pyyaml --quiet
+        fi
+
+    - name: Run policy engine
+      id: evaluate
+      shell: bash
+      env:
+        GOV_ROOT: ${{ inputs.governance-root }}
+        POLICY_PROFILE: ${{ inputs.policy-profile }}
+      run: |
+        ENGINE="$GOV_ROOT/engine/policy-engine.py"
+        if [ ! -f "$ENGINE" ]; then
+          echo "::error::Policy engine not found at $ENGINE"
+          exit 1
+        fi
+
+        # Locate emissions — check .artifacts/emissions/ and governance/emissions/
+        EMISSIONS_DIR=""
+        if [ -d "$GOV_ROOT/panels" ] && ls "$GOV_ROOT/panels"/*.json &>/dev/null; then
+          EMISSIONS_DIR="$GOV_ROOT/panels"
+        elif [ -d "governance/emissions" ] && ls governance/emissions/*.json &>/dev/null; then
+          EMISSIONS_DIR="governance/emissions"
+        fi
+
+        if [ -z "$EMISSIONS_DIR" ]; then
+          echo "::warning::No panel emissions found. Setting decision to human_review_required."
+          echo "decision=human_review_required" >> "$GITHUB_OUTPUT"
+          echo "confidence=0.0" >> "$GITHUB_OUTPUT"
+          echo "manifest=" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        # Resolve profile path
+        PROFILE_PATH="$GOV_ROOT/engine/policy/${POLICY_PROFILE}.yaml"
+        if [ ! -f "$PROFILE_PATH" ]; then
+          echo "::warning::Profile '${POLICY_PROFILE}' not found, falling back to default.yaml"
+          PROFILE_PATH="$GOV_ROOT/engine/policy/default.yaml"
+        fi
+
+        MANIFEST_PATH="$GOV_ROOT/manifest.json"
+
+        # Run the policy engine; capture exit code
+        set +e
+        python3 "$ENGINE" \
+          --emissions-dir "$EMISSIONS_DIR" \
+          --profile "$PROFILE_PATH" \
+          --output "$MANIFEST_PATH"
+        EXIT_CODE=$?
+        set -e
+
+        # Map exit code to decision
+        case $EXIT_CODE in
+          0) DECISION="auto_merge" ;;
+          1) DECISION="block" ;;
+          2) DECISION="human_review_required" ;;
+          3) DECISION="auto_remediate" ;;
+          *) DECISION="block" ;;
+        esac
+
+        echo "decision=$DECISION" >> "$GITHUB_OUTPUT"
+        echo "manifest=$MANIFEST_PATH" >> "$GITHUB_OUTPUT"
+
+        # Extract confidence from manifest if available
+        if [ -f "$MANIFEST_PATH" ]; then
+          CONFIDENCE=$(python3 -c "import json; m=json.load(open('$MANIFEST_PATH')); print(m.get('aggregate_confidence', 0.0))" 2>/dev/null || echo "0.0")
+          echo "confidence=$CONFIDENCE" >> "$GITHUB_OUTPUT"
+        else
+          echo "confidence=0.0" >> "$GITHUB_OUTPUT"
+        fi
+
+        echo "Policy engine decision: $DECISION"

@@ -1,0 +1,49 @@
+{
+  "panel_name": "copilot-review",
+  "panel_version": "1.0.0",
+  "schema_version": "1.2.0",
+  "confidence_score": 0.88,
+  "risk_level": "low",
+  "compliance_score": 1.0,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-03-03T14:07:00Z",
+  "findings": [
+    {
+      "persona": "external/github-copilot",
+      "verdict": "approve",
+      "confidence": 0.88,
+      "rationale": "No Copilot findings on governance framework changes. Clean review with no inline comments, review submissions, or issue-level comments from Copilot bots. Changes are policy configuration, YAML profiles, Python evaluator logic, and Markdown prompts -- all outside the scope of typical Copilot code scanning findings.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      }
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "branch": "itsfwcp/feat/737/copilot-dependabot-hard-gates",
+    "commit_sha": "89ae8164209aac9a4469cc5e94d2a8c8a31544d6",
+    "pr_number": 737,
+    "policy_profile": "default",
+    "model_id": "claude-opus-4-6",
+    "triggered_by": "manual"
+  },
+  "data_classification": {
+    "level": "internal",
+    "contains_sensitive_evidence": false,
+    "redaction_applied": false,
+    "sensitive_categories": []
+  },
+  "execution_trace": {
+    "files_read": [
+      "governance/engine/policy_engine.py",
+      "governance/policy/default.yaml"
+    ],
+    "diff_lines_analyzed": 699
+  }
+}

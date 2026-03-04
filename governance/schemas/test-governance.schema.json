@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/test-governance.schema.json",
+  "title": "Test Governance",
+  "description": "Defines test coverage expectations, mutation testing thresholds, and proof-of-correctness criteria per policy profile. Consuming repos use this schema to declare their testing requirements; the test-generation-review panel evaluates compliance. Runtime test execution is the consuming repo's responsibility.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "policy_profile",
+    "coverage",
+    "verification"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for this test governance format."
+    },
+    "policy_profile": {
+      "type": "string",
+      "description": "The governance policy profile this test config applies to.",
+      "enum": ["default", "fin_pii_high", "infrastructure_critical"]
+    },
+    "coverage": {
+      "type": "object",
+      "description": "Code coverage requirements.",
+      "required": ["minimum_line", "minimum_branch"],
+      "properties": {
+        "minimum_line": {
+          "type": "number",
+          "description": "Minimum line coverage percentage (0-100).",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minimum_branch": {
+          "type": "number",
+          "description": "Minimum branch coverage percentage (0-100).",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "minimum_function": {
+          "type": "number",
+          "description": "Minimum function coverage percentage (0-100).",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "exclude_patterns": {
+          "type": "array",
+          "description": "Glob patterns for files excluded from coverage requirements.",
+          "items": { "type": "string" }
+        },
+        "enforcement": {
+          "type": "string",
+          "description": "How coverage requirements are enforced.",
+          "enum": ["block", "warn", "info"],
+          "default": "warn"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mutation_testing": {
+      "type": "object",
+      "description": "Mutation testing requirements. Optional — not all projects use mutation testing.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether mutation testing is required.",
+          "default": false
+        },
+        "minimum_score": {
+          "type": "number",
+          "description": "Minimum mutation score percentage (0-100). Percentage of mutations detected by tests.",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "tool": {
+          "type": "string",
+          "description": "Expected mutation testing tool.",
+          "enum": ["stryker", "mutmut", "pitest", "other"]
+        },
+        "exclude_patterns": {
+          "type": "array",
+          "description": "Glob patterns for files excluded from mutation testing.",
+          "items": { "type": "string" }
+        },
+        "enforcement": {
+          "type": "string",
+          "enum": ["block", "warn", "info"],
+          "default": "info"
+        }
+      },
+      "additionalProperties": false
+    },
+    "verification": {
+      "type": "object",
+      "description": "Proof-of-correctness and formal verification requirements.",
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "Verification level required by this policy profile.",
+          "enum": ["none", "basic", "standard", "strict"]
+        },
+        "requirements": {
+          "type": "array",
+          "description": "Specific verification requirements.",
+          "items": {
+            "type": "object",
+            "required": ["type", "enforcement"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "Type of verification required.",
+                "enum": [
+                  "type_checking",
+                  "property_tests",
+                  "contract_checks",
+                  "invariant_proofs",
+                  "integration_tests",
+                  "e2e_tests",
+                  "snapshot_tests",
+                  "fuzz_tests"
+                ]
+              },
+              "enforcement": {
+                "type": "string",
+                "enum": ["block", "warn", "info"]
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable description of this requirement."
+              },
+              "applicable_to": {
+                "type": "array",
+                "description": "Glob patterns for files this requirement applies to. Empty means all files.",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "type": "object",
+      "description": "Per-policy-profile overrides for test governance thresholds.",
+      "properties": {
+        "default": { "$ref": "#/$defs/profile_override" },
+        "fin_pii_high": { "$ref": "#/$defs/profile_override" },
+        "infrastructure_critical": { "$ref": "#/$defs/profile_override" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "profile_override": {
+      "type": "object",
+      "description": "Override thresholds for a specific policy profile.",
+      "properties": {
+        "coverage_minimum_line": { "type": "number", "minimum": 0, "maximum": 100 },
+        "coverage_minimum_branch": { "type": "number", "minimum": 0, "maximum": 100 },
+        "mutation_minimum_score": { "type": "number", "minimum": 0, "maximum": 100 },
+        "verification_level": { "type": "string", "enum": ["none", "basic", "standard", "strict"] }
+      },
+      "additionalProperties": false
+    }
+  }
+}

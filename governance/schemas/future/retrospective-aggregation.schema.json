@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/retrospective-aggregation.schema.json",
+  "title": "Retrospective Aggregation",
+  "description": "Aggregated retrospective data across governance runs. Collects per-run evaluations (plan accuracy, panel results, review cycles, overrides) and derives aggregate statistics. Used by threshold auto-tuning, persona effectiveness scoring, and governance change proposal workflows (Phase 5b).",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_id",
+    "period",
+    "governance_version",
+    "runs",
+    "aggregated"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for this retrospective aggregation format."
+    },
+    "report_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this aggregation report."
+    },
+    "period": {
+      "type": "object",
+      "description": "The time period this aggregation covers.",
+      "required": ["start", "end"],
+      "properties": {
+        "start": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start of the aggregation period (ISO 8601)."
+        },
+        "end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of the aggregation period (ISO 8601)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "governance_version": {
+      "type": "string",
+      "description": "Git commit SHA of the .ai submodule at the time of aggregation.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "runs": {
+      "type": "array",
+      "description": "Per-run retrospective entries collected during the aggregation period.",
+      "items": {
+        "$ref": "#/$defs/run_entry"
+      },
+      "minItems": 1
+    },
+    "aggregated": {
+      "type": "object",
+      "description": "Derived statistics computed across all runs in this report.",
+      "required": [
+        "total_runs",
+        "panel_accuracy",
+        "override_frequency",
+        "review_cycle_distribution",
+        "time_to_merge"
+      ],
+      "properties": {
+        "total_runs": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total number of governance runs in this aggregation."
+        },
+        "panel_accuracy": {
+          "type": "object",
+          "description": "Accuracy metrics across all panels.",
+          "required": ["overall_accuracy"],
+          "properties": {
+            "overall_accuracy": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Ratio of panel verdicts that were not later contradicted by incidents or reverts."
+            },
+            "by_panel": {
+              "type": "array",
+              "description": "Per-panel accuracy breakdown.",
+              "items": {
+                "type": "object",
+                "required": ["panel_name", "accuracy", "total_evaluations"],
+                "properties": {
+                  "panel_name": {
+                    "type": "string",
+                    "description": "Name of the panel."
+                  },
+                  "accuracy": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                    "description": "Ratio of correct verdicts for this panel."
+                  },
+                  "total_evaluations": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of times this panel was evaluated."
+                  },
+                  "false_positives": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Verdicts where the panel blocked or requested changes, but the change was later overridden and succeeded."
+                  },
+                  "false_negatives": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Verdicts where the panel approved, but the change was later reverted or caused an incident."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "false_positive_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Overall ratio of false positive panel verdicts (blocked changes that were successfully overridden)."
+        },
+        "false_negative_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Overall ratio of false negative panel verdicts (approved changes that were later reverted or caused incidents)."
+        },
+        "override_frequency": {
+          "type": "object",
+          "description": "How often human overrides occurred.",
+          "required": ["total_overrides", "override_rate"],
+          "properties": {
+            "total_overrides": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total human overrides across all runs."
+            },
+            "override_rate": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Ratio of runs with at least one human override."
+            },
+            "by_policy_profile": {
+              "type": "array",
+              "description": "Override frequency broken down by policy profile.",
+              "items": {
+                "type": "object",
+                "required": ["profile", "total_runs", "overrides"],
+                "properties": {
+                  "profile": {
+                    "type": "string",
+                    "description": "Policy profile name (e.g., 'default', 'fin_pii_high')."
+                  },
+                  "total_runs": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of runs using this profile."
+                  },
+                  "overrides": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Number of overrides for runs using this profile."
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "review_cycle_distribution": {
+          "type": "object",
+          "description": "Distribution of review cycles across all PRs.",
+          "required": ["mean", "median", "max", "histogram"],
+          "properties": {
+            "mean": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Average review cycles per PR."
+            },
+            "median": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Median review cycles per PR."
+            },
+            "max": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum review cycles for any single PR."
+            },
+            "histogram": {
+              "type": "object",
+              "description": "Count of PRs by number of review cycles.",
+              "patternProperties": {
+                "^[0-9]+$": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Number of PRs that took this many review cycles."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "time_to_merge": {
+          "type": "object",
+          "description": "Time-to-merge statistics in minutes.",
+          "required": ["mean_minutes", "median_minutes"],
+          "properties": {
+            "mean_minutes": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Average time from PR creation to merge."
+            },
+            "median_minutes": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Median time from PR creation to merge."
+            },
+            "p90_minutes": {
+              "type": "number",
+              "minimum": 0,
+              "description": "90th percentile time from PR creation to merge."
+            },
+            "max_minutes": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Maximum time from PR creation to merge."
+            }
+          },
+          "additionalProperties": false
+        },
+        "plan_accuracy_distribution": {
+          "type": "object",
+          "description": "Distribution of plan accuracy ratings across runs.",
+          "properties": {
+            "accurate": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Runs where implementation matched the plan."
+            },
+            "minor_deviations": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Runs with small deviations from the plan."
+            },
+            "significant_deviations": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Runs requiring significant changes from the plan."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text observations or context for this aggregation period."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "run_entry": {
+      "type": "object",
+      "description": "A single retrospective entry for one governance run.",
+      "required": [
+        "run_id",
+        "timestamp",
+        "issue_number",
+        "pr_number",
+        "policy_profile",
+        "plan_accuracy",
+        "review_cycles",
+        "panels"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "description": "Reference to the run manifest ID, if available.",
+          "pattern": "^\\d{8}-\\d{6}-[0-9a-f]{7}$"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this retrospective was recorded (ISO 8601)."
+        },
+        "issue_number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "GitHub issue number."
+        },
+        "pr_number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "GitHub PR number."
+        },
+        "policy_profile": {
+          "type": "string",
+          "description": "Policy profile used for this run (e.g., 'default', 'fin_pii_high')."
+        },
+        "plan_accuracy": {
+          "type": "string",
+          "enum": ["accurate", "minor_deviations", "significant_deviations"],
+          "description": "How well the implementation matched the original plan."
+        },
+        "review_cycles": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3,
+          "description": "Number of review cycles (Step 7a-7f loops) before merge or escalation."
+        },
+        "time_to_merge_minutes": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Elapsed time from PR creation to merge in minutes."
+        },
+        "panels": {
+          "type": "array",
+          "description": "Per-panel results for this run.",
+          "items": {
+            "type": "object",
+            "required": ["panel_name", "verdict", "confidence"],
+            "properties": {
+              "panel_name": {
+                "type": "string",
+                "description": "Name of the panel."
+              },
+              "verdict": {
+                "type": "string",
+                "enum": ["approve", "request_changes", "block"],
+                "description": "Panel's verdict for this run."
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0.0,
+                "maximum": 1.0,
+                "description": "Panel's confidence score."
+              },
+              "was_overridden": {
+                "type": "boolean",
+                "description": "Whether a human overrode this panel's verdict.",
+                "default": false
+              },
+              "post_merge_outcome": {
+                "type": "string",
+                "enum": ["confirmed", "reverted", "incident", "unknown"],
+                "description": "What happened after merge — confirms or contradicts the panel's verdict."
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "copilot_findings": {
+          "type": "object",
+          "description": "Copilot recommendation handling for this run.",
+          "properties": {
+            "total": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Total Copilot findings."
+            },
+            "implemented": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Findings that were fixed."
+            },
+            "dismissed": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Findings dismissed with rationale."
+            },
+            "by_severity": {
+              "type": "object",
+              "properties": {
+                "critical": { "type": "integer", "minimum": 0 },
+                "high": { "type": "integer", "minimum": 0 },
+                "medium": { "type": "integer", "minimum": 0 },
+                "low": { "type": "integer", "minimum": 0 },
+                "info": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "human_overrides": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of human overrides during this run."
+        },
+        "ci_failures": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of CI failures encountered before merge."
+        },
+        "process_improvements": {
+          "type": "array",
+          "description": "Process improvement recommendations from this retrospective.",
+          "items": {
+            "type": "object",
+            "required": ["category", "description"],
+            "properties": {
+              "category": {
+                "type": "string",
+                "enum": ["templates", "panels", "prompts", "startup", "schemas", "policy", "other"],
+                "description": "Category of the improvement recommendation."
+              },
+              "description": {
+                "type": "string",
+                "description": "What should be improved and why."
+              },
+              "follow_up_issue": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "GitHub issue number created for this recommendation, if any."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

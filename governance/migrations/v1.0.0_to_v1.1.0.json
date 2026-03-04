@@ -1,0 +1,13 @@
+{
+  "from_version": "1.0.0",
+  "to_version": "1.1.0",
+  "description": "Add schema_version field to emissions",
+  "transforms": [
+    {
+      "type": "add_field",
+      "field": "schema_version",
+      "default_value": "1.1.0",
+      "condition": "field_missing"
+    }
+  ]
+}

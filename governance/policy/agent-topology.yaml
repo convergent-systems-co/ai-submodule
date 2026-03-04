@@ -1,0 +1,55 @@
+# Agent Topology Policy — Spawn DAG for PM Mode
+#
+# Defines which agent personas can spawn which other personas.
+# Enforced by `orchestrator dispatch` at spawn time in PM mode.
+# In standard mode (use_project_manager=false), topology is not enforced.
+#
+# Reference: docs/architecture/agent-architecture.md
+#            docs/architecture/project-manager-architecture.md
+
+topology:
+  project_manager:
+    can_spawn:
+      - devops_engineer
+      - tech_lead
+    max_concurrent:
+      devops_engineer: 1
+      tech_lead: 3  # override via governance.parallel_tech_leads
+
+  tech_lead:
+    can_spawn:
+      - coder
+      - iac_engineer
+      - test_evaluator
+      - document_writer
+      - documentation_reviewer
+    max_concurrent:
+      coder: 5  # override via governance.parallel_coders
+
+  devops_engineer:
+    can_spawn: []
+
+  coder:
+    can_spawn: []
+
+  iac_engineer:
+    can_spawn: []
+
+  test_evaluator:
+    can_spawn: []
+
+  document_writer:
+    can_spawn: []
+
+  documentation_reviewer:
+    can_spawn: []
+
+# Phase-persona bindings for PM mode.
+# Only the listed persona can complete each phase via `step --complete`.
+# In standard mode, these bindings are not enforced.
+phase_bindings:
+  1: devops_engineer
+  2: tech_lead
+  3: tech_lead
+  4: devops_engineer
+  5: devops_engineer

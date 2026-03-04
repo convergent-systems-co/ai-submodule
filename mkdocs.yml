@@ -1,0 +1,107 @@
+site_name: Dark Forge
+site_description: AI governance framework for autonomous software delivery
+site_url: https://set-apps.github.io/dark-forge
+repo_url: https://github.com/convergent-systems-co/dark-forge
+repo_name: convergent-systems-co/dark-forge
+
+theme:
+  name: material
+  palette:
+    scheme: nord
+    primary: custom
+    accent: custom
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.top
+    - navigation.sticky
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - navigation.footer
+    - toc.integrate
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_div_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - admonition
+  - pymdownx.details
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+extra_css:
+  - stylesheets/extra.css
+
+# Mermaid v11.3.0 — self-hosted to eliminate CDN supply chain risk
+extra_javascript:
+  - javascripts/mermaid.min.js
+  - javascripts/mermaid-init.js
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Simple Explainer: onboarding/eli5.md
+    - Developer Guide: onboarding/developer-guide.md
+    - Project Structure: onboarding/project-structure.md
+    - AI-Assisted Install: onboarding/ai-assisted-install.md
+    - Windows Onboarding: onboarding/windows-onboarding.md
+    - Architecture Visual: onboarding/architecture-visual.md
+    - Risks & Mitigation: onboarding/risks-mitigation.md
+    - End-to-End Walkthrough: tutorials/end-to-end-walkthrough.md
+  - Architecture:
+    - Governance Model: architecture/governance-model.md
+    - Agent Architecture: architecture/agent-architecture.md
+    - Context Management: architecture/context-management.md
+    - Mass Parallelization: architecture/mass-parallelization.md
+    - Event-Driven Triggers: architecture/event-driven-triggers.md
+    - Runtime Feedback: architecture/runtime-feedback.md
+    - Cross-Repo Escalation: architecture/cross-repo-escalation.md
+    - Session State Persistence: architecture/session-state-persistence.md
+    - Formal Specification: architecture/formal-spec.md
+  - Configuration:
+    - Repository Setup: configuration/repository-setup.md
+    - CI Gating: configuration/ci-gating.md
+    - Copilot Integration: configuration/copilot-integration.md
+    - Slash Commands: configuration/slash-commands.md
+  - Governance:
+    - Artifact Classification: governance/artifact-classification.md
+    - Acceptance Verification: governance/acceptance-verification.md
+    - Manifest Lifecycle: governance/manifest-lifecycle.md
+    - Naming Review: governance/naming-review.md
+  - Operations:
+    - Autonomy Metrics: operations/autonomy-metrics.md
+    - Infrastructure Costs: operations/infrastructure-costs.md
+    - Migration Summary: operations/migration-summary.md
+    - Retrospective Aggregation: operations/retrospective-aggregation.md
+    - Threshold Tuning: operations/threshold-tuning.md
+    - Token Costs: operations/token-costs.md
+  - Research:
+    - Overview: research/README.md
+    - Technique Comparison: research/technique-comparison.md
+  - Reference:
+    - Panel Catalog: reference/panel-catalog.md
+    - Policy Comparison: reference/policy-comparison.md
+    - Prompt Index: reference/prompt-index.md
+  - Guides:
+    - GitHub Pages Setup: guides/github-pages-setup.md
+  - Decisions: decisions/README.md
+  - Contributing: contributing.md

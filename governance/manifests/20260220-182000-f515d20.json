@@ -1,0 +1,35 @@
+{
+  "manifest_version": "1.0.0",
+  "manifest_id": "20260220-182000-f515d20",
+  "timestamp": "2026-02-20T18:20:00Z",
+  "persona_set_commit": "f515d206603c9e24f189cdadc66e363a90635c10",
+  "panel_graph_version": "1.0.0",
+  "policy_profile_used": "default",
+  "model_version": "claude-opus-4-6",
+  "aggregate_confidence": 0.90,
+  "risk_level": "low",
+  "human_intervention": {
+    "required": false,
+    "occurred": false
+  },
+  "decision": {
+    "action": "auto_merge",
+    "rationale": "Instruction decomposition per context-management.md spec. Documentation Review panel approved. Base instructions at ~90 tokens (under 200 budget). All decomposed files under 500 tokens. ANCHOR markers correctly placed. PHASE marker format deliberated and accepted."
+  },
+  "panels_executed": [
+    {
+      "panel_name": "documentation-review",
+      "verdict": "approve",
+      "confidence_score": 0.90,
+      "artifact_path": "manifests/panels/pr17-documentation-review.json"
+    }
+  ],
+  "repository": {
+    "name": "dark-forge",
+    "owner": "SET-Apps",
+    "branch": "itsfwcp/11-instruction-decomposition",
+    "base_branch": "main",
+    "commit_sha": "f515d206603c9e24f189cdadc66e363a90635c10",
+    "pr_number": 17
+  }
+}

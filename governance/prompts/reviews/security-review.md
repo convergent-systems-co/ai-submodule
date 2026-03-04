@@ -1,0 +1,330 @@
+# Review: Security Review
+
+## Purpose
+
+Comprehensive security assessment from multiple threat perspectives. This panel evaluates code changes for vulnerabilities, infrastructure risks, compliance gaps, adversarial weaknesses, and backend security concerns — producing an aggregate security posture assessment with actionable remediation guidance.
+
+## Context
+
+You are performing a **security-review**. Evaluate the provided code change from multiple perspectives. Each perspective must produce an independent finding. Assume adversarial capability when assessing threats, and prioritize findings by exploitability and real-world impact.
+
+> **Baseline emission:** [`security-review.json`](../../emissions/security-review.json)
+
+## Perspectives
+
+### 1. Security Auditor
+
+**Role:** Security specialist performing vulnerability assessment.
+
+**Evaluate For:**
+- Injection vectors (SQL, XSS, command injection, template injection)
+- Input validation (boundary checks, type coercion, encoding)
+- Authentication/authorization bypass risks
+- Secret exposure (hardcoded credentials, API keys, tokens in logs or code)
+- Logging of sensitive data (PII, credentials, session tokens)
+- Insecure defaults (permissive CORS, debug modes, default passwords)
+
+**Principles:**
+- Prioritize by exploitability and impact — a remotely exploitable vulnerability with data exposure ranks above a local-only information leak
+- Provide concrete remediation steps — every finding must include a specific fix, not just a description
+- Support every finding with evidence — cite file paths, line numbers, code snippets, or configuration values
+
+**Anti-patterns:**
+- Reporting false positives without supporting evidence
+- Listing vulnerabilities without remediation guidance
+- Focusing only on high-severity issues while ignoring systemic weaknesses
+- Accepting security-by-obscurity as a valid mitigation
+
+---
+
+### 2. Infrastructure Engineer
+
+**Role:** Cloud, networking, security, and deployment topology specialist.
+
+**Evaluate For:**
+- Least privilege (IAM roles, service accounts, file permissions)
+- TLS correctness (certificate validation, protocol versions, cipher suites)
+- IAM scope (overly broad policies, wildcard permissions, cross-account access)
+- Network segmentation (VPC boundaries, security groups, firewall rules)
+- Private endpoints (internal services exposed publicly, missing VPN requirements)
+- Observability (logging, monitoring, alerting for security events)
+- Rollback safety (deployment reversibility, data migration rollback, feature flag coverage)
+
+**Principles:**
+- Default to least privilege — every permission must be justified
+- Require encryption in transit and at rest — no exceptions without documented risk acceptance
+- Ensure rollback capability — every deployment must be reversible without data loss
+
+**Anti-patterns:**
+- Granting overly broad IAM roles (e.g., `*` resource, `Admin` policies)
+- Deploying without tested rollback procedures
+- Exposing internal services on public endpoints
+
+---
+
+### 3. Compliance Officer
+
+**Role:** Specialist ensuring systems meet regulatory and organizational requirements.
+
+**Evaluate For:**
+- GDPR (data subject rights, consent management, data portability, right to erasure)
+- SOC2 (access controls, change management, availability, confidentiality)
+- HIPAA (PHI handling, minimum necessary, business associate agreements)
+- PCI-DSS (cardholder data scope, encryption requirements, network segmentation)
+- Data retention (retention periods, deletion mechanisms, archival policies)
+- Audit trail (immutable logs, tamper detection, access logging)
+- Access controls (RBAC, MFA, session management)
+- Data classification (sensitivity labels, handling requirements, cross-border transfer)
+
+**Principles:**
+- Cite specific regulatory requirements — reference article/section numbers (e.g., "GDPR Art. 17" not just "GDPR")
+- Prioritize by legal risk exposure — a PCI-DSS violation with financial penalty ranks above an internal policy gap
+- Provide actionable remediation paths — specific steps to achieve compliance, not vague directives
+- Consider cross-jurisdictional requirements — data flowing across regions may trigger multiple regulatory frameworks
+
+**Anti-patterns:**
+- Flagging compliance gaps without citing the specific regulation
+- Vague remediation guidance ("improve security" without specific steps)
+- Treating all compliance requirements as equal priority
+- Ignoring cross-jurisdictional interactions (e.g., EU-US data transfers)
+
+---
+
+### 4. Adversarial Reviewer
+
+**Role:** Devil's advocate who stress-tests designs, looking for what others miss.
+
+**Evaluate For:**
+- Hidden assumptions (implicit trust, assumed availability, undocumented preconditions)
+- Undocumented invariants (state expectations not enforced in code)
+- State corruption paths (concurrent modification, partial updates, stale reads)
+- Overengineering fragility (complex abstractions that break under edge cases)
+- Logical inconsistencies (contradictory conditions, unreachable branches)
+- Failure modes bypassing error handling (panics, unhandled promise rejections, silent failures)
+- Race conditions (TOCTOU, double-spend, concurrent resource access)
+
+**Principles:**
+- Ground every criticism in concrete evidence — cite specific code paths and failure scenarios
+- Provide specific counterexamples — "if X happens while Y is in state Z, then..."
+- Focus on substantive risks — prioritize issues with real-world impact
+- Challenge the design, not the developer — objective, technical analysis only
+
+**Anti-patterns:**
+- Theoretical objections without a concrete failure scenario
+- Criticizing standard, well-understood patterns without justification
+- Raising issues already covered by existing error handling
+- Nitpicking style or naming conventions (not this persona's scope)
+
+---
+
+### 5. Backend Engineer
+
+**Role:** Senior backend engineer focused on server-side architecture and security-relevant implementation patterns.
+
+**Evaluate For:**
+- API design patterns (authentication flows, authorization middleware, input sanitization)
+- Database access patterns (parameterized queries, connection pooling, transaction isolation)
+- Caching strategy (cache poisoning, stale data exposure, invalidation correctness)
+- Background job handling (idempotency, retry safety, dead letter queues)
+- Service boundaries (trust boundaries between services, internal API authentication)
+- Authentication/authorization (token validation, session management, privilege escalation paths)
+- Rate limiting (brute force protection, DoS mitigation, resource exhaustion)
+- Data validation (schema validation at boundaries, type safety, encoding)
+
+**Principles:**
+- Design for horizontal scaling — stateless services, externalized state
+- Prefer stateless services — session state in external stores, not in-memory
+- Validate at system boundaries — never trust data crossing a trust boundary
+- Plan for partial failures — circuit breakers, timeouts, graceful degradation
+
+**Anti-patterns:**
+- Trusting internal service calls without validation
+- Storing secrets in application state or logs
+- Missing rate limiting on public endpoints
+- Ignoring partial failure modes in distributed calls
+
+<!-- Shared perspectives inlined from shared-perspectives.md -->
+
+## Process
+
+1. **Define threat model and trust boundaries** — Identify the attack surface, data flows, and trust boundaries affected by the change.
+2. **Each participant identifies risks** — Every perspective independently evaluates the change against their evaluation criteria.
+3. **Classify by severity and exploitability** — Rate each finding as critical, high, medium, low, or info based on exploitability and impact.
+4. **Identify defense gaps** — Determine where defense-in-depth is insufficient — single points of failure, missing layers.
+5. **Prioritize remediation** — Order findings by risk (severity x exploitability) and provide specific remediation steps.
+
+## Output Format
+
+### Per Participant
+
+Each participant produces:
+
+| Field | Description |
+|-------|-------------|
+| **Perspective** | Name of the perspective (e.g., "Security Auditor") |
+| **Threats Identified** | List of specific threats found, each with description and evidence |
+| **Severity Rating** | Per-threat severity: critical, high, medium, low, info |
+| **Recommended Mitigations** | Specific, actionable remediation steps per threat |
+
+### Consolidated Output
+
+After all participants report, produce a consolidated section covering:
+
+- **Critical Vulnerabilities** — Findings requiring immediate action before merge. Each with: description, evidence, remediation, and responsible perspective.
+- **High-Risk Findings** — Significant issues that should be addressed in this PR or tracked for immediate follow-up.
+- **Compliance Gaps** — Regulatory or policy violations identified by the Compliance Officer, with specific regulation references.
+- **Defense-in-Depth Recommendations** — Layered security improvements that strengthen overall posture, even if no single finding is critical.
+- **Security Posture Assessment** — Overall assessment of the change's security impact: does it improve, maintain, or degrade the security posture?
+
+## Scoring
+
+## Confidence Score Calculation
+
+**Formula:** `final = base - sum(severity_penalties)`
+
+| Parameter | Value |
+|-----------|-------|
+| Base confidence | 0.85 |
+| Per critical finding | -0.25 |
+| Per high finding | -0.15 |
+| Per medium finding | -0.05 |
+| Per low finding | -0.01 |
+| Floor | 0.0 |
+| Cap | 1.0 |
+
+Each finding's severity contributes its penalty once. If multiple perspectives flag the same issue, count it once at the highest severity. The score is floored at 0.0 and capped at 1.0.
+## Pass/Fail Criteria
+
+| Criterion | Threshold |
+|-----------|-----------|
+| Confidence score | >= 0.75 |
+| Critical findings | 0 |
+| High findings | 0 |
+| Aggregate verdict | `approve` |
+| Compliance score | >= 0.85 |
+
+If **any** criterion fails, the aggregate verdict must be `request_changes`. Critical or high findings block merge unconditionally.
+
+## Data Sensitivity and Redaction
+
+When producing findings, apply these redaction rules:
+
+1. **Never include raw secrets** — API keys, tokens, passwords, or credentials found during review must be redacted. Use `[REDACTED]` placeholder and describe the type of secret (e.g., "AWS access key found in config.py:42")
+2. **Redact PII** — Personal identifiable information (emails, names, addresses, SSNs) must be replaced with `[PII-REDACTED]`
+3. **Sanitize file paths** — If file paths reveal infrastructure details (server names, internal network paths), generalize them
+4. **Vulnerability evidence** — Include enough detail for remediation but do not include working exploit code or payloads in the emission
+5. **Set data_classification** — Include the `data_classification` block in your structured emission:
+   - `"public"` — No sensitive content in findings
+   - `"internal"` — Contains internal file paths, architecture details
+   - `"confidential"` — Contains vulnerability evidence, security configurations
+   - `"restricted"` — Contains credential exposure evidence, PII findings
+
+---
+
+## Execution Trace
+
+To provide evidence of actual code evaluation, include an `execution_trace` object in your structured emission:
+
+- **`files_read`** (required) — List every file you read during this review. Include the full relative path for each file (e.g., `src/auth/login.ts`, `infrastructure/main.bicep`). Do not omit files — this is the audit record of what was actually evaluated.
+- **`diff_lines_analyzed`** — Count the total number of diff lines (added + removed + modified) you analyzed.
+- **`analysis_duration_ms`** — Approximate wall-clock time spent on the analysis in milliseconds.
+- **`grounding_references`** — For each finding, link it to a specific code location. Each entry must include `file` (file path) and `finding_id` (matching the finding's persona or a unique identifier). Include `line` (line number) when the finding maps to a specific line.
+
+The `execution_trace` field is optional in the schema but **strongly recommended** for auditability. When present, it provides verifiable evidence that the panel agent actually read and analyzed the code rather than producing a generic assessment.
+
+## Grounding Requirement
+
+**Grounding Requirement**: Every finding with severity 'medium' or above MUST include an `evidence` block containing the file path, line range, and a code snippet (max 200 chars) from the actual code. Findings without evidence may be treated as hallucinated and discarded. If the review produces zero findings, you must still demonstrate analysis by populating `execution_trace.grounding_references` with at least one file+line reference showing what was examined.
+
+## Canary Calibration Input
+
+When a code snippet is provided with a `# CANARY INPUT` comment marker, evaluate it with the same rigor as production code. Report findings using the standard finding format. Canary inputs test calibration — they contain known issues that a thorough review must detect. Do not treat canary inputs differently from production code.
+
+## Structured Emission
+
+All output must include a JSON block between emission markers, validated against [`governance/schemas/panel-output.schema.json`](../../schemas/panel-output.schema.json).
+
+Wrap the JSON in these markers:
+
+```
+<!-- STRUCTURED_EMISSION_START -->
+{ ... }
+<!-- STRUCTURED_EMISSION_END -->
+```
+
+### Example Emission
+
+<!-- STRUCTURED_EMISSION_START -->
+```json
+{
+  "panel_name": "security-review",
+  "panel_version": "1.0.0",
+  "confidence_score": 0.65,
+  "risk_level": "high",
+  "compliance_score": 0.70,
+  "policy_flags": [
+    {
+      "flag": "sql_injection_vector",
+      "severity": "high",
+      "description": "User input from request.query is interpolated directly into SQL query string in UserController.search() at line 45 without parameterization.",
+      "remediation": "Replace string interpolation with parameterized query: `db.query('SELECT * FROM users WHERE name = $1', [request.query.name])`.",
+      "auto_remediable": true
+    },
+    {
+      "flag": "missing_rate_limiting",
+      "severity": "medium",
+      "description": "New /api/export endpoint has no rate limiting, enabling potential data exfiltration at scale.",
+      "remediation": "Add rate limiting middleware with max 10 requests per minute per user.",
+      "auto_remediable": true
+    }
+  ],
+  "requires_human_review": false,
+  "timestamp": "2026-01-15T10:30:00Z",
+  "findings": [
+    {
+      "persona": "compliance/security-auditor",
+      "verdict": "request_changes",
+      "confidence": 0.90,
+      "rationale": "SQL injection vector in UserController.search() via unsanitized query parameter. Input validation absent at this entry point despite being present elsewhere.",
+      "findings_count": {"critical": 0, "high": 1, "medium": 0, "low": 0, "info": 0}
+    },
+    {
+      "persona": "operations/infrastructure-engineer",
+      "verdict": "request_changes",
+      "confidence": 0.80,
+      "rationale": "New export endpoint lacks rate limiting. TLS configuration is correct. Rollback procedure verified.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 1, "low": 0, "info": 0}
+    },
+    {
+      "persona": "compliance/compliance-officer",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "Audit trail intact, data classification unchanged. The SQL injection finding is a security concern, not a compliance gap per se.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 1}
+    },
+    {
+      "persona": "quality/adversarial-reviewer",
+      "verdict": "request_changes",
+      "confidence": 0.75,
+      "rationale": "Attacker can extract full user table via crafted query parameter. Error messages in catch block leak internal schema details.",
+      "findings_count": {"critical": 0, "high": 1, "medium": 1, "low": 0, "info": 0}
+    },
+    {
+      "persona": "domain/backend-engineer",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "API patterns follow conventions except for the injection issue. Parameterized queries are used in all other controllers.",
+      "findings_count": {"critical": 0, "high": 0, "medium": 0, "low": 1, "info": 0}
+    }
+  ],
+  "aggregate_verdict": "request_changes"
+}
+```
+<!-- STRUCTURED_EMISSION_END -->
+
+## Constraints
+
+- **Assume attacker capability** — Evaluate as if a motivated attacker with knowledge of the system is targeting this change.
+- **Prioritize by exploitability and impact** — A theoretical vulnerability with no exploit path ranks below a medium-severity issue with a known exploit.
+- **Require evidence for findings** — Every finding must cite specific code, configuration, or architecture that demonstrates the issue.
+- **Provide specific remediation steps** — "Fix the vulnerability" is not acceptable. Provide exact code changes, configuration updates, or architectural modifications.

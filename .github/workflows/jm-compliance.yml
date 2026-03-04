@@ -1,0 +1,59 @@
+name: "JM Compliance"
+
+on:
+  workflow_dispatch:
+  workflow_call:
+  pull_request:
+    branches:
+    - main
+    - v*.*
+
+permissions:
+  actions: read
+  security-events: write
+  contents: read
+  pull-requests: write
+  packages: read
+  checks: read
+  statuses: read
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: jm-actions/scanning-requirements@v3
+        id: requirements
+
+    outputs:
+      codeScan: ${{ steps.requirements.outputs.codeScan }}
+      codeScanLanguages: ${{ steps.requirements.outputs.codeScanLanguages }}
+      os: ${{ steps.requirements.outputs.os }}
+  
+  owasp:
+    uses: JM-Actions/workflows/.github/workflows/scan-owasp-dependency-check.yml@v4
+    name: JM Compliance / OWASP Dependency Check
+    with:
+      if: ${{ github.event_name != 'pull_request' }}
+      
+  dependency-review:
+    name: JM Compliance / Dependency Review
+    uses: JM-Actions/workflows/.github/workflows/scan-ghas-dependency-review.yml@v4
+    with:
+      if: ${{ github.event_name == 'pull_request' }}
+
+
+  code-scanning:
+    name: JM Compliance / Code Scanning
+    needs:
+      - detect
+    uses: JM-Actions/workflows/.github/workflows/scan-ghas-code.yml@v4
+
+    with:
+      languages: ${{ needs.detect.outputs.codeScanLanguages }}
+      os: ${{ needs.detect.outputs.os || 'linux' }}
+      if: ${{ needs.detect.outputs.codeScan && needs.detect.outputs.codeScanLanguages != '[]' }}
+    secrets: inherit

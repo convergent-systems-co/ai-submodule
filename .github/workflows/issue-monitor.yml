@@ -1,0 +1,193 @@
+name: Issue Monitor
+
+# Manual-only trigger for now. Evaluates the specified issue for
+# actionability, then dispatches to Claude for autonomous processing
+# via the governance startup loop.
+#
+# Note: The concurrency group prevents duplicate runs for the same issue.
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to process'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: issue-monitor-${{ inputs.issue_number }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------------------------------------------------------
+  # Job 1: Evaluate issue actionability
+  # -----------------------------------------------------------
+  evaluate:
+    name: evaluate
+    runs-on: ubuntu-latest
+    outputs:
+      actionable: ${{ steps.check.outputs.actionable }}
+      reason: ${{ steps.check.outputs.reason }}
+      issue_title: ${{ steps.check.outputs.issue_title }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check issue actionability
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ inputs.issue_number }}
+        run: |
+          # Fetch issue data via API
+          ISSUE_JSON=$(gh api "repos/${{ github.repository }}/issues/$ISSUE_NUMBER")
+          ISSUE_TITLE=$(echo "$ISSUE_JSON" | jq -r '.title')
+          ISSUE_LABELS=$(echo "$ISSUE_JSON" | jq '.labels')
+          ISSUE_ASSIGNEES=$(echo "$ISSUE_JSON" | jq '.assignees')
+          ISSUE_UPDATED_AT=$(echo "$ISSUE_JSON" | jq -r '.updated_at')
+          ISSUE_STATE=$(echo "$ISSUE_JSON" | jq -r '.state')
+
+          echo "issue_title=$ISSUE_TITLE" >> "$GITHUB_OUTPUT"
+
+          # Check if issue is open
+          if [ "$ISSUE_STATE" != "open" ]; then
+            echo "actionable=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Issue is not open (state: $ISSUE_STATE)" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping issue #$ISSUE_NUMBER — not open"
+            exit 0
+          fi
+
+          # Check for exclusion labels
+          EXCLUDE_LABELS="blocked wontfix duplicate refine"
+          for label in $EXCLUDE_LABELS; do
+            if echo "$ISSUE_LABELS" | jq -e ".[] | select(.name == \"$label\")" > /dev/null 2>&1; then
+              echo "actionable=false" >> "$GITHUB_OUTPUT"
+              echo "reason=Issue has exclusion label: $label" >> "$GITHUB_OUTPUT"
+              echo "::notice::Skipping issue #$ISSUE_NUMBER — has '$label' label"
+              exit 0
+            fi
+          done
+
+          # Check if assigned to a human (bot assignees are OK per startup.md)
+          HUMAN_ASSIGNEES=$(echo "$ISSUE_ASSIGNEES" | jq '[.[] | select(.type != "Bot" and .type != "bot")] | length')
+          if [ "$HUMAN_ASSIGNEES" -gt 0 ]; then
+            echo "actionable=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Issue is assigned to a human" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping issue #$ISSUE_NUMBER — assigned to human"
+            exit 0
+          fi
+
+          # Check if updated by a human in the last 24 hours (per startup.md)
+          if [ -n "$ISSUE_UPDATED_AT" ] && [ "$ISSUE_UPDATED_AT" != "null" ]; then
+            UPDATED_EPOCH=$(date -d "$ISSUE_UPDATED_AT" +%s 2>/dev/null || echo "0")
+            NOW_EPOCH=$(date +%s)
+            if [ "$UPDATED_EPOCH" -gt 0 ]; then
+              AGE_SECONDS=$(( NOW_EPOCH - UPDATED_EPOCH ))
+              AGE_HOURS=$(( AGE_SECONDS / 3600 ))
+              if [ "$AGE_SECONDS" -gt 60 ] && [ "$AGE_HOURS" -lt 24 ]; then
+                echo "actionable=false" >> "$GITHUB_OUTPUT"
+                echo "reason=Issue was updated by a human within the last 24 hours" >> "$GITHUB_OUTPUT"
+                echo "::notice::Skipping issue #$ISSUE_NUMBER — updated within 24h"
+                exit 0
+              fi
+            fi
+          fi
+
+          # Check if a branch already exists for this issue
+          REPO="${{ github.repository }}"
+          BRANCHES=$(gh api "repos/$REPO/branches" --jq '.[].name' 2>/dev/null || echo "")
+          # Extract branch prefix from project.yaml
+          BRANCH_PREFIX=$(grep 'branch_pattern:' project.yaml | sed 's/.*"\([^/]*\)\/.*/\1/' || echo "")
+          if [ -z "$BRANCH_PREFIX" ] || [ "$BRANCH_PREFIX" = "{network_id}" ]; then
+            BRANCH_PREFIX="$(whoami)"
+          fi
+          if echo "$BRANCHES" | grep -qE "($BRANCH_PREFIX|feature)/[^/]+/$ISSUE_NUMBER/"; then
+            echo "actionable=false" >> "$GITHUB_OUTPUT"
+            echo "reason=Branch already exists for this issue" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping issue #$ISSUE_NUMBER — branch already exists"
+            exit 0
+          fi
+
+          echo "actionable=true" >> "$GITHUB_OUTPUT"
+          echo "reason=Issue is actionable" >> "$GITHUB_OUTPUT"
+          echo "::notice::Issue #$ISSUE_NUMBER is actionable — dispatching"
+
+  # -----------------------------------------------------------
+  # Job 2: Dispatch to Claude via claude-code-base-action
+  # -----------------------------------------------------------
+  dispatch-claude:
+    name: dispatch-claude
+    needs: evaluate
+    if: needs.evaluate.outputs.actionable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate API key
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "::error::ANTHROPIC_API_KEY secret is not configured. Add it to repository secrets."
+            exit 1
+          fi
+
+      - name: Process issue with Claude
+        uses: anthropics/claude-code-base-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are the Team Lead persona from the Dark Forge governance platform.
+            Read governance/prompts/startup.md for the full agentic loop specification.
+
+            An issue has been created or updated that needs processing:
+            - Issue #${{ inputs.issue_number }}: ${{ needs.evaluate.outputs.issue_title }}
+            - Repository: ${{ github.repository }}
+
+            Enter the Startup Sequence at Step 4 (Validate Intent) for issue #${{ inputs.issue_number }}.
+            Follow all governance steps through Step 7 (PR Monitoring & Review Loop).
+
+            Key constraints:
+            - Create a plan in .artifacts/plans/ before implementation
+            - Use conventional commits
+            - Create a PR referencing the issue
+            - Monitor CI checks and Copilot recommendations
+            - Maximum 3 review cycles per PR
+            - Update all affected documentation before committing (Step 6.4)
+          allowed_tools: "Bash(git:*),Bash(gh:*),Bash(python:*),Bash(sleep:*),Bash(date:*),Bash(mkdir:*),Bash(chmod:*),View,GlobTool,GrepTool,BatchTool,FileWriteTool,FileEditTool"
+          max_turns: 50
+          model: ${{ vars.CLAUDE_MODEL || 'claude-sonnet-4-20250514' }}
+
+  # -----------------------------------------------------------
+  # Job 3: Dispatch to Copilot coding agent (opt-in)
+  # -----------------------------------------------------------
+  dispatch-copilot:
+    name: dispatch-copilot
+    needs: evaluate
+    if: needs.evaluate.outputs.actionable == 'true' && vars.ENABLE_COPILOT_AGENT == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assign issue to Copilot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ISSUE_NUMBER="${{ inputs.issue_number }}"
+          REPO="${{ github.repository }}"
+
+          echo "Assigning issue #$ISSUE_NUMBER to Copilot coding agent..."
+
+          # Assign to copilot via REST API
+          gh api "repos/$REPO/issues/$ISSUE_NUMBER/assignees" \
+            --method POST \
+            -f "assignees[]=copilot" 2>&1 || {
+              echo "::warning::Failed to assign issue to Copilot. Copilot coding agent may not be enabled for this repository."
+            }
+
+          echo "::notice::Issue #$ISSUE_NUMBER assigned to Copilot coding agent"

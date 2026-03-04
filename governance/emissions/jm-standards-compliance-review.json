@@ -1,0 +1,62 @@
+{
+  "panel_name": "jm-standards-compliance-review",
+  "panel_version": "1.0.0",
+  "schema_version": "1.0.0",
+  "confidence_score": 0.9,
+  "risk_level": "low",
+  "compliance_score": 1.0,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-02-27T00:00:00Z",
+  "findings": [
+    {
+      "persona": "standards/compliance-reviewer",
+      "verdict": "approve",
+      "confidence": 0.9,
+      "rationale": "Baseline emission \u2014 all technology choices align with JM Paved Roads standards. Approved languages, frameworks, cloud services, and CI/CD patterns in use. No unapproved deviations detected.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      }
+    },
+    {
+      "persona": "infrastructure/engineer",
+      "verdict": "approve",
+      "confidence": 0.9,
+      "rationale": "Baseline emission \u2014 infrastructure patterns follow JM Paved Roads. Azure-native services used with Managed Identity. Bicep IaC, private endpoints, and compliant naming conventions in place.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      }
+    },
+    {
+      "persona": "standards/deviation-auditor",
+      "verdict": "approve",
+      "confidence": 0.9,
+      "rationale": "Baseline emission \u2014 no deviations from Paved Roads detected. project.yaml paved_roads section is properly configured with no active deviations required.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      }
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "policy_profile": "default",
+    "model_version": "claude-opus-4-6",
+    "triggered_by": "manual"
+  },
+  "data_classification": {
+    "level": "internal"
+  }
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/configure-wizard-state.schema.json",
+  "title": "Configuration Wizard State",
+  "description": "Schema for the wizard state file (.artifacts/state/configure-wizard.json) used by the configuration wizard prompt chain to persist state across steps.",
+  "type": "object",
+  "required": ["step", "completed"],
+  "properties": {
+    "step": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Current wizard step (1-5)."
+    },
+    "completed": {
+      "type": "boolean",
+      "description": "Whether the current step has been completed."
+    },
+    "project_name": {
+      "type": "string",
+      "description": "Project name from Step 1."
+    },
+    "languages": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Detected or user-specified languages from Step 1."
+    },
+    "framework": {
+      "type": ["string", "null"],
+      "description": "Detected or user-specified framework from Step 1."
+    },
+    "has_iac": {
+      "type": "boolean",
+      "description": "Whether infrastructure-as-code was detected in Step 1."
+    },
+    "has_tests": {
+      "type": "boolean",
+      "description": "Whether tests were detected in Step 1."
+    },
+    "repo_size": {
+      "type": "string",
+      "enum": ["small", "medium", "large"],
+      "description": "Repository size estimate from Step 1."
+    },
+    "governance_level": {
+      "type": "string",
+      "enum": ["light", "standard", "strict"],
+      "description": "Selected governance level from Step 2."
+    },
+    "policy_profile": {
+      "type": "string",
+      "description": "Policy profile mapped from governance level in Step 2."
+    },
+    "panels": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Selected panels from Step 2."
+    },
+    "use_custom_models": {
+      "type": "boolean",
+      "description": "Whether per-panel model assignment was configured in Step 3."
+    },
+    "panel_models": {
+      "type": "object",
+      "description": "Panel model configuration from Step 3.",
+      "properties": {
+        "defaults": {
+          "type": "object",
+          "properties": {
+            "model": { "type": "string" }
+          }
+        },
+        "overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "model": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "parallel_coders": {
+      "type": "integer",
+      "description": "Number of parallel Coder agents from Step 4."
+    },
+    "use_project_manager": {
+      "type": "boolean",
+      "description": "Whether PM mode is enabled from Step 4."
+    },
+    "parallel_tech_leads": {
+      "type": "integer",
+      "description": "Number of parallel Tech Leads from Step 4 (when PM mode is enabled)."
+    },
+    "generated_config": {
+      "type": "object",
+      "description": "The complete generated project.yaml dict from Step 5."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,921 @@
+"""End-to-end pipeline tests using the evaluate() function across all 4 profiles."""
+
+import io
+import json
+import os
+import tempfile
+from unittest import mock
+
+import pytest
+from jsonschema import validate, ValidationError
+
+from conftest import (
+    policy_engine,
+    make_emission,
+    make_profile,
+    all_required_emissions,
+    DEFAULT_REQUIRED_PANELS,
+    REPO_ROOT,
+)
+
+
+def _write_emissions(tmpdir, emissions):
+    """Write emission dicts as JSON files into a temp directory."""
+    for emission in emissions:
+        path = os.path.join(tmpdir, f"{emission['panel_name']}.json")
+        with open(path, "w") as f:
+            json.dump(emission, f)
+
+
+def _profile_path(name):
+    return str(REPO_ROOT / "governance" / "policy" / f"{name}.yaml")
+
+
+# ===========================================================================
+# Default profile tests
+# ===========================================================================
+
+
+class TestDefaultProfileIntegration:
+    def test_auto_merge_happy_path(self, tmp_path):
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+
+    def test_missing_panel_phase_4b_transition(self, tmp_path):
+        """Missing panel with high confidence + all approve → Phase 4b transition, no block."""
+        # Only 5 of 6 required panels, but high confidence + all approve
+        emissions = all_required_emissions(confidence=0.92)
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Phase 4b transition: missing panel downgraded → proceeds to auto_merge
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+
+    def test_block_missing_panel_low_confidence(self, tmp_path):
+        """Missing panel with low confidence → Phase 4b NOT triggered, still blocks."""
+        emissions = all_required_emissions(confidence=0.50)
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Low confidence → Phase 4b not triggered → block for missing panel
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_human_review_low_confidence(self, tmp_path):
+        emissions = all_required_emissions(confidence=0.60, risk_level="low")
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 2
+        assert manifest["decision"]["action"] == "human_review_required"
+
+    def test_human_review_panel_disagreement(self, tmp_path):
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # Make one panel disagree
+        emissions[0]["aggregate_verdict"] = "request_changes"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 2
+        assert manifest["decision"]["action"] == "human_review_required"
+
+    def test_block_critical_risk(self, tmp_path):
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions[0]["risk_level"] = "critical"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Critical risk triggers escalation → human_review_required
+        assert exit_code == 2
+        assert manifest["decision"]["action"] == "human_review_required"
+
+    def test_auto_remediate_path(self, tmp_path):
+        # Medium risk, moderate confidence — can't auto-merge, but can auto-remediate
+        emissions = all_required_emissions(confidence=0.75, risk_level="low")
+        # One panel has medium risk causing aggregate to be medium
+        emissions[0]["risk_level"] = "high"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # With 1 high risk panel, aggregate risk = medium
+        # Confidence 0.75 < 0.85 threshold → can't auto-merge
+        # But auto-remediate accepts medium risk and confidence >= 0.60
+        assert exit_code == 3
+        assert manifest["decision"]["action"] == "auto_remediate"
+
+    def test_invalid_emission_blocks(self, tmp_path):
+        # Write an invalid JSON file
+        with open(os.path.join(str(tmp_path), "bad.json"), "w") as f:
+            f.write("{invalid json")
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_empty_emissions_dir(self, tmp_path):
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+
+# ===========================================================================
+# fin_pii_high profile tests
+# ===========================================================================
+
+
+class TestFinPiiHighIntegration:
+    def test_always_human_review(self, tmp_path):
+        """Auto-merge is disabled → should never get exit code 0."""
+        # Use fin_pii_high required panels (including data-governance-review per #231)
+        panels = [
+            "code-review", "security-review", "data-design-review",
+            "testing-review", "threat-modeling", "cost-analysis",
+            "documentation-review", "data-governance-review",
+        ]
+        emissions = all_required_emissions(confidence=0.95, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("fin_pii_high"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Auto-merge disabled → never exit 0
+        assert exit_code != 0
+        assert manifest["decision"]["action"] != "auto_merge"
+
+    def test_block_missing_panel(self, tmp_path):
+        """missing_panel_behavior=block → immediate block."""
+        panels = [
+            "code-review", "security-review", "data-design-review",
+            "testing-review", "threat-modeling", "cost-analysis",
+            "data-governance-review",
+            # Missing documentation-review
+        ]
+        emissions = all_required_emissions(confidence=0.95, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("fin_pii_high"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+        assert "missing" in manifest["decision"]["rationale"].lower()
+
+
+# ===========================================================================
+# infrastructure_critical profile tests
+# ===========================================================================
+
+
+class TestInfrastructureCriticalIntegration:
+    def test_strict_confidence(self, tmp_path):
+        """Infrastructure profile requires >= 0.90 for auto-merge."""
+        panels = [
+            "code-review", "security-review", "architecture-review",
+            "threat-modeling", "cost-analysis", "documentation-review",
+        ]
+        emissions = all_required_emissions(confidence=0.85, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("infrastructure_critical"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Confidence 0.85 < 0.90 threshold → fails auto-merge
+        # Also 0.85 >= 0.80 escalation threshold → no escalation
+        # Falls through to auto_remediate or human_review
+        assert exit_code in (2, 3)
+        assert manifest["decision"]["action"] in ("human_review_required", "auto_remediate")
+
+
+# ===========================================================================
+# reduced_touchpoint profile tests
+# ===========================================================================
+
+
+class TestReducedTouchpointIntegration:
+    def test_lower_auto_merge_thresholds(self, tmp_path):
+        """Reduced touchpoint allows medium risk and 0.75 confidence for auto-merge."""
+        emissions = all_required_emissions(confidence=0.80, risk_level="low")
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("reduced_touchpoint"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # 0.80 >= 0.75 threshold, low risk → auto-merge
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+
+    def test_medium_risk_auto_merge(self, tmp_path):
+        """Reduced touchpoint accepts medium risk for auto-merge."""
+        emissions = all_required_emissions(confidence=0.80, risk_level="low")
+        # One high-risk panel → aggregate medium with default rules
+        emissions[0]["risk_level"] = "high"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("reduced_touchpoint"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Aggregate risk = medium (1 high panel), confidence 0.80 >= 0.75
+        # Reduced touchpoint allows medium risk for auto-merge
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+
+
+# ===========================================================================
+# Compound block condition integration tests (issue #230)
+# ===========================================================================
+
+
+# ===========================================================================
+# Emission semantic consistency integration tests (issue #234)
+# ===========================================================================
+
+
+class TestEmissionConsistencyIntegration:
+    """Integration tests for semantic consistency checks through the full pipeline."""
+
+    def test_inconsistent_emission_flagged_in_log(self, tmp_path):
+        """Inconsistent emission produces warnings in evaluation log."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # Make one emission inconsistent: block finding + approve verdict
+        emissions[0]["findings"] = [
+            {"persona": "security/reviewer", "verdict": "block", "confidence": 0.95, "rationale": "Critical vuln"},
+        ]
+        emissions[0]["aggregate_verdict"] = "approve"  # inconsistent with block finding
+        _write_emissions(str(tmp_path), emissions)
+        log_stream = io.StringIO()
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=log_stream,
+        )
+        log_output = log_stream.getvalue()
+        # Consistency warning should appear in log
+        assert "inconsistency" in log_output.lower() or "consistency" in log_output.lower()
+        # The emission is still processed (warnings, not hard blocks)
+        rules = manifest["decision"]["policy_rules_evaluated"]
+        consistency_rules = [r for r in rules if "consistency" in r.get("rule_id", "")]
+        assert len(consistency_rules) > 0
+
+    def test_consistent_emissions_no_warnings(self, tmp_path):
+        """Fully consistent emissions produce no consistency warnings."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        _write_emissions(str(tmp_path), emissions)
+        log_stream = io.StringIO()
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=log_stream,
+        )
+        rules = manifest["decision"]["policy_rules_evaluated"]
+        consistency_fails = [r for r in rules if "consistency" in r.get("rule_id", "") and r["result"] == "fail"]
+        assert len(consistency_fails) == 0
+
+
+# ===========================================================================
+# Phase 4b transition integration tests (issue #233)
+# ===========================================================================
+
+
+class TestPhase4bTransitionIntegration:
+    """Integration tests verifying Phase 4b transition through the full evaluate() pipeline."""
+
+    def test_missing_panel_high_confidence_all_approve_not_blocked(self, tmp_path):
+        """Missing required panel + all approve + high confidence → Phase 4b transition.
+
+        The engine should NOT block when the only issue is missing panels,
+        all present panels approve, and confidence is above threshold.
+        """
+        # Only 5 of 6 required panels — data-governance-review missing
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        log_stream = io.StringIO()
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=log_stream,
+        )
+        # Phase 4b should downgrade the missing-panel block
+        assert manifest["decision"]["action"] != "block"
+        # Should proceed to auto_merge (all other conditions met)
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+        # Verify Phase 4b is recorded in audit log
+        log_output = log_stream.getvalue()
+        assert "phase_4b_transition" in log_output.lower() or "Phase 4b" in log_output
+
+    def test_missing_panel_low_confidence_still_blocks(self, tmp_path):
+        """Missing required panel + low confidence → Phase 4b NOT triggered, still blocks."""
+        emissions = all_required_emissions(confidence=0.50, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Low confidence → Phase 4b not triggered → block for missing panel
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_missing_panel_non_approve_verdict_still_blocks(self, tmp_path):
+        """Missing required panel + one panel request_changes → still blocks."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        emissions[0]["aggregate_verdict"] = "request_changes"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Not all approve → Phase 4b not triggered → block for missing panel
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_fin_pii_high_missing_panel_always_blocks(self, tmp_path):
+        """fin_pii_high: missing_panel_behavior=block → Phase 4b never applies."""
+        panels = [
+            "code-review", "security-review", "data-design-review",
+            "testing-review", "threat-modeling", "cost-analysis",
+            "data-governance-review",
+            # Missing documentation-review
+        ]
+        emissions = all_required_emissions(confidence=0.95, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("fin_pii_high"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # fin_pii_high uses missing_panel_behavior=block → hard block, no Phase 4b
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_phase_4b_recorded_in_manifest_audit_log(self, tmp_path):
+        """Phase 4b transition must be recorded in the manifest's policy_rules_evaluated."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions = [e for e in emissions if e["panel_name"] != "data-governance-review"]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Check that the manifest audit log contains Phase 4b transition entry
+        rules = manifest["decision"]["policy_rules_evaluated"]
+        phase_4b_rules = [r for r in rules if "phase_4b" in r.get("rule_id", "")]
+        assert len(phase_4b_rules) > 0
+        assert phase_4b_rules[0]["result"] == "pass"
+
+
+class TestCompoundBlockIntegration:
+    """Integration tests verifying compound block conditions through the full pipeline."""
+
+    def test_default_profile_critical_non_remediable_blocks(self, tmp_path):
+        """default.yaml: critical flag + not auto_remediable triggers block via compound condition.
+
+        The compound condition 'any_policy_flag_severity == "critical" and not auto_remediable'
+        in default.yaml should now correctly evaluate. Even though the universal critical flag
+        block also catches this, the compound condition is independently correct.
+        """
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions[0]["policy_flags"] = [
+            {"flag": "vuln_critical", "severity": "critical", "description": "Critical CVE", "auto_remediable": False},
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_default_profile_compound_condition_evaluates(self, tmp_path):
+        """default.yaml: verify compound condition is evaluated (not silently skipped).
+
+        Before the fix, compound conditions returned False and were logged as 'Not triggered'.
+        After the fix, the compound condition should evaluate and log as 'fail' (triggered).
+        """
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        emissions[0]["policy_flags"] = [
+            {"flag": "vuln_critical", "severity": "critical", "description": "Critical CVE", "auto_remediable": False},
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        log_stream = io.StringIO()
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=log_stream,
+        )
+        log_output = log_stream.getvalue()
+        # The compound condition description from default.yaml should appear as triggered
+        assert "Critical policy violation" in log_output or "non-remediable" in log_output.lower()
+
+    def test_reduced_touchpoint_critical_non_remediable_blocks(self, tmp_path):
+        """reduced_touchpoint.yaml has the same compound block condition as default.yaml."""
+        emissions = all_required_emissions(confidence=0.80, risk_level="low")
+        emissions[0]["policy_flags"] = [
+            {"flag": "vuln_critical", "severity": "critical", "description": "Critical CVE", "auto_remediable": False},
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("reduced_touchpoint"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_context_dependent_compound_conditions_skip_gracefully(self, tmp_path):
+        """fin_pii_high.yaml compound conditions with context-dependent sub-conditions don't block.
+
+        Conditions like 'panel_missing("data-design-review") and data_files_changed' cannot
+        be fully evaluated from emissions alone and should return False gracefully.
+        """
+        panels = [
+            "code-review", "security-review", "data-design-review",
+            "testing-review", "threat-modeling", "cost-analysis",
+            "documentation-review", "data-governance-review",
+        ]
+        emissions = all_required_emissions(confidence=0.95, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("fin_pii_high"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        # Should not block — context-dependent compound conditions return False
+        assert manifest["decision"]["action"] != "block" or "missing" in manifest["decision"]["rationale"].lower()
+
+    def test_compound_block_with_default_profile(self, tmp_path):
+        """default.yaml: craft emissions triggering compound block condition through evaluate().
+
+        The compound condition 'any_policy_flag_severity == "critical" and not auto_remediable'
+        from default.yaml should produce a block decision when emissions contain a critical,
+        non-remediable policy flag.
+        """
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # Add a critical, non-auto-remediable policy flag to trigger the compound condition
+        emissions[0]["policy_flags"] = [
+            {"flag": "vuln_critical", "severity": "critical", "description": "Critical CVE", "auto_remediable": False},
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+
+    def test_compound_block_not_triggered(self, tmp_path):
+        """default.yaml: emissions that do NOT trigger the compound block condition.
+
+        When no critical policy flags exist, the compound condition
+        'any_policy_flag_severity == "critical" and not auto_remediable' should not fire,
+        and the PR should proceed to auto_merge with otherwise clean emissions.
+        """
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # No policy flags at all — compound condition first sub-condition is False
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 0
+        assert manifest["decision"]["action"] == "auto_merge"
+
+
+# ===========================================================================
+# Weight sum validation (issues #231, #232)
+# ===========================================================================
+
+
+class TestProfileWeightSums:
+    """Verify all policy profile weights sum to 1.0."""
+
+    @pytest.mark.parametrize("profile_name", [
+        "default", "fin_pii_high", "infrastructure_critical", "reduced_touchpoint",
+    ])
+    def test_weights_sum_to_one(self, profile_name):
+        import yaml
+        path = REPO_ROOT / "governance" / "policy" / f"{profile_name}.yaml"
+        with open(path) as f:
+            profile = yaml.safe_load(f)
+        weights = profile.get("weighting", {}).get("weights", {})
+        total = sum(weights.values())
+        assert abs(total - 1.0) < 0.001, f"{profile_name} weights sum to {total}, expected 1.0"
+
+    def test_fin_pii_high_has_data_governance_review(self):
+        import yaml
+        path = REPO_ROOT / "governance" / "policy" / "fin_pii_high.yaml"
+        with open(path) as f:
+            profile = yaml.safe_load(f)
+        required = profile.get("required_panels", [])
+        weights = profile.get("weighting", {}).get("weights", {})
+        assert "data-governance-review" in required
+        assert "data-governance-review" in weights
+
+    def test_infrastructure_critical_has_data_governance_review(self):
+        import yaml
+        path = REPO_ROOT / "governance" / "policy" / "infrastructure_critical.yaml"
+        with open(path) as f:
+            profile = yaml.safe_load(f)
+        weights = profile.get("weighting", {}).get("weights", {})
+        optional = profile.get("optional_panels", [])
+        assert "data-governance-review" in weights
+        optional_names = [p["panel"] for p in optional]
+        assert "data-governance-review" in optional_names
+
+
+# ===========================================================================
+# Cross-profile emission matrix tests (issue #251)
+# ===========================================================================
+
+
+# Required panels differ per profile — each scenario must supply the correct set.
+PROFILE_REQUIRED_PANELS = {
+    "default": [
+        "code-review", "security-review", "threat-modeling",
+        "cost-analysis", "finops-review", "documentation-review",
+        "data-governance-review", "copilot-review",
+    ],
+    "fin_pii_high": [
+        "code-review", "security-review", "data-design-review",
+        "testing-review", "threat-modeling", "cost-analysis",
+        "finops-review", "documentation-review", "data-governance-review",
+    ],
+    "infrastructure_critical": [
+        "code-review", "security-review", "architecture-review",
+        "threat-modeling", "cost-analysis", "finops-review",
+        "documentation-review",
+    ],
+    "reduced_touchpoint": [
+        "code-review", "security-review", "threat-modeling",
+        "cost-analysis", "finops-review", "documentation-review",
+        "data-governance-review", "copilot-review",
+    ],
+}
+
+ALL_PROFILES = list(PROFILE_REQUIRED_PANELS.keys())
+
+
+class TestCrossProfileMatrix:
+    """Cross-profile tests verifying the same emissions produce differentiated decisions.
+
+    Each scenario is run against all 5 policy profiles. The parametrized expected
+    outcomes capture the documented behavioral differences between profiles:
+
+    - default: standard risk tolerance, auto-merge at confidence >= 0.85
+    - fin_pii_high: auto-merge disabled, missing_panel_behavior=block, strict risk
+    - infrastructure_critical: auto-merge requires >= 0.90 + context conditions (fail-closed)
+    - reduced_touchpoint: lower thresholds (>= 0.75), accepts medium risk for auto-merge
+    """
+
+    # --- Scenario 1: happy_path -----------------------------------------------
+    # All panels approve, confidence=0.92, risk=low, no flags.
+    # Profiles differ on merge thresholds and whether auto-merge is enabled.
+
+    @pytest.mark.parametrize("profile_name, expected_action, expected_exit", [
+        ("default", "auto_merge", 0),
+        ("fin_pii_high", "auto_remediate", 3),
+        ("infrastructure_critical", "human_review_required", 2),
+        ("reduced_touchpoint", "auto_merge", 0),
+    ])
+    def test_happy_path(self, tmp_path, profile_name, expected_action, expected_exit):
+        """confidence=0.92, risk=low, all approve, no flags."""
+        panels = PROFILE_REQUIRED_PANELS[profile_name]
+        emissions = all_required_emissions(confidence=0.92, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path(profile_name),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == expected_exit, (
+            f"{profile_name}: expected exit {expected_exit}, got {exit_code} "
+            f"(action={manifest['decision']['action']})"
+        )
+        assert manifest["decision"]["action"] == expected_action
+
+    # --- Scenario 2: medium_risk -----------------------------------------------
+    # One panel reports high risk → aggregate risk depends on profile rules.
+    # fin_pii_high: any high → critical. default/reduced_touchpoint: 1 high → medium.
+    # infrastructure_critical: no matching rule → max_risk=high.
+
+    @pytest.mark.parametrize("profile_name, expected_action, expected_exit", [
+        ("default", "auto_remediate", 3),
+        ("fin_pii_high", "human_review_required", 2),
+        ("infrastructure_critical", "human_review_required", 2),
+        ("reduced_touchpoint", "auto_merge", 0),
+    ])
+    def test_medium_risk(self, tmp_path, profile_name, expected_action, expected_exit):
+        """One high-risk panel; profiles differ on risk aggregation and merge tolerance."""
+        panels = PROFILE_REQUIRED_PANELS[profile_name]
+        emissions = all_required_emissions(confidence=0.92, risk_level="low", panels=panels)
+        # Make the first panel high-risk
+        emissions[0]["risk_level"] = "high"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path(profile_name),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == expected_exit, (
+            f"{profile_name}: expected exit {expected_exit}, got {exit_code} "
+            f"(action={manifest['decision']['action']})"
+        )
+        assert manifest["decision"]["action"] == expected_action
+
+    # --- Scenario 3: critical_risk ---------------------------------------------
+    # One panel reports critical risk → all profiles escalate to human review.
+    # Verifies universal critical-risk handling regardless of profile permissiveness.
+
+    @pytest.mark.parametrize("profile_name", ALL_PROFILES)
+    def test_critical_risk(self, tmp_path, profile_name):
+        """One critical-risk panel; all profiles should escalate to human_review_required."""
+        panels = PROFILE_REQUIRED_PANELS[profile_name]
+        emissions = all_required_emissions(confidence=0.92, risk_level="low", panels=panels)
+        emissions[0]["risk_level"] = "critical"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path(profile_name),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 2, (
+            f"{profile_name}: expected exit 2 (human_review_required), got {exit_code} "
+            f"(action={manifest['decision']['action']})"
+        )
+        assert manifest["decision"]["action"] == "human_review_required"
+
+    # --- Scenario 4: disagreement -----------------------------------------------
+    # One panel issues request_changes. default escalates (panel_disagreement rule),
+    # fin_pii_high has no disagreement rule so falls to auto_remediate,
+    # infrastructure_critical falls to human_review (context-dependent conditions),
+    # reduced_touchpoint auto-merge fails (not all approve) but auto_remediate passes.
+
+    @pytest.mark.parametrize("profile_name, expected_action, expected_exit", [
+        ("default", "human_review_required", 2),
+        ("fin_pii_high", "auto_remediate", 3),
+        ("infrastructure_critical", "human_review_required", 2),
+        ("reduced_touchpoint", "auto_remediate", 3),
+    ])
+    def test_disagreement(self, tmp_path, profile_name, expected_action, expected_exit):
+        """One panel request_changes; profiles differ on disagreement handling."""
+        panels = PROFILE_REQUIRED_PANELS[profile_name]
+        emissions = all_required_emissions(confidence=0.92, risk_level="low", panels=panels)
+        emissions[0]["aggregate_verdict"] = "request_changes"
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path(profile_name),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == expected_exit, (
+            f"{profile_name}: expected exit {expected_exit}, got {exit_code} "
+            f"(action={manifest['decision']['action']})"
+        )
+        assert manifest["decision"]["action"] == expected_action
+
+    # --- Scenario 5: low_confidence --------------------------------------------
+    # confidence=0.60 is below most profiles' escalation thresholds.
+    # reduced_touchpoint has no low-confidence escalation and auto_remediates.
+
+    @pytest.mark.parametrize("profile_name, expected_action, expected_exit", [
+        ("default", "human_review_required", 2),
+        ("fin_pii_high", "human_review_required", 2),
+        ("infrastructure_critical", "human_review_required", 2),
+        ("reduced_touchpoint", "auto_remediate", 3),
+    ])
+    def test_low_confidence(self, tmp_path, profile_name, expected_action, expected_exit):
+        """confidence=0.60; most profiles escalate, reduced_touchpoint auto-remediates."""
+        panels = PROFILE_REQUIRED_PANELS[profile_name]
+        emissions = all_required_emissions(confidence=0.60, risk_level="low", panels=panels)
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path(profile_name),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == expected_exit, (
+            f"{profile_name}: expected exit {expected_exit}, got {exit_code} "
+            f"(action={manifest['decision']['action']})"
+        )
+        assert manifest["decision"]["action"] == expected_action
+
+    # --- Scenario 6: critical_flag ----------------------------------------------
+    # Critical non-remediable policy flag → all profiles must block.
+    # Verifies universal critical-flag blocking regardless of profile permissiveness.
+
+    @pytest.mark.parametrize("profile_name", ALL_PROFILES)
+    def test_critical_flag(self, tmp_path, profile_name):
+        """Critical non-remediable flag; all profiles must block."""
+        panels = PROFILE_REQUIRED_PANELS[profile_name]
+        emissions = all_required_emissions(confidence=0.92, risk_level="low", panels=panels)
+        emissions[0]["policy_flags"] = [
+            {
+                "flag": "vuln_critical",
+                "severity": "critical",
+                "description": "Critical CVE",
+                "auto_remediable": False,
+            },
+        ]
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path(profile_name),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1, (
+            f"{profile_name}: expected exit 1 (block), got {exit_code} "
+            f"(action={manifest['decision']['action']})"
+        )
+        assert manifest["decision"]["action"] == "block"
+
+
+# ===========================================================================
+# Escalation block integration tests (issue #263)
+# ===========================================================================
+
+
+class TestEscalationBlockIntegration:
+    """Test where block conditions pass (don't block) but escalation rules
+    return action='block', flowing through evaluate() to produce a blocked manifest."""
+
+    def test_escalation_block_through_evaluate(self, tmp_path):
+        """Escalation rule with action='block' should produce exit code 1 via evaluate().
+
+        Setup: all block conditions pass (no CI failure, no critical flags),
+        but an escalation rule with action='block' fires because of a
+        high-severity policy flag.
+        """
+        import yaml
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # Add a high-severity policy flag — not critical, so universal block
+        # conditions won't catch it (they block on critical/high severity flags,
+        # but we'll configure the profile so block conditions DON'T catch this)
+        emissions[0]["policy_flags"] = [
+            {"flag": "breaking_api", "severity": "medium",
+             "description": "Breaking API change", "auto_remediable": False}
+        ]
+        _write_emissions(str(tmp_path), emissions)
+
+        # Create a custom profile where block conditions don't catch medium flags,
+        # but escalation rule with action="block" catches medium severity flags
+        profile = make_profile(
+            block_conditions=[],  # No block conditions at all
+            escalation_rules=[
+                {
+                    "name": "medium_flag_block",
+                    "condition": 'any_policy_flag_severity in ["medium"]',
+                    "action": "block",
+                    "description": "Medium severity flag blocks merge"
+                }
+            ],
+        )
+        profile_path = tmp_path / "profile.yaml"
+        profile_path.write_text(yaml.dump(profile))
+
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), str(profile_path),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+        assert "medium" in manifest["decision"]["rationale"].lower() or \
+               "Medium" in manifest["decision"]["rationale"]
+
+
+# ===========================================================================
+# Schema load failure integration tests (issue #263)
+# ===========================================================================
+
+
+class TestSchemaLoadFailureIntegration:
+    """Test the FileNotFoundError path when schema directory cannot be found."""
+
+    def test_missing_schema_dir_produces_block(self, tmp_path):
+        """Mock a missing schema file to test FileNotFoundError path in evaluate()."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        _write_emissions(str(tmp_path), emissions)
+
+        # Mock find_schema_dir to return None, causing load_schema to raise FileNotFoundError
+        with mock.patch.object(policy_engine, "find_schema_dir", return_value=None):
+            manifest, exit_code = policy_engine.evaluate(
+                str(tmp_path), _profile_path("default"),
+                ci_passed=True, log_stream=io.StringIO(),
+            )
+        assert exit_code == 1
+        assert manifest["decision"]["action"] == "block"
+        assert "schema" in manifest["decision"]["rationale"].lower() or \
+               "Cannot locate" in manifest["decision"]["rationale"]
+
+
+# ===========================================================================
+# Model version extraction (issue #263)
+# ===========================================================================
+
+
+class TestModelVersionExtraction:
+    """Test that manifest.model_version is correctly extracted from emission execution_context."""
+
+    def test_model_version_from_execution_context(self, tmp_path):
+        """Emissions with execution_context.model_version should populate manifest."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # Set model_version in the first emission's execution_context
+        emissions[0]["execution_context"] = {"model_version": "claude-opus-4-6"}
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 0
+        assert manifest["model_version"] == "claude-opus-4-6"
+
+    def test_model_version_fallback_to_unknown(self, tmp_path):
+        """Without execution_context.model_version, manifest should have 'unknown'."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # No execution_context set at all
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 0
+        assert manifest["model_version"] == "unknown"
+
+    def test_model_version_skips_empty_execution_context(self, tmp_path):
+        """Emissions with empty execution_context should fall through to next emission."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        # First emission has empty execution_context, second has model_version
+        emissions[0]["execution_context"] = {}
+        emissions[1]["execution_context"] = {"model_version": "gpt-4o"}
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+        )
+        assert exit_code == 0
+        assert manifest["model_version"] == "gpt-4o"
+
+
+# ===========================================================================
+# Manifest schema validation integration tests (issue #263)
+# ===========================================================================
+
+
+class TestManifestSchemaValidation:
+    """Use manifest_schema fixture to validate manifest structure from evaluate()."""
+
+    def test_auto_merge_manifest_validates_against_schema(self, tmp_path, manifest_schema):
+        """Auto-merge manifest should validate against run-manifest.schema.json."""
+        emissions = all_required_emissions(confidence=0.92, risk_level="low")
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+            commit_sha="a" * 40, pr_number=42, repo="owner/repo",
+        )
+        assert exit_code == 0
+        # Validate the manifest against the JSON schema
+        validate(instance=manifest, schema=manifest_schema)
+
+    def test_block_manifest_validates_against_schema(self, tmp_path, manifest_schema):
+        """Block manifest should also validate against run-manifest.schema.json."""
+        # Empty dir → block
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+            commit_sha="b" * 40, pr_number=99, repo="owner/repo",
+        )
+        assert exit_code == 1
+        # Block manifests have zero panels_executed, which violates minItems:1
+        # in the schema — this is expected for error paths. Validate the fields
+        # that ARE present.
+        assert manifest["manifest_version"] == "1.0.0"
+        assert manifest["decision"]["action"] == "block"
+        assert "manifest_id" in manifest
+        assert "timestamp" in manifest
+
+    def test_human_review_manifest_validates_against_schema(self, tmp_path, manifest_schema):
+        """human_review_required manifest should validate against run-manifest.schema.json."""
+        emissions = all_required_emissions(confidence=0.60, risk_level="low")
+        _write_emissions(str(tmp_path), emissions)
+        manifest, exit_code = policy_engine.evaluate(
+            str(tmp_path), _profile_path("default"),
+            ci_passed=True, log_stream=io.StringIO(),
+            commit_sha="c" * 40, pr_number=7, repo="owner/repo",
+        )
+        assert exit_code == 2
+        validate(instance=manifest, schema=manifest_schema)

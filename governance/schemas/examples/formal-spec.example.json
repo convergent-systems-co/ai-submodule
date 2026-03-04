@@ -1,0 +1,131 @@
+{
+  "spec_version": "1.0.0",
+  "spec_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "title": "Add user authentication via JWT",
+  "description": "Implement JWT-based authentication for the REST API. Users authenticate with email/password and receive a signed JWT. Protected endpoints validate the token via middleware.",
+  "origin": "human",
+  "issue_ref": "#42",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "POST /auth/login accepts email and password, returns a signed JWT on success",
+      "verification_method": "automated_test",
+      "verification_target": "tests/auth/test_login.py::test_login_success",
+      "priority": "must"
+    },
+    {
+      "id": "AC-2",
+      "description": "JWT contains user ID, email, and expiration claims",
+      "verification_method": "automated_test",
+      "verification_target": "tests/auth/test_token.py::test_jwt_claims",
+      "priority": "must"
+    },
+    {
+      "id": "AC-3",
+      "description": "Protected endpoints return 401 when no token is provided",
+      "verification_method": "automated_test",
+      "verification_target": "tests/auth/test_middleware.py::test_unauthenticated_request",
+      "priority": "must"
+    },
+    {
+      "id": "AC-4",
+      "description": "Token expiration is configurable via environment variable",
+      "verification_method": "grep_match",
+      "verification_target": "JWT_EXPIRATION.*os.environ",
+      "priority": "should"
+    },
+    {
+      "id": "AC-5",
+      "description": "Security review panel approves the authentication implementation",
+      "verification_method": "panel_emission",
+      "verification_target": "security-review",
+      "priority": "must"
+    }
+  ],
+  "dependencies": [
+    {
+      "type": "blocking",
+      "description": "Database user table must exist with password_hash column",
+      "ref": "#40",
+      "resolved": true
+    },
+    {
+      "type": "non-blocking",
+      "description": "Rate limiting middleware for login endpoint",
+      "ref": "#45",
+      "resolved": false
+    }
+  ],
+  "risk_classification": {
+    "severity": "high",
+    "policy_profile": "default",
+    "affected_layers": ["intent", "cognitive", "execution"],
+    "compliance_flags": ["soc2"],
+    "data_classification": "confidential"
+  },
+  "completion_conditions": [
+    {
+      "id": "CC-1",
+      "type": "file_exists",
+      "assertion": "src/middleware/auth.py",
+      "description": "Authentication middleware file exists"
+    },
+    {
+      "id": "CC-2",
+      "type": "test_passes",
+      "assertion": "tests/auth/",
+      "description": "All authentication tests pass"
+    },
+    {
+      "id": "CC-3",
+      "type": "schema_valid",
+      "assertion": "governance/schemas/panel-output.schema.json",
+      "description": "Security review panel emission validates against schema"
+    },
+    {
+      "id": "CC-4",
+      "type": "panel_approves",
+      "assertion": "security-review",
+      "description": "Security review panel approves the change"
+    },
+    {
+      "id": "CC-5",
+      "type": "documentation_updated",
+      "assertion": "README.md",
+      "description": "README documents the authentication endpoints"
+    },
+    {
+      "id": "CC-6",
+      "type": "grep_no_match",
+      "assertion": "password.*=.*['\"]",
+      "description": "No hardcoded passwords in source code"
+    }
+  ],
+  "scope": {
+    "files_to_create": [
+      { "path": "src/middleware/auth.py", "purpose": "JWT validation middleware" },
+      { "path": "src/routes/auth.py", "purpose": "Login and token refresh endpoints" },
+      { "path": "tests/auth/test_login.py", "purpose": "Login endpoint tests" },
+      { "path": "tests/auth/test_token.py", "purpose": "JWT generation and validation tests" },
+      { "path": "tests/auth/test_middleware.py", "purpose": "Auth middleware tests" }
+    ],
+    "files_to_modify": [
+      { "path": "src/app.py", "change": "Register auth middleware and routes" },
+      { "path": "README.md", "change": "Document authentication endpoints and configuration" }
+    ],
+    "files_to_delete": [],
+    "out_of_scope": [
+      "OAuth2 / social login integration",
+      "User registration endpoint (separate spec)",
+      "Password reset flow"
+    ]
+  },
+  "panels_required": [
+    "code-review",
+    "security-review",
+    "threat-modeling"
+  ],
+  "created_at": "2026-02-24T12:00:00Z",
+  "author": "Team Lead",
+  "status": "approved"
+}

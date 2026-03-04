@@ -1,0 +1,104 @@
+{
+  "panel_name": "code-review",
+  "panel_version": "1.0.0",
+  "schema_version": "1.2.0",
+  "confidence_score": 0.92,
+  "risk_level": "low",
+  "compliance_score": 1.0,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-03-03T14:00:00Z",
+  "findings": [
+    {
+      "persona": "quality/code-reviewer",
+      "verdict": "approve",
+      "confidence": 0.93,
+      "rationale": "Policy engine block condition evaluators for copilot_findings_unresolved and dependabot_alerts_open are well-structured and follow existing evaluator patterns. New block rules added consistently across all 6 policy profiles. Tests cover both positive and negative cases.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 2
+      },
+      "evidence": {
+        "file": "governance/engine/policy_engine.py",
+        "snippet": "copilot_findings_unresolved / dependabot_alerts_open block condition evaluators"
+      },
+      "groundedness_score": 0.95,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "compliance/security-auditor",
+      "verdict": "approve",
+      "confidence": 0.90,
+      "rationale": "CI pre-check step in dark-factory-governance.yml generates synthetic emissions safely. No secrets exposed. Copilot-review promoted to required panel across all policy profiles ensures security tool coverage is enforced.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 1
+      },
+      "evidence": {
+        "file": ".github/workflows/dark-factory-governance.yml",
+        "snippet": "CI pre-check step generating synthetic emissions for copilot/dependabot gates"
+      },
+      "groundedness_score": 0.92,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "quality/test-reviewer",
+      "verdict": "approve",
+      "confidence": 0.91,
+      "rationale": "Test fixtures in conftest.py updated with new block conditions. Integration tests in test_policy_integration.py validate end-to-end gate behavior. Unit tests in test_policy_engine.py cover evaluator logic for both new conditions.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 1
+      },
+      "evidence": {
+        "file": "governance/engine/tests/test_policy_engine.py",
+        "snippet": "test cases for copilot_findings_unresolved and dependabot_alerts_open evaluators"
+      },
+      "groundedness_score": 0.93,
+      "hallucination_indicators": []
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "branch": "itsfwcp/feat/737/copilot-dependabot-hard-gates",
+    "commit_sha": "89ae8164209aac9a4469cc5e94d2a8c8a31544d6",
+    "pr_number": 737,
+    "policy_profile": "default",
+    "model_id": "claude-opus-4-6",
+    "triggered_by": "manual"
+  },
+  "data_classification": {
+    "level": "internal",
+    "contains_sensitive_evidence": false,
+    "redaction_applied": false,
+    "sensitive_categories": []
+  },
+  "execution_trace": {
+    "files_read": [
+      "governance/engine/policy_engine.py",
+      "governance/policy/default.yaml",
+      "governance/policy/strict.yaml",
+      "governance/policy/permissive.yaml",
+      "governance/policy/audit-only.yaml",
+      "governance/policy/minimal.yaml",
+      "governance/policy/soc2.yaml",
+      ".github/workflows/dark-factory-governance.yml",
+      "governance/engine/tests/conftest.py",
+      "governance/engine/tests/test_policy_engine.py",
+      "governance/engine/tests/test_policy_integration.py",
+      "governance/prompts/startup.md",
+      "governance/prompts/devops-operations-loop.md"
+    ],
+    "diff_lines_analyzed": 699
+  }
+}

@@ -1,0 +1,24 @@
+# CODEOWNERS — Dark Factory Governance Platform (ai-submodule)
+#
+# Defines code ownership for pull request review requirements.
+# The org ruleset "Pull Request - Reviewer" enforces require_code_owner_review.
+#
+# github-actions[bot] is included as a code owner so the Dark Factory governance
+# workflow approval satisfies the code owner review requirement for auto-merge.
+# This is specific to the ai-submodule repo. Consuming repos should configure
+# their own CODEOWNERS via init.sh / project.yaml.
+
+# Default owner — all files not matched by more specific rules
+* @SET-Apps/approvers @github-actions[bot]
+
+# CI/CD workflows require DevOps review
+/.github/workflows/ @SET-Apps/devops_engineers @github-actions[bot]
+
+# Infrastructure files require DevOps review
+/infra/ @SET-Apps/devops_engineers @github-actions[bot]
+
+# Governance submodule changes
+/.ai @SET-Apps/approvers @github-actions[bot]
+
+# Manifest immutability — require approver review for any manifest changes
+/governance/manifests/ @SET-Apps/approvers

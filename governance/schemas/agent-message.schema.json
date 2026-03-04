@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/agent-message.schema.json",
+  "title": "Agent Protocol Message",
+  "description": "Schema for structured inter-agent communication in the Dark Forge governance pipeline. See governance/prompts/agent-protocol.md for protocol details.",
+  "type": "object",
+  "required": ["message_type", "source_agent", "target_agent", "correlation_id", "payload"],
+  "properties": {
+    "message_type": {
+      "type": "string",
+      "enum": ["ASSIGN", "STATUS", "RESULT", "FEEDBACK", "ESCALATE", "APPROVE", "BLOCK", "CANCEL"]
+    },
+    "source_agent": {
+      "type": "string",
+      "enum": ["devops-engineer", "tech-lead", "coder", "iac-engineer", "test-writer", "test-evaluator", "document-writer", "documentation-reviewer", "project-manager"]
+    },
+    "target_agent": {
+      "type": "string",
+      "enum": ["devops-engineer", "tech-lead", "coder", "iac-engineer", "test-writer", "test-evaluator", "document-writer", "documentation-reviewer", "project-manager"]
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Issue or PR identifier (e.g., issue-42, pr-108)",
+      "pattern": "^(issue|pr)-\\d+$"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Message-type-specific payload"
+    },
+    "feedback": {
+      "type": "object",
+      "description": "Present only in FEEDBACK and BLOCK messages",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer" },
+              "priority": { "type": "string", "enum": ["must-fix", "should-fix", "nice-to-have"] },
+              "description": { "type": "string" }
+            },
+            "required": ["priority", "description"]
+          }
+        },
+        "cycle": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

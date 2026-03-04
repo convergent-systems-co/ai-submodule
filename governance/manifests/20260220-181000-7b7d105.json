@@ -1,0 +1,35 @@
+{
+  "manifest_version": "1.0.0",
+  "manifest_id": "20260220-181000-7b7d105",
+  "timestamp": "2026-02-20T18:10:00Z",
+  "persona_set_commit": "7b7d105b622b1adb3f00b8a9e7fd1f9c06be517f",
+  "panel_graph_version": "1.0.0",
+  "policy_profile_used": "default",
+  "model_version": "claude-opus-4-6",
+  "aggregate_confidence": 0.91,
+  "risk_level": "negligible",
+  "human_intervention": {
+    "required": false,
+    "occurred": false
+  },
+  "decision": {
+    "action": "auto_merge",
+    "rationale": "Additive persona creation. Documentation Review panel initially requested changes (unexpanded acronyms). Remediated in commit 7b7d105. Re-evaluation approved with 0.91 confidence. No policy flags."
+  },
+  "panels_executed": [
+    {
+      "panel_name": "documentation-review",
+      "verdict": "approve",
+      "confidence_score": 0.91,
+      "artifact_path": "manifests/panels/pr15-documentation-review.json"
+    }
+  ],
+  "repository": {
+    "name": "dark-forge",
+    "owner": "SET-Apps",
+    "branch": "itsfwcp/6-finops-group",
+    "base_branch": "main",
+    "commit_sha": "7b7d105b622b1adb3f00b8a9e7fd1f9c06be517f",
+    "pr_number": 15
+  }
+}

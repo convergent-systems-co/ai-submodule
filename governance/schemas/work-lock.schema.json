@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "work-lock.schema.json",
+  "title": "Work Lock",
+  "description": "Schema for cross-session work lock files that prevent duplicate issue assignment across concurrent orchestrator sessions.",
+  "type": "object",
+  "required": [
+    "issue_number",
+    "session_id",
+    "claimed_at",
+    "heartbeat",
+    "ttl_seconds"
+  ],
+  "properties": {
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The GitHub issue number being locked."
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The orchestrator session ID that holds this lock."
+    },
+    "claimed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the lock was first acquired."
+    },
+    "hostname": {
+      "type": "string",
+      "description": "Hostname of the machine that acquired the lock."
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Process ID of the session that acquired the lock."
+    },
+    "heartbeat": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the last heartbeat update. Used for stale detection."
+    },
+    "ttl_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 3600,
+      "description": "Time-to-live in seconds. If now - heartbeat > ttl_seconds, the lock is considered stale."
+    }
+  },
+  "additionalProperties": false
+}

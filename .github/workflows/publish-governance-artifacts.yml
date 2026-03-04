@@ -1,0 +1,57 @@
+name: Publish Governance Artifacts
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: package-governance-engine
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Package governance engine
+        run: bash governance/bin/vendor-engine.sh --package
+
+      - name: Verify tarball contents
+        run: |
+          TARBALL=$(ls .artifacts/dist/governance-engine-*.tar.gz 2>/dev/null | head -1)
+          if [ -z "$TARBALL" ]; then
+            echo "ERROR: No tarball found in .artifacts/dist/"
+            exit 1
+          fi
+          echo "Tarball: $TARBALL"
+          echo "Size: $(du -h "$TARBALL" | cut -f1)"
+          echo ""
+          echo "Contents:"
+          tar -tzf "$TARBALL"
+
+          # Validate required files are present
+          for required in engine/policy-engine.py engine/policy_engine.py engine/VERSION engine/requirements.txt; do
+            if ! tar -tzf "$TARBALL" | grep -q "^${required}$"; then
+              echo "ERROR: Missing required file: $required"
+              exit 1
+            fi
+          done
+          echo ""
+          echo "All required files present."
+
+      - name: Upload tarball as release asset
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TARBALL=$(ls .artifacts/dist/governance-engine-*.tar.gz | head -1)
+          gh release upload "${{ github.event.release.tag_name }}" "$TARBALL" --clobber
+
+      - name: Upload tarball as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-engine
+          path: .artifacts/dist/governance-engine-*.tar.gz
+          retention-days: 30

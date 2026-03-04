@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dark Forge — Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+    h1 {
+      color: #58a6ff;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      color: #8b949e;
+      margin-bottom: 2rem;
+    }
+    .diagram-section {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    .diagram-section h2 {
+      color: #58a6ff;
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+    .diagram-section p {
+      color: #8b949e;
+      margin-bottom: 1rem;
+    }
+    .mermaid {
+      text-align: center;
+      margin: 1rem 0;
+    }
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1.5rem;
+    }
+    .layer-card {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .layer-card:hover {
+      border-color: #58a6ff;
+      transform: translateY(-2px);
+    }
+    .layer-card h3 {
+      color: #f0f6fc;
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+    }
+    .layer-card p {
+      color: #8b949e;
+      font-size: 0.85rem;
+      margin: 0;
+    }
+    .layer-card .badge {
+      display: inline-block;
+      background: #1f6feb;
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-bottom: 0.5rem;
+    }
+    .detail-panel {
+      display: none;
+      background: #0d1117;
+      border: 1px solid #58a6ff;
+      border-radius: 6px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+    }
+    .detail-panel.active {
+      display: block;
+    }
+    .detail-panel h3 {
+      color: #58a6ff;
+      margin-bottom: 0.5rem;
+    }
+    .detail-panel ul {
+      padding-left: 1.5rem;
+    }
+    .detail-panel li {
+      margin-bottom: 0.3rem;
+    }
+    .detail-panel a {
+      color: #58a6ff;
+      text-decoration: none;
+    }
+    .detail-panel a:hover {
+      text-decoration: underline;
+    }
+    .nav-links {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+    .nav-links a {
+      color: #58a6ff;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    .nav-links a:hover {
+      background: #161b22;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Dark Forge Architecture</h1>
+    <p class="subtitle">Click any component to learn more. Interactive diagram powered by Mermaid.js.</p>
+
+    <div class="nav-links">
+      <a href="../quickstart/add-governance.html">Add Governance</a>
+      <a href="../quickstart/first-governed-pr.html">First Governed PR</a>
+      <a href="../quickstart/customize-policy.html">Customize Policy</a>
+      <a href="../quickstart/run-agentic-loop.html">Agentic Loop</a>
+    </div>
+
+    <!-- Governance Layers -->
+    <div class="diagram-section">
+      <h2>Five Governance Layers</h2>
+      <p>Governance operates through five layers, from intent capture to continuous improvement.</p>
+
+      <div class="mermaid">
+graph TD
+    A["1. Intent Layer<br/>Issues, DIs, Feature Requests"] --> B["2. Cognitive Layer<br/>Personas, Panels, Policy Engine"]
+    B --> C["3. Execution Layer<br/>Coder, IaC Engineer, Tester"]
+    C --> D["4. Runtime Layer<br/>CI/CD, PR Monitoring, Merge"]
+    D --> E["5. Evolution Layer<br/>Metrics, Drift Detection, Tuning"]
+    E -.-> A
+
+    style A fill:#1f6feb,stroke:#58a6ff,color:#fff
+    style B fill:#238636,stroke:#3fb950,color:#fff
+    style C fill:#da3633,stroke:#f85149,color:#fff
+    style D fill:#9e6a03,stroke:#d29922,color:#fff
+    style E fill:#8957e5,stroke:#a371f7,color:#fff
+      </div>
+
+      <div class="layer-grid">
+        <div class="layer-card" onclick="toggleDetail('intent')">
+          <span class="badge">Layer 1</span>
+          <h3>Intent</h3>
+          <p>Captures what needs to be done via issues, design intents, and feature requests.</p>
+        </div>
+        <div class="layer-card" onclick="toggleDetail('cognitive')">
+          <span class="badge">Layer 2</span>
+          <h3>Cognitive</h3>
+          <p>AI personas analyze intent and plan implementation using policy profiles.</p>
+        </div>
+        <div class="layer-card" onclick="toggleDetail('execution')">
+          <span class="badge">Layer 3</span>
+          <h3>Execution</h3>
+          <p>Coder agents implement changes in isolated worktrees.</p>
+        </div>
+        <div class="layer-card" onclick="toggleDetail('runtime')">
+          <span class="badge">Layer 4</span>
+          <h3>Runtime</h3>
+          <p>CI/CD pipeline, PR monitoring, governance approval, and merge.</p>
+        </div>
+        <div class="layer-card" onclick="toggleDetail('evolution')">
+          <span class="badge">Layer 5</span>
+          <h3>Evolution</h3>
+          <p>Metrics collection, drift detection, and policy tuning.</p>
+        </div>
+      </div>
+
+      <div id="detail-intent" class="detail-panel">
+        <h3>Intent Layer</h3>
+        <ul>
+          <li>GitHub Issues with structured acceptance criteria</li>
+          <li>Design Intents (DIs) for architectural changes</li>
+          <li>Feature requests from stakeholders</li>
+          <li>Validated by Tech Lead for completeness</li>
+        </ul>
+        <p><a href="../../governance/prompts/agent-protocol.md">Agent Protocol</a></p>
+      </div>
+
+      <div id="detail-cognitive" class="detail-panel">
+        <h3>Cognitive Layer</h3>
+        <ul>
+          <li><strong>7 Personas:</strong> Project Manager, Tech Lead, DevOps Engineer, Coder, IaC Engineer, Test Evaluator, Documentation Reviewer</li>
+          <li><strong>21 Review Panels:</strong> Code review, security, documentation, cost, data governance, and more</li>
+          <li><strong>Policy Engine:</strong> Deterministic YAML-based policy evaluation</li>
+          <li><strong>4 Policy Profiles:</strong> default, fin_pii_high, infrastructure_critical, fast_track</li>
+        </ul>
+        <p><a href="../../governance/personas/agentic/">Persona Definitions</a> | <a href="../../governance/policy/">Policy Profiles</a></p>
+      </div>
+
+      <div id="detail-execution" class="detail-panel">
+        <h3>Execution Layer</h3>
+        <ul>
+          <li><strong>Parallel Dispatch:</strong> Up to N Coder agents work simultaneously</li>
+          <li><strong>Git Worktrees:</strong> Each agent gets an isolated worktree</li>
+          <li><strong>Test Coverage Gate:</strong> 80% minimum before push</li>
+          <li><strong>Tester Validation:</strong> Independent evaluation of each implementation</li>
+        </ul>
+        <p><a href="../../governance/personas/agentic/coder.md">Coder Persona</a> | <a href="../../governance/personas/agentic/test-evaluator.md">Tester Persona</a></p>
+      </div>
+
+      <div id="detail-runtime" class="detail-panel">
+        <h3>Runtime Layer</h3>
+        <ul>
+          <li><strong>GitHub Actions:</strong> dark-factory-governance.yml workflow</li>
+          <li><strong>PR Monitoring:</strong> CI status, Copilot recommendations, review threads</li>
+          <li><strong>Governance Approval:</strong> github-actions[bot] approves when policy passes</li>
+          <li><strong>Merge Decision:</strong> Auto-merge, escalation, or block</li>
+        </ul>
+        <p><a href="../../.github/workflows/">Workflow Files</a></p>
+      </div>
+
+      <div id="detail-evolution" class="detail-panel">
+        <h3>Evolution Layer</h3>
+        <ul>
+          <li><strong>Metrics:</strong> Panel effectiveness, review cycle counts, time-to-merge</li>
+          <li><strong>Drift Detection:</strong> Schema evolution tracking</li>
+          <li><strong>Policy Tuning:</strong> Threshold adjustments based on observed data</li>
+          <li><strong>Retrospectives:</strong> Aggregated session analysis</li>
+        </ul>
+        <p><a href="../../governance/schemas/">Schema Definitions</a></p>
+      </div>
+    </div>
+
+    <!-- Agentic Pipeline -->
+    <div class="diagram-section">
+      <h2>Agentic Pipeline Flow</h2>
+      <p>How the agentic loop processes issues from selection to merge.</p>
+
+      <div class="mermaid">
+sequenceDiagram
+    participant U as User (/startup)
+    participant TL as Tech Lead
+    participant C as Coder (worktree)
+    participant T as Tester
+    participant GH as GitHub
+
+    U->>TL: Select issues
+    TL->>TL: Create plans
+    TL->>C: ASSIGN (plan + branch)
+    C->>C: Implement + test
+    C->>TL: RESULT
+    TL->>T: Evaluate
+    T-->>TL: APPROVE
+    TL->>GH: Push + Create PR
+    GH->>GH: CI + Governance panels
+    GH-->>TL: Approved
+    TL->>GH: Merge PR
+    TL->>U: Done
+      </div>
+    </div>
+
+    <!-- Policy Engine -->
+    <div class="diagram-section">
+      <h2>Policy Engine Decision Flow</h2>
+      <p>How the policy engine evaluates panel emissions and decides merge disposition.</p>
+
+      <div class="mermaid">
+graph LR
+    A[Panel Emissions] --> B{Policy Engine}
+    B -->|All pass| C[APPROVE]
+    B -->|Findings below threshold| D[APPROVE with warnings]
+    B -->|Critical/High findings| E[BLOCK]
+    B -->|Human review needed| F[ESCALATE]
+    C --> G[Auto-merge]
+    D --> G
+    E --> H[Fix required]
+    F --> I[Human reviewer]
+    H --> A
+
+    style C fill:#238636,stroke:#3fb950,color:#fff
+    style D fill:#9e6a03,stroke:#d29922,color:#fff
+    style E fill:#da3633,stroke:#f85149,color:#fff
+    style F fill:#8957e5,stroke:#a371f7,color:#fff
+      </div>
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1f6feb',
+        primaryTextColor: '#c9d1d9',
+        primaryBorderColor: '#30363d',
+        lineColor: '#8b949e',
+        secondaryColor: '#161b22',
+        tertiaryColor: '#0d1117'
+      }
+    });
+
+    function toggleDetail(layer) {
+      const panel = document.getElementById('detail-' + layer);
+      const allPanels = document.querySelectorAll('.detail-panel');
+      allPanels.forEach(p => {
+        if (p !== panel) p.classList.remove('active');
+      });
+      panel.classList.toggle('active');
+    }
+  </script>
+</body>
+</html>

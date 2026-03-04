@@ -1,0 +1,102 @@
+# paved-roads-catalog.yaml — JM Paved Roads index
+# Source: https://github.com/JM-Paved-Roads
+# Last synced: 2026-03-02
+org: JM-Paved-Roads
+domains:
+  aks:
+    repos:
+      - Azure-Kubernetes-Service
+      - AKS-Cluster-Topology-Paved-Road
+      - AKS-Azure-Policy-Paved-Road
+      - AKS-Access-and-Identity-Paved-Road
+      - AKS-Nodes-Paved-Road
+      - AKS-SLA-and-Pricing-Paved-Road
+      - AKS-Microsoft-Defender-for-Containers-Paved-Road
+      - AKS-Igress-Paved-Road
+      - AKS-Service-Object-Paved-Road
+      - AKS-Subscriptions-Landing-Zone-Paved-Road
+      - AKS-Autoscaling-Paved-Road
+      - AKS-Namespaces-Paved-Road
+      - AKS-Network-Policies-Paved-Road
+      - AKS-Container-Images-Vulnerability-Management-Paved-Road-
+      - AKS-RACI-Paved-Road
+      - AKS-VNET-and-Subnets-Designs-Paved-Road-
+    keywords: [kubernetes, aks, cluster, nodes, ingress, autoscaling, namespaces, pod, helm]
+  aiops:
+    repos:
+      - AIOps-Infrastructure-Paved-Road
+      - AIOps-Promotion-Paved-Road
+      - AIOps-Evaluation-Paved-Road
+      - AIOps-Monitoring-Paved-Road
+      - AIOps-Experimentation-Paved-Road
+      - AI-Shared-Services-Consumption-Paved-Road
+      - Azure-AI-Search
+      - Azure-RAG-Chatbot
+    keywords: [ai, foundry, agents, evaluation, monitoring, rag, chatbot, mlops]
+  networking:
+    repos:
+      - Azure-Networking-and-Express-Route-Paved-Road
+      - Azure-PaaS-Private-Networking-Paved-Road
+      - App-Service-Functions-Logic-Apps-Outbound-Private-Networking-Paved-Road
+      - Azure-Virtual-Machine-Networking-Solution-Plan-Paved-Road
+    keywords: [vnet, private-endpoint, express-route, networking, subnet, nsg]
+  security:
+    repos:
+      - Azure-Sentinel-Paved-Road
+      - Attack-Surface-Reduction-Rules
+      - Zscaler
+      - Noname-Active-Testing-Paved-Road
+      - Application-Data-Encryption-Paved-Road
+    keywords: [sentinel, zscaler, encryption, security, defender, firewall]
+  identity:
+    repos:
+      - InfoSec-IAM
+      - InfoSec-IAM-Auth
+      - Identity-and-Access-Management-IAM-Design-Roles-and-Assignment-Paved-Road
+      - RBAC-Role-Assignment-Paved-Road
+    keywords: [iam, rbac, identity, authentication, authorization, entra, aad]
+  data:
+    repos:
+      - SQL-Database-Paved-Road
+      - SQL-Server-Development-Paved-Road
+      - Azure-SQL-Database-Migration-
+      - Azure-SQL-Always-Encrypted-Paved-Road
+      - Always-Encrypted-Cosmos-DB-Paved-Road
+      - Azure-Cosmos-DB-Backup-Settings
+      - Delta-Lake-Schema-Drift-Solution-Paved-Road
+      - Azure-Synapse-Analytics---Synapse-SQL-Access-Control-Paved-Road
+    keywords: [sql, cosmos, synapse, delta-lake, database, migration, encryption]
+  compute:
+    repos:
+      - Azure-Function
+      - Azure-ASE
+      - Azure-Container-Apps-Paved-Road
+      - Azure-Container-Registry-Paved-Road
+      - Azure-Virtual-Machine-Instance-Sizes-Paved-Road
+      - Web-Application-Paved-Road
+    keywords: [function, app-service, container-apps, acr, vm, web-app, ase]
+  devops:
+    repos:
+      - GitHub-Apps
+      - GitHub-Access-and-Roles
+      - GitHub-JM-Compliance-Scans
+      - GitHub-Deployment-Strategy-and-Patterns
+      - Managed-DevOps-Pool-Paved-Road
+      - Bicep-Registry-Solution-Plan
+    keywords: [github, devops, deployment, bicep, pipeline, ci-cd]
+  integration:
+    repos:
+      - Salesforce-PlatformEvent-to-Azure-EventHub-Paved-Road
+      - Event-Grid-Topic-Paved-Road
+      - Integration-Account-Paved-Road-
+    keywords: [salesforce, event-grid, event-hub, integration, logic-app]
+  set_standards:
+    repos:
+      - set-onboarding-standards-and-processes
+      - set-architecture-patterns
+      - set-appconfig-development-standard
+      - SET-Worker-Healthcheck
+      - SET-API-Router-Paved-Road
+      - api-integration-testing
+      - tdd-unit-test-automation
+    keywords: [set, standards, patterns, api-router, testing, tdd, healthcheck]

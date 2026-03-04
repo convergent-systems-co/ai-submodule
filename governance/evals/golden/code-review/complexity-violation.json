@@ -1,0 +1,15 @@
+{
+  "test_id": "code-review-complexity-violation-001",
+  "panel": "code-review",
+  "description": "Deeply nested conditional logic with high cyclomatic complexity and poor readability",
+  "input": {
+    "diff": "diff --git a/src/processor.py b/src/processor.py\nindex 0000000..d4e5f6a 100644\n--- /dev/null\n+++ b/src/processor.py\n@@ -0,0 +1,30 @@\n+def process_order(order, user, inventory, config):\n+    if order is not None:\n+        if user is not None:\n+            if user.is_active:\n+                if order.total > 0:\n+                    if inventory.check(order.items):\n+                        if config.get('payments_enabled'):\n+                            if user.balance >= order.total:\n+                                if not order.is_duplicate():\n+                                    if order.validate_items():\n+                                        result = order.charge(user)\n+                                        if result.success:\n+                                            inventory.reserve(order.items)\n+                                            return {'status': 'ok'}\n+                                        else:\n+                                            return {'status': 'charge_failed'}\n+                                    else:\n+                                        return {'status': 'invalid_items'}\n+                                else:\n+                                    return {'status': 'duplicate'}\n+                            else:\n+                                return {'status': 'insufficient_funds'}\n+                        else:\n+                            return {'status': 'payments_disabled'}\n+                    else:\n+                        return {'status': 'out_of_stock'}\n+                else:\n+                    return {'status': 'invalid_total'}\n+            else:\n+                return {'status': 'inactive_user'}",
+    "files_changed": ["src/processor.py"],
+    "change_type": "feat"
+  },
+  "expected": {
+    "min_findings_medium": 1,
+    "expected_categories": ["complexity"],
+    "expected_verdict": "request_changes"
+  }
+}

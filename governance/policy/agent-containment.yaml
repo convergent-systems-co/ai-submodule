@@ -1,0 +1,344 @@
+# Agent Containment Policy
+# Defines per-persona sandboxing rules, path restrictions, denied operations,
+# and resource limits to enforce least-privilege across the agentic pipeline.
+#
+# This policy is evaluated by the policy engine and referenced by each persona.
+# All rules are deterministic and must not depend on prose interpretation.
+
+policy_name: agent-containment
+policy_version: "1.0.0"
+description: >
+  Per-persona containment boundaries for the Dark Forge agentic pipeline.
+  Restricts file access, git operations, and change size to enforce
+  least-privilege and limit blast radius of any single agent.
+
+# Enforcement mode controls whether violations block or warn.
+# - "enforced": block operations that violate containment rules (default)
+# - "advisory": log violations but do not block execution (opt-in for dev/debug)
+# To use advisory mode during development, set mode: advisory below or
+# override via project.yaml: governance.containment_mode: advisory
+enforcement:
+  mode: enforced
+
+# Shared denied paths — governance infrastructure files that no worker agent
+# may modify. These are enforcement artifacts managed by humans or the
+# governance framework itself.
+# NOTE: YAML anchors on sequences cannot use merge keys (<<). Each persona
+# lists its denied_paths explicitly for valid YAML. The shared set is
+# documented here for reference:
+#   - governance/policy/**
+#   - governance/schemas/**
+#   - governance/personas/**
+#   - governance/prompts/reviews/**
+#   - jm-compliance.yml
+#   - .github/workflows/dark-factory-governance.yml
+
+# Per-persona containment rules
+personas:
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Coder — execution agent (Worker pattern)
+  # Implements features and fixes; cannot touch governance infrastructure.
+  # ──────────────────────────────────────────────────────────────────────
+  coder:
+    description: >
+      The Coder implements code changes within project source directories.
+      It is denied access to governance infrastructure, policy definitions,
+      and schema files to prevent accidental or adversarial modification.
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "governance/personas/**"
+      - "governance/prompts/reviews/**"
+      - "jm-compliance.yml"
+      - ".github/workflows/dark-factory-governance.yml"
+    denied_operations:
+      - git_push          # Push requires Test Evaluator APPROVE; enforced by protocol
+      - git_merge          # Merge is Tech Lead's responsibility
+      - approve_pr         # Self-approval is never permitted
+      - modify_policy      # Policy changes require human review
+      - modify_schema      # Schema changes require human review
+    resource_limits:
+      max_files_per_pr: 30
+      max_lines_per_commit: 1000
+      max_new_files_per_pr: 15
+      max_commits_per_pr: 20
+
+  # ──────────────────────────────────────────────────────────────────────
+  # IaC Engineer — infrastructure execution agent (Worker pattern)
+  # Scoped to infrastructure paths; same governance restrictions as Coder.
+  # ──────────────────────────────────────────────────────────────────────
+  iac-engineer:
+    description: >
+      The IaC Engineer implements infrastructure-as-code changes within
+      designated IaC directories. It is scoped to infrastructure paths and
+      denied access to governance infrastructure.
+    allowed_paths:
+      - "infra/**"
+      - "bicep/**"
+      - "terraform/**"
+      - "*.bicep"
+      - "*.bicepparam"
+      - "*.tf"
+      - "*.tfvars"
+      - "parameters.json"
+      - ".artifacts/plans/**"
+      - "docs/**"
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "governance/personas/**"
+      - "governance/prompts/reviews/**"
+      - "jm-compliance.yml"
+      - ".github/workflows/dark-factory-governance.yml"
+    denied_operations:
+      - git_push
+      - git_merge
+      - approve_pr
+      - modify_policy
+      - modify_schema
+      - modify_application_code   # IaC Engineer does not touch application source
+    resource_limits:
+      max_files_per_pr: 20
+      max_lines_per_commit: 800
+      max_new_files_per_pr: 10
+      max_commits_per_pr: 15
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Test Writer — test implementation agent (Worker pattern)
+  # Write access only to test files; never modifies source code.
+  # ──────────────────────────────────────────────────────────────────────
+  test-writer:
+    description: >
+      The Test Writer writes test cases to cover implementation gaps.
+      It has write access only to test directories and governance panel
+      reports. It never modifies implementation source code.
+    allowed_write_paths:
+      - "tests/**"
+      - "test/**"
+      - "**/*_test.*"
+      - "**/*.test.*"
+      - "**/*.spec.*"
+      - ".artifacts/panels/**"
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "governance/personas/**"
+      - "governance/prompts/reviews/**"
+      - "jm-compliance.yml"
+      - ".github/workflows/dark-factory-governance.yml"
+    denied_operations:
+      - git_push
+      - git_merge
+      - approve_pr
+      - modify_source_code     # Write-only for tests; never modifies source
+      - modify_policy
+      - modify_schema
+      - create_branch          # Test Writer operates on the Coder's branch
+    resource_limits:
+      max_files_per_pr: 20
+      max_lines_per_commit: 500
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Test Evaluator — independent evaluator (Evaluator-Optimizer pattern)
+  # Read-only access to all paths; write access only to governance panel reports.
+  # ──────────────────────────────────────────────────────────────────────
+  test-evaluator:
+    description: >
+      The Test Evaluator evaluates Coder and Test Writer output independently.
+      It has read-only access to all source code and may only write governance
+      panel reports. It never modifies implementation code or test files.
+    allowed_write_paths:
+      - ".governance/panels/**"
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "governance/personas/**"
+      - "governance/prompts/reviews/**"
+      - "jm-compliance.yml"
+      - ".github/workflows/dark-factory-governance.yml"
+    denied_operations:
+      - git_push
+      - git_merge
+      - approve_own_pr         # Test Evaluator cannot approve PRs it participated in evaluating
+      - modify_source_code     # Read-only for all source
+      - modify_tests           # Read-only for tests; Test Writer handles modifications
+      - modify_policy
+      - modify_schema
+      - create_branch          # Test Evaluator operates on the Coder's branch
+    resource_limits:
+      max_files_per_pr: 10
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Tech Lead — pipeline orchestrator (Orchestrator-Workers pattern)
+  # Coordinates work but does not implement. Has git push and PR creation
+  # authority but cannot approve its own PRs.
+  # ──────────────────────────────────────────────────────────────────────
+  tech-lead:
+    description: >
+      The Tech Lead orchestrates the pipeline: validates intent, assigns
+      work, performs code review, coordinates evaluators, and executes merges.
+      It has elevated git permissions but cannot approve its own PRs or
+      write implementation code.
+    allowed_operations:
+      - git_push
+      - create_pr
+      - merge_pr              # When policy engine approves
+      - assign_work
+      - invoke_panels
+      - create_issues
+    denied_operations:
+      - approve_own_pr         # Cannot approve PRs it orchestrated
+      - write_implementation_code  # Delegates all code to Coder/IaC Engineer
+      - modify_policy          # Policy changes require human review
+      - modify_schema          # Schema changes require human review
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+    resource_limits:
+      max_prs_per_session: 10
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Document Writer — documentation maintenance agent (Worker pattern)
+  # Scoped to documentation files; never modifies source code or tests.
+  # ──────────────────────────────────────────────────────────────────────
+  document-writer:
+    description: >
+      The Document Writer maintains documentation freshness. It may only
+      modify markdown documentation files. It never modifies source code,
+      tests, governance policy, or schema files.
+    allowed_paths:
+      - "*.md"
+      - "docs/**"
+      - "CLAUDE.md"
+      - "README.md"
+      - "GOALS.md"
+      - "CONTRIBUTING.md"
+      - ".artifacts/plans/**"
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "governance/personas/**"
+      - "governance/prompts/reviews/**"
+      - "jm-compliance.yml"
+      - ".github/workflows/dark-factory-governance.yml"
+    denied_operations:
+      - git_push
+      - git_merge
+      - approve_pr
+      - modify_policy
+      - modify_schema
+      - modify_source_code
+      - modify_tests
+    resource_limits:
+      max_files_per_pr: 20
+      max_lines_per_commit: 500
+      max_new_files_per_pr: 10
+
+  # ──────────────────────────────────────────────────────────────────────
+  # Documentation Reviewer — independent documentation evaluator
+  # (Evaluator-Optimizer pattern)
+  # Read-only access to all files; evaluates documentation completeness
+  # but never modifies any files.
+  # ──────────────────────────────────────────────────────────────────────
+  documentation-reviewer:
+    description: >
+      The Documentation Reviewer evaluates documentation completeness and
+      accuracy. It has read-only access to all files and may not modify
+      any files. It runs staleness detection and verifies counts, paths,
+      and cross-references in documentation.
+    allowed_write_paths: []    # Read-only — no write access
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "governance/personas/**"
+      - "governance/prompts/reviews/**"
+      - "jm-compliance.yml"
+      - ".github/workflows/dark-factory-governance.yml"
+    denied_operations:
+      - git_push
+      - git_merge
+      - approve_own_pr
+      - modify_source_code
+      - modify_documentation     # Read-only evaluator; Document Writer handles modifications
+      - modify_policy
+      - modify_schema
+      - modify_tests
+      - create_branch            # Documentation Reviewer operates on the Coder's branch
+    resource_limits:
+      max_files_per_pr: 10
+      max_lines_per_commit: 500
+
+  # ──────────────────────────────────────────────────────────────────────
+  # DevOps Engineer — session entry point (Routing pattern)
+  # Owns session lifecycle and triage; never implements code or reviews PRs.
+  # ──────────────────────────────────────────────────────────────────────
+  devops-engineer:
+    description: >
+      The DevOps Engineer manages session lifecycle, pre-flight checks,
+      issue triage, and routing. It may update the submodule and triage
+      issues but cannot implement code or make merge decisions.
+    allowed_operations:
+      - update_submodule
+      - triage_issues
+      - create_issues
+      - run_preflight
+      - manage_session_lifecycle
+      - emit_cancel
+    denied_operations:
+      - implement_code         # Never writes code
+      - review_code            # Never reviews implementations
+      - merge_pr               # Merge is Tech Lead's responsibility
+      - approve_pr             # Never approves PRs
+      - invoke_panels          # Panel invocation is Tech Lead's responsibility
+      - modify_policy
+      - modify_schema
+    denied_paths:
+      - "governance/policy/**"
+      - "governance/schemas/**"
+      - "src/**"
+      - "lib/**"
+      - "app/**"
+    resource_limits:
+      max_issues_per_triage: 20
+
+# ──────────────────────────────────────────────────────────────────────────
+# Violation handling
+# Defines what happens when a containment rule is violated.
+# ──────────────────────────────────────────────────────────────────────────
+violation_handling:
+  advisory:
+    action: log_and_continue
+    log_to: ".artifacts/state/containment-violations.jsonl"
+    notify: tech-lead
+    include_in_panel_emissions: true
+  enforced:
+    action: block_and_escalate
+    log_to: ".artifacts/state/containment-violations.jsonl"
+    notify:
+      - tech-lead
+      - devops-engineer
+    escalate_to: human_review
+    include_in_panel_emissions: true
+
+# ──────────────────────────────────────────────────────────────────────────
+# Global resource limits
+# Applied as ceiling regardless of per-persona limits.
+# ──────────────────────────────────────────────────────────────────────────
+global_limits:
+  max_files_per_pr: 50
+  max_lines_per_commit: 2000
+  max_commits_per_pr: 30
+  max_new_files_per_pr: 25
+
+# ──────────────────────────────────────────────────────────────────────────
+# Extension points
+# Consuming repos can extend containment rules via project.yaml.
+# ──────────────────────────────────────────────────────────────────────────
+extension:
+  # project.yaml can add to denied_paths for any persona
+  allow_additional_denied_paths: true
+  # project.yaml can lower (but not raise) resource limits
+  allow_tighter_limits: true
+  # project.yaml cannot remove denied paths or raise limits
+  allow_relaxation: false

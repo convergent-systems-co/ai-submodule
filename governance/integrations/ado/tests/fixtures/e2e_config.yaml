@@ -1,0 +1,71 @@
+# E2E test configuration for ADO bidirectional sync
+#
+# This config is used by test_bidirectional_e2e.py. Values marked
+# "from env" are overridden at runtime by environment variables.
+#
+# Required env vars for live tests:
+#   ADO_PAT           - Personal Access Token (vso.work_write + vso.work_full)
+#   ADO_ORGANIZATION  - Azure DevOps org name
+#   ADO_PROJECT       - ADO project name
+#   GITHUB_TOKEN      - GitHub token with repo:write scope (for reverse sync)
+
+ado_integration:
+  schema_version: "1.0.0"
+  enabled: true
+  organization: "SET-Apps-Test"        # from env: ADO_ORGANIZATION
+  project: "GitHub-ADO-Sync-E2E-Test"  # from env: ADO_PROJECT
+  auth_method: pat
+  auth_secret_name: ADO_PAT_E2E_TEST
+
+  sync:
+    direction: bidirectional
+    auto_create: true
+    auto_close: true
+    grace_period_seconds: 10  # Increased for E2E timing tolerance
+    sync_comments: true
+    comment_prefix: "[ado-sync]"
+
+  state_mapping:
+    open: New
+    closed: Closed
+    "closed+label:bug": Resolved
+
+  type_mapping:
+    default: User Story
+    bug: Bug
+    enhancement: Feature
+    task: Task
+
+  field_mapping:
+    area_path: "GitHub-ADO-Sync-E2E-Test\\Test"
+    iteration_path: "@CurrentIteration"
+    priority_labels:
+      P1: 1
+      P2: 2
+      P3: 3
+
+  user_mapping:
+    test-user-gh: test-user@contoso.onmicrosoft.com
+    e2e-bot: e2e-bot@contoso.onmicrosoft.com
+
+  reverse_state_mapping:
+    New:
+      action: reopen
+      labels_add: ["ado:new"]
+      labels_remove: ["ado:active", "ado:resolved", "ado:closed"]
+    Active:
+      action: reopen
+      labels_add: ["ado:active"]
+      labels_remove: ["ado:new", "ado:resolved", "ado:closed"]
+    Resolved:
+      action: noop
+      labels_add: ["ado:resolved"]
+      labels_remove: ["ado:new", "ado:active", "ado:closed"]
+    Closed:
+      action: close
+      labels_add: ["ado:closed"]
+      labels_remove: ["ado:new", "ado:active", "ado:resolved"]
+
+  filters:
+    include_labels: ["ado-sync", "e2e-test"]
+    exclude_labels: ["internal", "governance", "skip-sync"]

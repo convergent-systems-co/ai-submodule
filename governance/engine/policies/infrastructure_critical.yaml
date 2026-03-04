@@ -1,0 +1,152 @@
+# Infrastructure Critical Policy Profile
+# For repositories managing infrastructure-as-code, CI/CD pipelines,
+# deployment configurations, and platform services.
+
+profile_name: infrastructure_critical
+profile_version: "1.1.0"
+description: >
+  Policy profile for infrastructure and platform repositories. Emphasizes
+  production stability, blast radius assessment, and rollback capability.
+  Mandatory architecture and production readiness reviews for structural changes.
+
+weighting:
+  model: weighted_average
+  weights:
+    code-review: 0.10
+    security-review: 0.18
+    architecture-review: 0.20
+    testing-review: 0.10
+    performance-review: 0.07
+    production-readiness-review: 0.10
+    copilot-review: 0.05
+    documentation-review: 0.05
+    threat-modeling: 0.05
+    cost-analysis: 0.05
+    data-governance-review: 0.05
+  missing_panel_behavior: redistribute
+
+risk_aggregation:
+  model: highest_severity
+  rules:
+    - description: "Any critical risk from architecture or security escalates."
+      condition: panel_risk("architecture-review") == "critical" or panel_risk("security-review") == "critical"
+      result: critical
+    - description: "Production readiness high risk escalates to critical for infra."
+      condition: panel_risk("production-readiness-review") == "high"
+      result: critical
+    - description: "Two or more high-risk panels."
+      condition: count(panel_risk == "high") >= 2
+      result: high
+    - description: "Default aggregation."
+      condition: all_panels_risk in ["low", "negligible"]
+      result: low
+
+escalation:
+  rules:
+    - name: low_confidence
+      description: "Infrastructure requires higher confidence for automation."
+      condition: aggregate_confidence < 0.80
+      action: human_review_required
+      notify:
+        - role: sre_lead
+        - role: infrastructure_lead
+
+    - name: blast_radius
+      description: "Changes affecting multiple services require human review."
+      condition: services_affected_count > 1
+      action: human_review_required
+      notify:
+        - role: sre_lead
+        - role: tech_lead
+
+    - name: deployment_config_change
+      description: "Deployment configuration changes require SRE review."
+      condition: files_changed_in ["deploy/", "k8s/", "terraform/", "helm/", ".github/workflows/"]
+      action: human_review_required
+      notify:
+        - role: sre_lead
+        - role: devops_lead
+
+auto_merge:
+  enabled: true
+  conditions:
+    - aggregate_confidence >= 0.90
+    - risk_level in ["low", "negligible"]
+    - no_policy_flags_severity in ["critical", "high", "medium"]
+    - all_panel_verdicts in ["approve"]
+    - services_affected_count <= 1
+    - not files_changed_in ["deploy/", "k8s/", "terraform/", "helm/"]
+    - ci_checks_passed == true
+  operator: all
+
+auto_remediate:
+  enabled: true
+  max_attempts: 2
+  cooldown_minutes: 10
+  conditions:
+    - risk_level == "low"
+    - all_policy_flags.auto_remediable == true
+    - aggregate_confidence >= 0.75
+    - not files_changed_in ["deploy/", "k8s/", "terraform/", "helm/"]
+  allowed_actions:
+    - fix_linting
+    - add_missing_tests
+    - update_documentation
+    - fix_type_errors
+  prohibited_actions:
+    - modify_security_controls
+    - change_deployment_config
+    - alter_infrastructure
+    - modify_network_rules
+    - change_iam_policies
+
+block:
+  conditions:
+    - description: "Missing production readiness review for deployment changes."
+      condition: deployment_files_changed and panel_missing("production-readiness-review")
+    - description: "No rollback plan documented for infrastructure changes."
+      condition: infrastructure_files_changed and no_rollback_plan
+    - description: "Confidence below minimum for infrastructure."
+      condition: aggregate_confidence < 0.50
+
+override:
+  enabled: true
+  requirements:
+    min_approvals: 2
+    required_roles:
+      - sre_lead
+      - infrastructure_lead
+    justification_required: true
+    justification_min_length: 75
+  audit:
+    log_to_manifest: true
+    create_github_issue: true
+    notify:
+      - role: sre_lead
+      - role: engineering_manager
+  expiry:
+    cooldown_hours: 24
+    post_override_review_required: true
+
+required_panels:
+  - code-review
+  - security-review
+  - architecture-review
+  - threat-modeling
+  - cost-analysis
+  - finops-review
+  - documentation-review
+
+optional_panels:
+  - panel: production-readiness-review
+    trigger: files_changed_in ["deploy/", "k8s/", "terraform/", "helm/", "docker/"]
+  - panel: performance-review
+    trigger: files_changed_in ["src/", "bench/"]
+  - panel: testing-review
+    trigger: test_files_changed == true
+  - panel: copilot-review
+    trigger: always
+  - panel: data-governance-review
+    trigger: files_changed_in ["db/", "migrations/", "schema/", "data/"]
+  - panel: api-design-review
+    trigger: files_changed_in ["api/", "openapi/", "swagger/", "graphql/"]

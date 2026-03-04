@@ -1,0 +1,136 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/agent-envelope.schema.json",
+  "title": "Agent Context Envelope",
+  "description": "Schema for the structured message envelope that defines the sole input to each agent. The envelope wraps a protocol message with authentication, persona context, and declared attachments. See governance/prompts/agent-protocol.md.",
+  "type": "object",
+  "required": ["envelope", "persona", "protocol_message"],
+  "properties": {
+    "envelope": {
+      "type": "object",
+      "description": "Envelope metadata for routing and audit.",
+      "required": ["version", "message_id", "timestamp", "source_agent", "target_agent", "correlation_id", "session_id"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "const": "1.0",
+          "description": "Envelope schema version."
+        },
+        "message_id": {
+          "type": "string",
+          "pattern": "^msg-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+          "description": "Unique message identifier (msg- prefix + UUID v4)."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of envelope creation."
+        },
+        "source_agent": {
+          "type": "string",
+          "enum": ["project-manager", "devops-engineer", "tech-lead", "coder", "iac-engineer", "test-writer", "test-evaluator", "document-writer", "documentation-reviewer"],
+          "description": "Sending persona."
+        },
+        "target_agent": {
+          "type": "string",
+          "enum": ["project-manager", "devops-engineer", "tech-lead", "coder", "iac-engineer", "test-writer", "test-evaluator", "document-writer", "documentation-reviewer"],
+          "description": "Receiving persona."
+        },
+        "correlation_id": {
+          "type": "string",
+          "description": "Issue or PR identifier linking all messages in a work unit.",
+          "pattern": "^(issue|pr)-\\d+$"
+        },
+        "session_id": {
+          "type": "string",
+          "description": "Session identifier for audit correlation."
+        }
+      },
+      "additionalProperties": false
+    },
+    "authentication": {
+      "type": "object",
+      "description": "Chain-of-custody fields for message verification.",
+      "required": ["sender_persona", "sender_task_id", "session_id"],
+      "properties": {
+        "sender_persona": {
+          "type": "string",
+          "description": "Persona that signed the message. Must match envelope.source_agent."
+        },
+        "sender_task_id": {
+          "type": "string",
+          "description": "Task ID of the sending agent in the orchestrator registry."
+        },
+        "parent_message_id": {
+          "type": "string",
+          "description": "Message ID of the parent message in the ASSIGN chain. Null for root messages.",
+          "default": ""
+        },
+        "session_id": {
+          "type": "string",
+          "description": "Session ID for key derivation scope."
+        },
+        "signature": {
+          "type": "string",
+          "description": "HMAC-SHA256 signature of the canonical envelope content."
+        }
+      },
+      "additionalProperties": false
+    },
+    "persona": {
+      "type": "string",
+      "description": "Path to the persona definition file loaded for the target agent."
+    },
+    "protocol_message": {
+      "type": "object",
+      "description": "The actual agent protocol message (ASSIGN, RESULT, etc.).",
+      "required": ["message_type", "payload"],
+      "properties": {
+        "message_type": {
+          "type": "string",
+          "enum": ["ASSIGN", "STATUS", "RESULT", "FEEDBACK", "ESCALATE", "APPROVE", "BLOCK", "CANCEL", "WATCH"]
+        },
+        "payload": {
+          "type": "object",
+          "description": "Message-type-specific payload."
+        },
+        "constraints": {
+          "type": "object",
+          "description": "Optional execution constraints (timeout, scope limits)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "context_attachments": {
+      "type": "array",
+      "description": "Declared context files that the target agent is authorized to receive.",
+      "items": {
+        "type": "object",
+        "required": ["type", "path"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["plan", "config", "persona_definition", "source_file", "documentation", "coder_result", "checkpoint"],
+            "description": "Attachment type for boundary validation."
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to the attachment file relative to repo root."
+          },
+          "hash": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "description": "Content-addressed hash for integrity verification."
+          },
+          "section": {
+            "type": "string",
+            "description": "Optional section filter within the file (e.g., 'governance' for project.yaml)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "default": []
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,116 @@
+# AI Configuration
+
+# Version of this configuration (for sync tracking)
+version: "1.0.0"
+
+# Default templates to apply
+defaults:
+  instructions: true
+  architecture: true
+  prompts: true
+
+# Instructions delivery: prefer direct file writes (init.md) over symlinks (init.sh)
+# Symlinks are maintained for backward compatibility with consuming repos using init.sh
+symlinks:
+  - source: instructions.md
+    targets:
+      - .github/copilot-instructions.md
+      - CLAUDE.md
+    prefer_copy: true  # init.md writes files directly; init.sh creates symlinks as fallback
+  - source: governance/commands
+    targets:
+      - .claude/commands
+      - .github/copilot-chat
+
+# Hooks installed in consuming repos during init
+# These are written to .claude/settings.json (or merged into existing)
+hooks:
+  PreCompact:
+    - type: command
+      command: "bash .ai/governance/bin/pre-compact-checkpoint.sh"
+
+# Governance workflows to symlink into consuming repos during init
+# Only applied in submodule context; existing regular files are not overwritten
+workflows:
+  required:
+    - dark-factory-governance.yml
+  optional:
+    - issue-monitor.yml
+    - event-trigger.yml
+    - plan-archival.yml
+    - propagate-submodule.yml
+
+# Directories to create in consuming repos during init
+# These are created with .gitkeep files so git tracks empty directories
+# Consuming projects can add additional directories in project.yaml
+project_directories:
+  - path: .artifacts/plans
+    description: "Implementation plans for issues and features (accumulated)"
+  - path: .artifacts/panels
+    description: "Panel review reports (latest only per panel type, overwrite strategy)"
+  - path: .artifacts/checkpoints
+    description: "Context capacity checkpoints (session state)"
+  - path: .artifacts/state
+    description: "Cross-session governance state persistence (accumulated)"
+  - path: .artifacts/logs
+    description: "Agent audit logs (JSONL, append-only, per session)"
+
+# Gitignore patterns for .ai/
+gitignore:
+  - context.md
+  - "*.local.md"
+
+# Repository settings applied by init.sh via gh api
+# These are defaults; consuming projects override in project.yaml
+repository:
+  # GitHub repo settings
+  # auto_merge default is false. When not explicitly set in project.yaml, init.sh
+  # conditionally enables auto-merge if BOTH conditions are met:
+  #   1. CODEOWNERS contains github-actions[bot]
+  #   2. .github/workflows/dark-factory-governance.yml exists
+  # Set to false explicitly in project.yaml to disable even when conditions are met.
+  auto_merge: false
+  delete_branch_on_merge: true
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+
+  # CODEOWNERS template (merged into existing CODEOWNERS during init)
+  # @github-actions[bot] is included so the governance workflow's approval
+  # can satisfy code owner review requirements (with appropriate ruleset config)
+  codeowners:
+    enabled: true
+    default_owner: "@SET-Apps/approvers @github-actions[bot]"
+    rules:
+      - pattern: "/.github/workflows/"
+        owners: ["@SET-Apps/devops_engineers", "@github-actions[bot]"]
+      - pattern: "/infra/"
+        owners: ["@SET-Apps/devops_engineers", "@github-actions[bot]"]
+      - pattern: "/.ai"
+        owners: ["@SET-Apps/approvers", "@github-actions[bot]"]
+
+  # Branch protection expectations (validated, not applied)
+  branch_protection:
+    # Whether structural commits (submodule updates, CODEOWNERS) require PRs.
+    # "auto" = detect from GitHub API; "true" = always use PRs; "false" = direct commits
+    require_pr_for_structural_commits: "auto"
+    expected_rulesets:
+      - name: "Pull Request - Reviewer"
+        required_approving_review_count: 1
+        require_code_owner_review: true
+      - name: "Pull Request - Base"
+      - name: "JM Compliance Workflow"
+
+# Cross-repo issue escalation defaults
+# Consuming repos opt in via project.yaml; disabled by default
+escalation:
+  enabled: false
+  target_repository: "convergent-systems-co/dark-forge"
+  auth_method: "GITHUB_TOKEN"
+  rate_limit: 3
+  criteria:
+    path_based: true
+    workflow_failure: true
+    policy_gap: true
+    schema_validation: true
+    init_failure: true

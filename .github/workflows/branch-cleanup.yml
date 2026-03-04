@@ -1,0 +1,180 @@
+name: Branch Cleanup
+
+# Deletes merged and stale remote branches to keep the repository clean.
+# Runs weekly and can be triggered manually with configurable parameters.
+#
+# This workflow is part of Phase 4b (Autonomous Remediation) — self-repair
+# CI workflows that maintain repository health autonomously.
+#
+# Protected branches (main, develop, release/*) are never deleted.
+# Dry-run mode is available for safe previewing.
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly on Sunday at 2:00 UTC
+  workflow_dispatch:
+    inputs:
+      stale_days:
+        description: 'Days before a branch is considered stale'
+        type: number
+        default: 30
+      dry_run:
+        description: 'Dry run mode (preview without deleting)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: branch-cleanup
+  cancel-in-progress: true
+
+jobs:
+  cleanup:
+    name: cleanup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Delete merged branches
+        id: merged
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        run: |
+          set -uo pipefail
+
+          echo "## Merged Branch Cleanup"
+          echo ""
+
+          DELETED=0
+          SKIPPED=0
+
+          # List remote branches that are fully merged into origin/main
+          # Filter out HEAD pointer and protected branches
+          MERGED_BRANCHES=$(git branch -r --merged origin/main | sed 's/^[[:space:]]*//' | grep -v -E '^\s*origin/(main|develop|HEAD)' | grep -v 'release/' | sed 's|^origin/||' || true)
+
+          if [ -z "$MERGED_BRANCHES" ]; then
+            echo "No merged branches found to clean up"
+            echo "deleted=0" >> "$GITHUB_OUTPUT"
+            echo "skipped=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          for BRANCH in $MERGED_BRANCHES; do
+            # Double-check: skip protected patterns
+            if [[ "$BRANCH" == "main" || "$BRANCH" == "develop" || "$BRANCH" == "HEAD" || "$BRANCH" == release/* ]]; then
+              echo "Protected branch — skipping: ${BRANCH}"
+              SKIPPED=$((SKIPPED + 1))
+              continue
+            fi
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "[DRY RUN] Would delete merged branch: ${BRANCH}"
+              DELETED=$((DELETED + 1))
+            else
+              echo "Deleting merged branch: ${BRANCH}"
+              if git push origin --delete "$BRANCH" 2>/dev/null; then
+                DELETED=$((DELETED + 1))
+              else
+                echo "::warning::Failed to delete branch: ${BRANCH}"
+                SKIPPED=$((SKIPPED + 1))
+              fi
+            fi
+          done
+
+          echo ""
+          echo "Merged branches processed: deleted=${DELETED}, skipped=${SKIPPED}"
+          echo "deleted=${DELETED}" >> "$GITHUB_OUTPUT"
+          echo "skipped=${SKIPPED}" >> "$GITHUB_OUTPUT"
+
+      - name: Delete stale branches
+        id: stale
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STALE_DAYS: ${{ inputs.stale_days || '30' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+        shell: bash
+        run: |
+          set -uo pipefail
+
+          echo "## Stale Branch Cleanup (>${STALE_DAYS} days without commits)"
+          echo ""
+
+          # Calculate cutoff timestamp — use GNU date syntax (available on ubuntu-latest)
+          CUTOFF=$(date -d "${STALE_DAYS} days ago" +%s)
+          echo "Cutoff date: $(date -d "@${CUTOFF}" -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          DELETED=0
+          SKIPPED=0
+
+          # Use process substitution instead of pipe to avoid subshell scoping issues.
+          # This ensures DELETED/SKIPPED counters propagate to GITHUB_OUTPUT.
+          while read -r BRANCH DATE; do
+            BRANCH_NAME="${BRANCH#origin/}"
+
+            # Skip protected branches
+            if [[ "$BRANCH_NAME" == "main" || "$BRANCH_NAME" == "develop" || "$BRANCH_NAME" == "HEAD" || "$BRANCH_NAME" == release/* ]]; then
+              continue
+            fi
+
+            # Skip if not stale
+            if [ "$DATE" -ge "$CUTOFF" ] 2>/dev/null; then
+              continue
+            fi
+
+            # Skip branches that have open PRs
+            OPEN_PRS=$(gh pr list --state open --head "$BRANCH_NAME" --json number --jq 'length' 2>/dev/null || echo "0")
+            if [ "$OPEN_PRS" -gt "0" ]; then
+              echo "Branch has open PR(s) — skipping: ${BRANCH_NAME}"
+              SKIPPED=$((SKIPPED + 1))
+              continue
+            fi
+
+            LAST_COMMIT_DATE=$(date -d "@${DATE}" -u +%Y-%m-%d 2>/dev/null || echo "unknown")
+
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "[DRY RUN] Would delete stale branch: ${BRANCH_NAME} (last commit: ${LAST_COMMIT_DATE})"
+              DELETED=$((DELETED + 1))
+            else
+              echo "Deleting stale branch: ${BRANCH_NAME} (last commit: ${LAST_COMMIT_DATE})"
+              if git push origin --delete "$BRANCH_NAME" 2>/dev/null; then
+                DELETED=$((DELETED + 1))
+              else
+                echo "::warning::Failed to delete stale branch: ${BRANCH_NAME}"
+                SKIPPED=$((SKIPPED + 1))
+              fi
+            fi
+          done < <(git for-each-ref --sort=committerdate refs/remotes/origin/ \
+            --format='%(refname:short) %(committerdate:unix)')
+
+          echo ""
+          echo "Stale branches processed: deleted=${DELETED}, skipped=${SKIPPED}"
+          echo "deleted=${DELETED}" >> "$GITHUB_OUTPUT"
+          echo "skipped=${SKIPPED}" >> "$GITHUB_OUTPUT"
+
+      - name: Summary
+        if: always()
+        env:
+          MERGED_DELETED: ${{ steps.merged.outputs.deleted || '0' }}
+          MERGED_SKIPPED: ${{ steps.merged.outputs.skipped || '0' }}
+          STALE_DELETED: ${{ steps.stale.outputs.deleted || '0' }}
+          STALE_SKIPPED: ${{ steps.stale.outputs.skipped || '0' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
+          STALE_DAYS: ${{ inputs.stale_days || '30' }}
+        run: |
+          {
+            echo "## Branch Cleanup Results"
+            echo ""
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "> **Dry run mode** — no branches were actually deleted."
+              echo ""
+            fi
+            echo "| Category | Deleted | Skipped |"
+            echo "|----------|---------|---------|"
+            echo "| Merged branches | ${MERGED_DELETED} | ${MERGED_SKIPPED} |"
+            echo "| Stale branches (>${STALE_DAYS} days) | ${STALE_DELETED} | ${STALE_SKIPPED} |"
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,145 @@
+{
+  "workitem_updated_state_active": {
+    "eventType": "workitem.updated",
+    "resource": {
+      "workItemId": 42,
+      "id": 42,
+      "rev": 2,
+      "revision": {
+        "fields": {
+          "System.Title": "[E2E] Test issue for bidirectional sync",
+          "System.State": "Active",
+          "System.WorkItemType": "Bug"
+        }
+      },
+      "fields": {
+        "System.State": {
+          "oldValue": "New",
+          "newValue": "Active"
+        }
+      }
+    }
+  },
+  "workitem_updated_title": {
+    "eventType": "workitem.updated",
+    "resource": {
+      "workItemId": 42,
+      "id": 42,
+      "rev": 3,
+      "revision": {
+        "fields": {
+          "System.Title": "[E2E] ADO-updated title",
+          "System.State": "Active",
+          "System.WorkItemType": "Bug"
+        }
+      },
+      "fields": {
+        "System.Title": {
+          "oldValue": "[E2E] Test issue for bidirectional sync",
+          "newValue": "[E2E] ADO-updated title"
+        }
+      }
+    }
+  },
+  "workitem_updated_assignee": {
+    "eventType": "workitem.updated",
+    "resource": {
+      "workItemId": 42,
+      "id": 42,
+      "rev": 4,
+      "revision": {
+        "fields": {
+          "System.Title": "[E2E] ADO-updated title",
+          "System.State": "Active",
+          "System.AssignedTo": "e2e-bot@contoso.onmicrosoft.com"
+        }
+      },
+      "fields": {
+        "System.AssignedTo": {
+          "oldValue": "",
+          "newValue": "e2e-bot@contoso.onmicrosoft.com"
+        }
+      }
+    }
+  },
+  "workitem_deleted": {
+    "eventType": "workitem.deleted",
+    "resource": {
+      "workItemId": 42,
+      "id": 42,
+      "rev": 5,
+      "revision": {
+        "fields": {
+          "System.Title": "[E2E] ADO-updated title",
+          "System.State": "Active",
+          "System.WorkItemType": "Bug"
+        }
+      },
+      "fields": {}
+    }
+  },
+  "workitem_state_transitions": [
+    {
+      "eventType": "workitem.updated",
+      "resource": {
+        "workItemId": 42,
+        "id": 42,
+        "rev": 2,
+        "fields": {
+          "System.State": {
+            "oldValue": "New",
+            "newValue": "Active"
+          }
+        }
+      }
+    },
+    {
+      "eventType": "workitem.updated",
+      "resource": {
+        "workItemId": 42,
+        "id": 42,
+        "rev": 3,
+        "fields": {
+          "System.State": {
+            "oldValue": "Active",
+            "newValue": "Resolved"
+          }
+        }
+      }
+    },
+    {
+      "eventType": "workitem.updated",
+      "resource": {
+        "workItemId": 42,
+        "id": 42,
+        "rev": 4,
+        "fields": {
+          "System.State": {
+            "oldValue": "Resolved",
+            "newValue": "Closed"
+          }
+        }
+      }
+    }
+  ],
+  "workitem_updated_priority": {
+    "eventType": "workitem.updated",
+    "resource": {
+      "workItemId": 42,
+      "id": 42,
+      "rev": 5,
+      "revision": {
+        "fields": {
+          "System.Title": "[E2E] Test issue",
+          "Microsoft.VSTS.Common.Priority": 2
+        }
+      },
+      "fields": {
+        "Microsoft.VSTS.Common.Priority": {
+          "oldValue": 1,
+          "newValue": 2
+        }
+      }
+    }
+  }
+}

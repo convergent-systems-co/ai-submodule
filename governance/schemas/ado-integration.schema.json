@@ -1,0 +1,187 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/ado-integration.schema.json",
+  "title": "AdoIntegrationConfig",
+  "description": "Schema for Azure DevOps integration configuration declared in the ado_integration section of project.yaml. Defines organization, authentication, sync behaviour, state/type/field mappings, and filtering rules for GitHub-to-ADO work item synchronisation.",
+  "type": "object",
+  "required": ["schema_version", "enabled", "organization", "project"],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Semantic version of this configuration schema."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the ADO integration is active. Set to false to disable sync without removing configuration."
+    },
+    "organization": {
+      "type": "string",
+      "pattern": "^https://dev\\.azure\\.com/.+$",
+      "description": "Azure DevOps organization URL (e.g., https://dev.azure.com/contoso)."
+    },
+    "project": {
+      "type": "string",
+      "description": "ADO project name where work items are created and synced."
+    },
+    "auth_method": {
+      "type": "string",
+      "enum": ["service_principal", "managed_identity", "pat"],
+      "default": "pat",
+      "description": "Authentication method for the ADO REST API. PAT uses a personal access token, service_principal uses OAuth2 client credentials, managed_identity uses Azure Managed Identity."
+    },
+    "auth_secret_name": {
+      "type": "string",
+      "default": "ADO_PAT",
+      "description": "Name of the GitHub Actions secret or environment variable containing the authentication credential."
+    },
+    "sync": {
+      "type": "object",
+      "description": "Synchronisation behaviour configuration controlling direction, automation, and conflict resolution.",
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": ["bidirectional", "github_to_ado", "ado_to_github", "disabled"],
+          "default": "github_to_ado",
+          "description": "Sync direction. 'bidirectional' syncs changes in both directions, 'github_to_ado' pushes GitHub issue changes to ADO, 'ado_to_github' pulls ADO work item changes to GitHub, 'disabled' turns off sync entirely."
+        },
+        "auto_create": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically create ADO work items when new GitHub issues are opened."
+        },
+        "auto_close": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically close/resolve ADO work items when the linked GitHub issue is closed."
+        },
+        "grace_period_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 5,
+          "description": "Seconds to wait after a change event before syncing, to debounce rapid successive updates."
+        },
+        "conflict_strategy": {
+          "type": "string",
+          "enum": ["last_write", "field_ownership", "github_wins", "ado_wins"],
+          "default": "last_write",
+          "description": "Strategy for resolving conflicting updates. 'last_write' uses the most recent timestamp, 'field_ownership' assigns each field to one system, 'github_wins' always prefers GitHub, 'ado_wins' always prefers ADO."
+        },
+        "sync_comments": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sync comments between GitHub issues and ADO work items. ADO comments are HTML-only."
+        },
+        "sync_attachments": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sync file attachments between GitHub issues and ADO work items."
+        },
+        "comment_prefix": {
+          "type": "string",
+          "default": "[ado-sync]",
+          "description": "Prefix required on comments for them to be synced between systems. Only comments starting with this prefix are eligible for cross-system sync."
+        }
+      },
+      "additionalProperties": false
+    },
+    "state_mapping": {
+      "type": "object",
+      "description": "Maps GitHub issue states to ADO work item states. Keys are GitHub states (e.g., 'open', 'closed') or compound states (e.g., 'open+ado:active'). Values are ADO state names.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {
+        "open": "New",
+        "closed": "Closed"
+      }
+    },
+    "type_mapping": {
+      "type": "object",
+      "description": "Maps GitHub issue type labels to ADO work item types. The 'default' key specifies the fallback type when no label matches.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {
+        "default": "User Story"
+      }
+    },
+    "field_mapping": {
+      "type": "object",
+      "description": "Configures how GitHub issue metadata maps to ADO work item fields.",
+      "properties": {
+        "area_path": {
+          "type": "string",
+          "default": "",
+          "description": "Default ADO area path for new work items. Empty string uses the project root."
+        },
+        "iteration_path": {
+          "type": "string",
+          "default": "@CurrentIteration",
+          "description": "Default ADO iteration path. '@CurrentIteration' uses the current sprint."
+        },
+        "priority_labels": {
+          "type": "object",
+          "description": "Maps GitHub label names to ADO priority values (1=Critical, 2=High, 3=Medium, 4=Low).",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 4
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "user_mapping": {
+      "type": "object",
+      "description": "Maps GitHub usernames to ADO user emails for assignee sync. Keys are GitHub usernames, values are ADO user email addresses.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "filters": {
+      "type": "object",
+      "description": "Controls which GitHub issues are eligible for ADO sync.",
+      "properties": {
+        "include_labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Only sync issues with at least one of these labels. Empty array means all issues are eligible."
+        },
+        "exclude_labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["internal", "governance"],
+          "description": "Never sync issues with any of these labels."
+        },
+        "ado_area_path_filter": {
+          "type": "string",
+          "default": "",
+          "description": "Only sync ADO work items under this area path (for ado_to_github direction). Empty string means no filtering."
+        }
+      },
+      "additionalProperties": false
+    },
+    "area_path_mapping": {
+      "type": "object",
+      "description": "Maps GitHub label suffixes (from 'area:*' labels) to ADO area paths. Keys are the label suffix (e.g., 'Team A' for label 'area:Team A'), values are full ADO area paths (e.g., 'Project\\Team A').",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "iteration_mapping": {
+      "type": "object",
+      "description": "Maps GitHub milestone titles to ADO iteration paths. Keys are milestone titles, values are full ADO iteration paths. The special value '@CurrentIteration' maps to the current ADO sprint.",
+      "additionalProperties": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": false
+}

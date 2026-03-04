@@ -1,0 +1,179 @@
+{
+  "panel_name": "code-review",
+  "panel_version": "1.0.0",
+  "confidence_score": 0.76,
+  "risk_level": "low",
+  "compliance_score": 0.90,
+  "policy_flags": [
+    {
+      "flag": "missing_tests_for_new_code_path",
+      "severity": "medium",
+      "description": "The new dict-handling branch in _extract_issue_number has zero test coverage. Six test scenarios are missing (dict with issue key, number key, string coercion, invalid value, empty dict, integer input).",
+      "remediation": "Add test cases to TestExtractIssueNumber covering dict and integer inputs.",
+      "auto_remediable": true
+    }
+  ],
+  "requires_human_review": false,
+  "timestamp": "2026-03-02T12:00:00Z",
+  "findings": [
+    {
+      "persona": "quality/code-reviewer",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "Changes are correct and well-structured. The _extract_issue_number enhancement properly handles dict inputs with appropriate error handling. Two minor issues: the `or` operator on dict values has a theoretical falsy-value bug with 0, and the ref parameter lost its type annotation.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 2,
+        "info": 0
+      },
+      "evidence": {
+        "file": "governance/engine/orchestrator/checkpoint.py",
+        "line_start": 195,
+        "line_end": 196,
+        "snippet": "issue_val = ref.get(\"issue\") or ref.get(\"number\")"
+      },
+      "groundedness_score": 0.95,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "compliance/security-auditor",
+      "verdict": "approve",
+      "confidence": 0.92,
+      "rationale": "No injection vectors, secret exposure, or auth changes. Dict handling uses safe .get() with try/except. Dev dependency additions (pytest-html) are well-known packages with no supply chain concerns.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "evidence": {
+        "file": "governance/engine/orchestrator/checkpoint.py",
+        "line_start": 194,
+        "line_end": 201,
+        "snippet": "if isinstance(ref, dict): issue_val = ref.get(\"issue\") or ref.get(\"number\")"
+      },
+      "groundedness_score": 0.90,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "engineering/performance-engineer",
+      "verdict": "approve",
+      "confidence": 0.95,
+      "rationale": "No algorithmic complexity concerns. _extract_issue_number is a cold-path function called during checkpoint recovery. isinstance + dict.get adds negligible overhead. conftest changes affect only test execution time.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "evidence": {
+        "file": "governance/engine/orchestrator/checkpoint.py",
+        "line_start": 192,
+        "line_end": 202,
+        "snippet": "def _extract_issue_number(ref) -> int | None:"
+      },
+      "groundedness_score": 0.90,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "engineering/test-engineer",
+      "verdict": "request_changes",
+      "confidence": 0.88,
+      "rationale": "The new dict-handling branch in _extract_issue_number (lines 194-201) has no test coverage. TestExtractIssueNumber only tests string inputs. Six test scenarios are needed for dict/int inputs. Additionally, addopts in pyproject.toml creates a hard dependency on pytest-html for all test runs.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 1,
+        "low": 1,
+        "info": 0
+      },
+      "evidence": {
+        "file": "governance/engine/tests/test_checkpoint_orchestrator.py",
+        "line_start": 30,
+        "line_end": 51,
+        "snippet": "class TestExtractIssueNumber: def test_hash_prefix(self): assert _extract_issue_number(\"#42\") == 42"
+      },
+      "groundedness_score": 0.95,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "engineering/refactor-specialist",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "Code structure is reasonable. Naming plugin properly separated into conftest_naming.py. The autouse fixture guards on test_naming nodeid prevent unnecessary activation. _install_patch at import time is acceptable given the lightweight wrapper. No duplication detected.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 1,
+        "info": 1
+      },
+      "evidence": {
+        "file": "governance/engine/tests/conftest.py",
+        "line_start": 39,
+        "line_end": 43,
+        "snippet": "@pytest.fixture(autouse=True) def _naming_capture_fixture(request): if \"test_naming\" not in request.node.nodeid:"
+      },
+      "groundedness_score": 0.90,
+      "hallucination_indicators": []
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "branch": "feat/retire-prompt-chaining",
+    "policy_profile": "default",
+    "model_id": "claude-opus-4-6",
+    "triggered_by": "manual"
+  },
+  "execution_trace": {
+    "files_read": [
+      "governance/engine/orchestrator/checkpoint.py",
+      "governance/engine/pyproject.toml",
+      "governance/engine/tests/conftest.py",
+      "governance/engine/tests/conftest_naming.py",
+      "governance/engine/tests/test_checkpoint_orchestrator.py",
+      "governance/prompts/reviews/code-review.md",
+      "governance/prompts/shared-perspectives.md",
+      "governance/emissions/code-review.json",
+      "governance/schemas/panel-output.schema.json"
+    ],
+    "diff_lines_analyzed": 114,
+    "grounding_references": [
+      {
+        "file": "governance/engine/orchestrator/checkpoint.py",
+        "line": 195,
+        "finding_id": "quality/code-reviewer"
+      },
+      {
+        "file": "governance/engine/orchestrator/checkpoint.py",
+        "line": 192,
+        "finding_id": "quality/code-reviewer-type-annotation"
+      },
+      {
+        "file": "governance/engine/orchestrator/checkpoint.py",
+        "line": 194,
+        "finding_id": "compliance/security-auditor"
+      },
+      {
+        "file": "governance/engine/tests/test_checkpoint_orchestrator.py",
+        "line": 30,
+        "finding_id": "engineering/test-engineer"
+      },
+      {
+        "file": "governance/engine/pyproject.toml",
+        "line": 25,
+        "finding_id": "engineering/test-engineer-addopts"
+      },
+      {
+        "file": "governance/engine/tests/conftest.py",
+        "line": 33,
+        "finding_id": "engineering/refactor-specialist"
+      }
+    ]
+  }
+}

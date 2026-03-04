@@ -1,0 +1,16 @@
+# .artifacts/.gitignore
+# Plans, panels, and emissions are committed (governance artifacts)
+# Everything else is transient runtime state
+
+# Ignore transient directories
+checkpoints/
+state/
+logs/
+worktrees/
+engine/
+dist/
+
+# But track the committed artifact directories
+!plans/
+!panels/
+!emissions/

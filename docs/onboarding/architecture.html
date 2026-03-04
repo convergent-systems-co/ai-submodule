@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Forge — Architecture</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3352;
+      --accent: #5b8dee;
+      --accent2: #7c3aed;
+      --green: #22c55e;
+      --yellow: #facc15;
+      --red: #ef4444;
+      --orange: #f97316;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 40px 24px 60px; }
+
+    h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 6px; }
+    h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--muted); font-size: 0.9rem; margin-bottom: 48px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Diagram canvas ── */
+    .diagram { width: 100%; max-width: 860px; display: flex; flex-direction: column; align-items: center; gap: 0; }
+
+    /* ── Nodes ── */
+    .node { border-radius: 10px; border: 1px solid var(--border); background: var(--surface); padding: 14px 22px; text-align: center; position: relative; }
+    .node .label { font-weight: 700; font-size: 0.95rem; }
+    .node .sublabel { font-size: 0.78rem; color: var(--muted); margin-top: 3px; }
+    .node.actor { border-color: var(--accent); background: rgba(91,141,238,0.08); }
+    .node.orchestrator { border-color: var(--accent2); background: rgba(124,58,237,0.1); }
+    .node.executor { border-color: var(--accent); background: rgba(91,141,238,0.08); }
+    .node.engine { border-color: var(--yellow); background: rgba(250,204,21,0.07); }
+    .node.remote { border-color: var(--green); background: rgba(34,197,94,0.07); }
+    .node.audit { border-color: var(--muted); background: var(--surface2); border-style: dashed; }
+    .node.panel-node { border-color: var(--orange); background: rgba(249,115,22,0.07); padding: 10px 16px; }
+
+    /* ── Arrows ── */
+    .arrow { display: flex; flex-direction: column; align-items: center; gap: 0; height: 40px; justify-content: center; }
+    .arrow-line { width: 2px; flex: 1; background: var(--border); }
+    .arrow-head { width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 8px solid var(--border); }
+    .arrow-label { font-size: 0.72rem; color: var(--muted); position: absolute; left: calc(50% + 10px); white-space: nowrap; }
+
+    /* ── Row layouts ── */
+    .row { display: flex; align-items: center; gap: 16px; width: 100%; justify-content: center; }
+    .h-arrow { display: flex; align-items: center; gap: 0; }
+    .h-line { height: 2px; width: 28px; background: var(--border); }
+    .h-head { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 7px solid var(--border); }
+
+    /* ── Panels row ── */
+    .panels-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+    /* ── Decision fork ── */
+    .fork { width: 100%; max-width: 600px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 0; margin-top: 0; }
+    .fork-left { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .fork-right { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .fork-center { display: flex; flex-direction: column; align-items: center; }
+    .fork-label { font-size: 0.72rem; font-weight: 700; padding: 2px 10px; border-radius: 10px; margin-bottom: 4px; }
+    .fork-label.pass { background: rgba(34,197,94,0.15); color: var(--green); }
+    .fork-label.fail { background: rgba(239,68,68,0.15); color: var(--red); }
+
+    /* horizontal branch lines from policy engine */
+    .branch-line { display: flex; align-items: center; }
+    .branch-h { height: 2px; background: var(--border); }
+    .branch-down { width: 2px; background: var(--border); }
+
+    /* ── Side audit trail ── */
+    .with-side { display: flex; align-items: flex-start; gap: 0; width: 100%; max-width: 860px; justify-content: center; }
+    .side-connector { display: flex; flex-direction: column; align-items: flex-start; padding-top: 20px; }
+    .side-h { height: 2px; width: 32px; background: var(--border); border-top: 2px dashed var(--muted); }
+    .side-node { margin-left: 0; }
+
+    /* ── Legend ── */
+    .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 48px; justify-content: center; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--muted); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 3px; border: 1px solid; }
+
+    /* ── Footnote ── */
+    .footnote { margin-top: 32px; font-size: 0.78rem; color: var(--muted); text-align: center; }
+
+    /* ── Loop-back arrow (fail path curves back) ── */
+    .loop-label { font-size: 0.72rem; color: var(--red); text-align: center; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <h1>🏭 <span>Dark Forge</span> — High-Level Architecture</h1>
+  <p class="subtitle">How a developer request becomes governed, tested, merged code &nbsp;·&nbsp; <a href="team-starter.html">← Back to Team Starter</a> &nbsp;·&nbsp; <a href="https://github.com/SET-Apps/ai-submodule/blob/main/README.md" target="_blank">Official README ↗</a></p>
+
+  <div class="diagram">
+
+    <!-- YOU -->
+    <div class="node actor" style="width:260px">
+      <div class="label">👤 You (Developer)</div>
+      <div class="sublabel">"Build me X" · "Fix Y" · "Add Z feature"</div>
+    </div>
+
+    <!-- arrow -->
+    <div style="position:relative;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="width:2px;height:32px;background:var(--border)"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+    </div>
+
+    <!-- DEVOPS ENGINEER -->
+    <div class="node actor" style="width:260px;border-color:var(--accent)">
+      <div class="label">🔧 DevOps Engineer</div>
+      <div class="sublabel">Session entry — pre-flight, triage, routing</div>
+    </div>
+
+    <!-- arrow -->
+    <div style="height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="width:2px;height:32px;background:var(--border)"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+    </div>
+
+    <!-- CODE MANAGER + side audit trail -->
+    <div style="display:flex;align-items:center;gap:0;width:100%;max-width:860px;justify-content:center">
+      <div style="flex:1;display:flex;justify-content:flex-end;align-items:center;padding-right:16px">
+        <!-- empty left space -->
+      </div>
+
+      <div class="node orchestrator" style="width:260px">
+        <div class="label">🧠 Tech Lead</div>
+        <div class="sublabel">Orchestrator — validates intent, selects panels, assigns work</div>
+      </div>
+
+      <!-- side dashed line to .plans/ -->
+      <div style="display:flex;align-items:center;gap:0;padding-left:16px">
+        <div style="height:2px;width:40px;border-top:2px dashed var(--muted)"></div>
+        <div style="width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--muted)"></div>
+        <div class="node audit" style="margin-left:8px;width:160px">
+          <div class="label" style="font-size:0.85rem">📂 .plans/</div>
+          <div class="sublabel">Every decision written here<br>Archived to GitHub Releases</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- arrow -->
+    <div style="height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="width:2px;height:32px;background:var(--border)"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+    </div>
+
+    <!-- CODER -->
+    <div class="node executor" style="width:260px">
+      <div class="label">⌨️ Coder</div>
+      <div class="sublabel">Worker — implements plan, writes tests</div>
+    </div>
+
+    <!-- arrow -->
+    <div style="height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="width:2px;height:32px;background:var(--border)"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+    </div>
+
+    <!-- TESTER -->
+    <div class="node executor" style="width:260px;border-color:#22c55e;background:rgba(34,197,94,0.07)">
+      <div class="label">🧪 Tester</div>
+      <div class="sublabel">Independent evaluator — must approve before push</div>
+    </div>
+
+    <!-- arrow -->
+    <div style="height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="width:2px;height:32px;background:var(--border)"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+    </div>
+
+    <!-- PANELS ROW -->
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%">
+      <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.07em;font-weight:600">Review Panels &nbsp;(run in parallel)</div>
+      <div class="panels-row">
+        <div class="node panel-node"><div class="label" style="font-size:0.82rem">🔒 Security</div></div>
+        <div class="node panel-node"><div class="label" style="font-size:0.82rem">🏗️ Architecture</div></div>
+        <div class="node panel-node"><div class="label" style="font-size:0.82rem">📊 Data / PII</div></div>
+        <div class="node panel-node"><div class="label" style="font-size:0.82rem">🧪 Quality</div></div>
+        <div class="node panel-node" style="border-style:dashed;opacity:0.6"><div class="label" style="font-size:0.82rem">+ 15 more</div></div>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);margin-top:6px">Each emits structured JSON with confidence score &amp; risk level</div>
+    </div>
+
+    <!-- arrow -->
+    <div style="height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="width:2px;height:32px;background:var(--border)"></div>
+      <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+    </div>
+
+    <!-- POLICY ENGINE -->
+    <div class="node engine" style="width:260px">
+      <div class="label">⚖️ Policy Engine</div>
+      <div class="sublabel">Deterministic Python — reads emissions<br>produces: merge · remediate · block</div>
+    </div>
+
+    <!-- FORK: PASS / FAIL -->
+    <div style="width:100%;max-width:680px;margin-top:0">
+
+      <!-- horizontal fork lines -->
+      <div style="display:flex;align-items:flex-start;justify-content:center;position:relative">
+
+        <!-- left branch (fail) -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:flex-end">
+          <div style="display:flex;align-items:center">
+            <div style="height:2px;width:100%;background:var(--border)"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:100%;padding-right:24px">
+            <div style="width:2px;height:24px;background:var(--border)"></div>
+            <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+            <span style="font-size:0.7rem;font-weight:700;background:rgba(239,68,68,0.15);color:var(--red);border-radius:10px;padding:2px 10px;margin-bottom:8px">✗ Fail</span>
+            <div class="node" style="width:190px;border-color:var(--red);background:rgba(239,68,68,0.07)">
+              <div class="label" style="font-size:0.85rem">🔁 Coder Fixes</div>
+              <div class="sublabel">Re-implements based on panel feedback</div>
+            </div>
+            <div class="loop-label">↑ loops back through panels</div>
+          </div>
+        </div>
+
+        <!-- center stem from policy engine (already drawn above) -->
+        <div style="width:2px;background:var(--border);height:32px;flex-shrink:0"></div>
+
+        <!-- right branch (pass) -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:flex-start">
+          <div style="display:flex;align-items:center">
+            <div style="height:2px;width:100%;background:var(--border)"></div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;width:100%;padding-left:24px">
+            <div style="width:2px;height:24px;background:var(--border)"></div>
+            <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid var(--border)"></div>
+            <span style="font-size:0.7rem;font-weight:700;background:rgba(34,197,94,0.15);color:var(--green);border-radius:10px;padding:2px 10px;margin-bottom:8px">✓ Pass</span>
+            <div class="node remote" style="width:190px">
+              <div class="label" style="font-size:0.85rem">☁️ GitHub</div>
+              <div class="sublabel">PR created · auto-merged<br>Issues closed · Plans archived</div>
+            </div>
+            <div style="font-size:0.7rem;color:var(--muted);margin-top:6px;text-align:center">Remote mode only<br>(local mode: changes applied directly)</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /diagram -->
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(91,141,238,0.2);border-color:var(--accent)"></div> DevOps Engineer (session entry) / Developer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(124,58,237,0.15);border-color:var(--accent2)"></div> Tech Lead (orchestrator)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(91,141,238,0.2);border-color:var(--accent)"></div> Coder (worker) / Tester (evaluator)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(249,115,22,0.1);border-color:var(--orange)"></div> Review Panels (19 total, dynamically selected)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(250,204,21,0.1);border-color:var(--yellow)"></div> Policy Engine (deterministic)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(34,197,94,0.1);border-color:var(--green)"></div> GitHub (remote mode)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--surface2);border-color:var(--muted);border-style:dashed"></div> .plans/ (audit trail)</div>
+  </div>
+
+  <p class="footnote">
+    Dark Forge · SET-Apps ·
+    <a href="team-starter.html">Team Starter Guide</a> ·
+    <a href="https://github.com/SET-Apps/ai-submodule/blob/main/README.md" target="_blank">Official README ↗</a>
+  </p>
+
+</body>
+</html>

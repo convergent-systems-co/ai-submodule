@@ -1,0 +1,177 @@
+{
+  "properties": {
+    "lenses": {
+      "0": {
+        "order": 0,
+        "parts": {
+          "0": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "colSpan": 12,
+              "rowSpan": 2
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "# {{APPLICATION_NAME}} — Hub Dashboard\n\nCentral overview for **{{APPLICATION_NAME}}**. Select an environment below to view detailed metrics.",
+                    "title": "{{APPLICATION_NAME}}",
+                    "subtitle": "Hub Dashboard"
+                  }
+                }
+              }
+            }
+          },
+          "1": {
+            "position": {
+              "x": 0,
+              "y": 2,
+              "colSpan": 3,
+              "rowSpan": 2
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "### [Dev Environment](/dashboard/arm/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP_PREFIX}}-dev/providers/Microsoft.Portal/dashboards/{{APPLICATION_NAME}}-dev-dashboard)\n\nDevelopment environment dashboard with resource health, App Insights metrics, and AKS status.",
+                    "title": "Dev",
+                    "subtitle": "Development"
+                  }
+                }
+              }
+            }
+          },
+          "2": {
+            "position": {
+              "x": 3,
+              "y": 2,
+              "colSpan": 3,
+              "rowSpan": 2
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "### [Stg Environment](/dashboard/arm/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP_PREFIX}}-stg/providers/Microsoft.Portal/dashboards/{{APPLICATION_NAME}}-stg-dashboard)\n\nStaging environment dashboard with resource health, App Insights metrics, and AKS status.",
+                    "title": "Stg",
+                    "subtitle": "Staging"
+                  }
+                }
+              }
+            }
+          },
+          "3": {
+            "position": {
+              "x": 6,
+              "y": 2,
+              "colSpan": 3,
+              "rowSpan": 2
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "### [UAT Environment](/dashboard/arm/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP_PREFIX}}-uat/providers/Microsoft.Portal/dashboards/{{APPLICATION_NAME}}-uat-dashboard)\n\nUAT environment dashboard with resource health, App Insights metrics, and AKS status.",
+                    "title": "UAT",
+                    "subtitle": "User Acceptance Testing"
+                  }
+                }
+              }
+            }
+          },
+          "4": {
+            "position": {
+              "x": 9,
+              "y": 2,
+              "colSpan": 3,
+              "rowSpan": 2
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "### [Prod Environment](/dashboard/arm/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP_PREFIX}}-prod/providers/Microsoft.Portal/dashboards/{{APPLICATION_NAME}}-prod-dashboard)\n\nProduction environment dashboard with resource health, App Insights metrics, and AKS status.",
+                    "title": "Prod",
+                    "subtitle": "Production"
+                  }
+                }
+              }
+            }
+          },
+          "5": {
+            "position": {
+              "x": 0,
+              "y": 4,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/ResourceGroupMapPinnedPart",
+              "inputs": [
+                {
+                  "name": "resourceGroup",
+                  "value": "/subscriptions/{{SUBSCRIPTION_ID}}/resourceGroups/{{RESOURCE_GROUP_PREFIX}}-prod"
+                }
+              ],
+              "isAdapter": true
+            }
+          },
+          "6": {
+            "position": {
+              "x": 6,
+              "y": 4,
+              "colSpan": 6,
+              "rowSpan": 4
+            },
+            "metadata": {
+              "type": "Extension/HubsExtension/PartType/MarkdownPart",
+              "inputs": [],
+              "settings": {
+                "content": {
+                  "settings": {
+                    "content": "## Application Overview\n\n| Property | Value |\n|----------|-------|\n| **Application** | {{APPLICATION_NAME}} |\n| **Subscription** | {{SUBSCRIPTION_ID}} |\n| **Resource Group Prefix** | {{RESOURCE_GROUP_PREFIX}} |\n| **Environments** | dev, stg, uat, prod |\n\n### Quick Links\n\n- [Azure Resource Groups](https://portal.azure.com/#browse/resourcegroups)\n- [Application Insights](https://portal.azure.com/#browse/microsoft.insights%2Fcomponents)\n- [Kubernetes Services](https://portal.azure.com/#browse/microsoft.containerservice%2Fmanagedclusters)",
+                    "title": "Application Overview",
+                    "subtitle": "{{APPLICATION_NAME}}"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "model": {
+        "timeRange": {
+          "value": {
+            "relative": {
+              "duration": 24,
+              "timeUnit": 1
+            }
+          },
+          "type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+        }
+      }
+    }
+  },
+  "name": "{{APPLICATION_NAME}}-hub-dashboard",
+  "type": "Microsoft.Portal/dashboards",
+  "location": "{{AZURE_LOCATION}}",
+  "tags": {
+    "hidden-title": "{{APPLICATION_NAME}} — Hub Dashboard",
+    "Application": "{{APPLICATION_NAME}}",
+    "ManagedBy": "dark-forge"
+  },
+  "apiVersion": "2020-09-01-preview"
+}

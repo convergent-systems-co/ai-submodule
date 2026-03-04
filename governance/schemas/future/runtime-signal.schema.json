@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RuntimeSignal",
+  "description": "Normalized runtime signal schema for the Dark Forge governance pipeline. All signals, regardless of ingestion mode, are normalized to this format before entering the pipeline.",
+  "type": "object",
+  "required": [
+    "signal_id",
+    "timestamp",
+    "source",
+    "severity",
+    "category",
+    "affected_component",
+    "message"
+  ],
+  "properties": {
+    "signal_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier assigned at ingestion time."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the signal was generated at the source."
+    },
+    "ingested_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the signal entered the governance pipeline."
+    },
+    "source": {
+      "type": "object",
+      "required": ["type", "name"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["webhook", "polling", "event_bus", "manual"]
+        },
+        "name": {
+          "type": "string",
+          "description": "Identifier for the specific source system."
+        },
+        "adapter_version": {
+          "type": "string",
+          "description": "Version of the adapter that ingested this signal."
+        }
+      }
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "informational"],
+      "description": "Severity as classified at ingestion. May be reclassified downstream."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "error",
+        "latency",
+        "security",
+        "sla_violation",
+        "resource_exhaustion",
+        "configuration_drift",
+        "dependency_failure",
+        "data_integrity",
+        "compliance_violation",
+        "capacity"
+      ],
+      "description": "Primary classification of the signal."
+    },
+    "affected_component": {
+      "type": "string",
+      "description": "Service, module, or infrastructure component affected. Must match a component registered in the governance component registry."
+    },
+    "affected_components_secondary": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Additional components affected by blast radius."
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable description of the anomaly."
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Quantitative data associated with the signal.",
+      "properties": {
+        "current_value": { "type": "number" },
+        "threshold_value": { "type": "number" },
+        "baseline_value": { "type": "number" },
+        "deviation_percent": { "type": "number" },
+        "duration_seconds": { "type": "integer" }
+      }
+    },
+    "context": {
+      "type": "object",
+      "description": "Arbitrary key-value context from the source system.",
+      "additionalProperties": { "type": "string" }
+    },
+    "correlation_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Trace IDs, request IDs, or other identifiers for cross-referencing with observability systems."
+    },
+    "fingerprint": {
+      "type": "string",
+      "description": "Computed hash for deduplication. SHA-256(category + affected_component + severity + normalize_whitespace(message)[0:256])."
+    }
+  }
+}

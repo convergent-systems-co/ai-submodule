@@ -1,0 +1,337 @@
+# Parallel Agent Session Protocol
+# Defines rules for spawning, coordinating, and reconciling multiple
+# concurrent agent sessions. Part of Phase 5d — Multi-Agent Coordination.
+#
+# Companion artifacts:
+#   - governance/schemas/conflict-detection.schema.json (PR #171)
+#   - governance/policy/merge-sequencing.yaml (PR #174)
+#
+# This protocol is a governance artifact — runtime enforcement requires
+# a multi-agent orchestrator (Phase 5d blocked by current single-session
+# AI tooling). The specification is designed so that a future orchestrator
+# can implement these rules programmatically.
+
+policy_name: parallel_session_protocol
+policy_version: "1.0.0"
+description: >
+  Specification for spawning, coordinating, and reconciling multiple
+  concurrent agent sessions. Establishes session lifecycle, work
+  distribution rules, synchronization points, and inter-session
+  communication. Compatible with the single-session startup.md workflow
+  (protocol is additive — single-session mode is a degenerate case
+  with max_concurrent_sessions: 1).
+
+# Session Lifecycle
+# Defines the states a parallel agent session can be in and valid transitions.
+lifecycle:
+  states:
+    - name: pending
+      description: "Session is queued but not yet started. Waiting for capacity."
+    - name: active
+      description: "Session is running and processing an assigned issue."
+    - name: blocked
+      description: >
+        Session is paused because it hit a coordination point (shared file
+        conflict, governance gate, or dependency on another session's output).
+    - name: completed
+      description: "Session finished its assigned issue successfully. PR created or merged."
+    - name: failed
+      description: "Session encountered an unrecoverable error. Work is abandoned or escalated."
+
+  transitions:
+    - from: pending
+      to: active
+      condition: "capacity_available and issue_assigned"
+      description: "Orchestrator assigns an issue and starts the session."
+
+    - from: active
+      to: blocked
+      condition: "conflict_detected or dependency_pending or governance_gate_waiting"
+      description: "Session pauses until the blocking condition resolves."
+
+    - from: blocked
+      to: active
+      condition: "blocking_condition_resolved"
+      description: "Blocking condition cleared — session resumes."
+
+    - from: active
+      to: completed
+      condition: "issue_resolved and pr_created_or_merged"
+      description: "Session finished its work successfully."
+
+    - from: active
+      to: failed
+      condition: "unrecoverable_error or context_capacity_exceeded"
+      description: "Session cannot continue. Checkpoint written, work escalated."
+
+    - from: blocked
+      to: failed
+      condition: "block_timeout_exceeded or escalation_required"
+      description: "Session blocked too long. Escalate to human."
+
+    - from: pending
+      to: failed
+      condition: "assignment_rejected or capacity_timeout"
+      description: "Session could not start within the allowed wait time."
+
+  terminal_states:
+    - completed
+    - failed
+
+# Work Assignment
+# Rules for distributing issues across concurrent sessions.
+assignment:
+  strategy: independence_first
+  description: >
+    Issues are assigned to sessions based on file-level independence.
+    Two issues are independent if they modify disjoint file sets.
+    The orchestrator uses the conflict detection schema to pre-analyze
+    issue scope before assignment.
+
+  rules:
+    - name: file_independence
+      description: >
+        Two issues may run in parallel only if their expected file
+        modifications do not overlap. Overlap is determined by analyzing
+        the issue scope (referenced files, affected directories) against
+        the conflict-detection schema.
+      enforcement: blocking
+      conflict_schema_ref: "governance/schemas/conflict-detection.schema.json"
+
+    - name: governance_state_isolation
+      description: >
+        Issues that modify governance artifacts (policies, schemas,
+        personas, panels) must not run in parallel with other governance
+        modifications. Governance state changes are serialized.
+      enforcement: blocking
+
+    - name: issue_priority_assignment
+      description: >
+        Higher-priority issues (P0 > P1 > P2 > P3 > P4) are assigned
+        to sessions first. Within the same priority, older issues are
+        preferred (FIFO). Consistent with merge-sequencing.yaml ordering.
+      enforcement: ordering
+      merge_policy_ref: "governance/policy/merge-sequencing.yaml"
+
+    - name: single_issue_per_session
+      description: >
+        Each session works on exactly one issue at a time. A session
+        must complete (or fail) its current issue before receiving
+        a new assignment. Consistent with startup.md sequential model.
+      enforcement: mandatory
+
+# Session Limits
+# Capacity constraints for parallel execution.
+limits:
+  max_concurrent_sessions: 3
+  description: >
+    Maximum number of agent sessions running simultaneously. Set to 3
+    as a conservative default — higher values increase conflict risk
+    and coordination overhead.
+
+  per_session:
+    max_issues: 3
+    max_review_cycles_per_pr: 3
+    context_capacity_threshold: 0.80
+    description: >
+      Per-session limits match the single-session startup.md constraints.
+      Each parallel session is independently subject to the same 3-issue
+      cap, 3-review-cycle limit, and 80% context threshold.
+
+  aggregate:
+    max_total_issues_per_run: 9
+    max_total_active_prs: 5
+    description: >
+      Aggregate limits across all sessions. max_total_issues is
+      max_concurrent_sessions × per_session.max_issues. max_total_active_prs
+      aligns with merge-sequencing.yaml queue.max_concurrent_prs.
+
+# Coordination Points
+# When and how sessions must synchronize.
+coordination:
+  synchronization_points:
+    - name: pre_merge
+      description: >
+        Before a session's PR enters the merge queue, all other active
+        sessions are notified. If a conflict is detected (via
+        conflict-detection schema), the merge is deferred to the merge
+        sequencing policy for ordering.
+      trigger: pr_ready_for_merge
+      action: notify_all_sessions
+      conflict_schema_ref: "governance/schemas/conflict-detection.schema.json"
+      merge_policy_ref: "governance/policy/merge-sequencing.yaml"
+
+    - name: shared_file_detection
+      description: >
+        When a session begins modifying a file, the orchestrator checks
+        if any other active session is modifying the same file. If so,
+        the later session is blocked until the earlier session's changes
+        are merged or abandoned.
+      trigger: file_modification_started
+      action: block_if_conflict
+      conflict_schema_ref: "governance/schemas/conflict-detection.schema.json"
+
+    - name: governance_gate
+      description: >
+        Governance gates (CI checks, panel evaluation, policy engine
+        decision) are session-independent. Each session's PR goes through
+        the full governance pipeline independently. However, if a
+        governance artifact changes (policy, schema), all sessions must
+        re-validate against the updated artifact.
+      trigger: governance_artifact_modified
+      action: revalidate_affected_sessions
+      merge_policy_ref: "governance/policy/merge-sequencing.yaml"
+
+    - name: main_branch_update
+      description: >
+        When any session's PR merges to main, all other active sessions
+        must rebase their branches against the updated main. This ensures
+        each session's PR is always up-to-date.
+      trigger: pr_merged_to_main
+      action: rebase_all_active_sessions
+
+# Conflict Resolution
+# Escalation path when parallel sessions produce conflicting changes.
+conflict_resolution:
+  strategy: defer_to_merge_sequencing
+  description: >
+    Conflict resolution is delegated to the merge sequencing policy.
+    The parallel session protocol detects conflicts and blocks sessions;
+    the merge sequencing policy determines the order in which conflicting
+    PRs are resolved.
+
+  rules:
+    - name: file_conflict
+      description: "Two sessions modified the same file."
+      severity: blocking
+      action: >
+        Block the lower-priority session. The higher-priority session's
+        PR merges first per merge-sequencing.yaml. The blocked session
+        rebases after merge and continues.
+      conflict_schema_ref: "governance/schemas/conflict-detection.schema.json"
+
+    - name: governance_state_conflict
+      description: "Two sessions modified overlapping governance artifacts."
+      severity: blocking
+      action: >
+        Serialize governance changes. Only one governance modification
+        can be in flight at a time. The second session is blocked until
+        the first completes.
+
+    - name: semantic_conflict
+      description: >
+        Two sessions made logically conflicting changes (e.g., one adds
+        a feature, another refactors the same module). Detected by
+        overlap_type: semantic in conflict-detection schema.
+      severity: blocking
+      action: escalate_to_human
+      notify:
+        - role: tech_lead
+
+    - name: unresolvable_conflict
+      description: "Automatic resolution failed after max retries."
+      severity: blocking
+      action: escalate_to_human
+      max_retries: 2
+      notify:
+        - role: tech_lead
+
+# Handoff Protocol
+# How completed sessions communicate results to other active sessions.
+handoff:
+  description: >
+    When a session completes, its results (merged PR, closed issue,
+    checkpoint) are communicated to remaining active sessions so they
+    can adjust their work if needed.
+
+  mechanisms:
+    - name: checkpoint_broadcast
+      description: >
+        Completed session writes a checkpoint to .artifacts/checkpoints/. Other
+        sessions read checkpoints to understand what work has been done
+        and what remains.
+      format: "json"
+      path_pattern: ".artifacts/checkpoints/{timestamp}-{branch}.json"
+
+    - name: main_branch_signal
+      description: >
+        The merged PR on main is the canonical signal. Active sessions
+        fetch main and rebase to incorporate the completed work.
+      trigger: pr_merged
+
+    - name: issue_state_signal
+      description: >
+        Closed issues signal completed work. Active sessions re-scan
+        the issue list to avoid working on already-resolved issues.
+      trigger: issue_closed
+
+    - name: orchestrator_notification
+      description: >
+        The orchestrator maintains a session registry and notifies all
+        active sessions of state changes (session completed, session
+        failed, new session spawned). This is the primary coordination
+        mechanism.
+      trigger: session_state_change
+      notification_content:
+        - session_id
+        - new_state
+        - issue_number
+        - pr_number
+        - affected_files
+
+# Fallback to Single-Session Mode
+# Compatibility with the existing startup.md workflow.
+single_session_compatibility:
+  description: >
+    When max_concurrent_sessions is 1 (or no orchestrator is present),
+    the protocol degenerates to the existing startup.md sequential
+    workflow. All coordination points become no-ops, conflict detection
+    is unnecessary (only one session modifying files), and the handoff
+    protocol reduces to standard checkpoint behavior.
+
+  rules:
+    - name: no_orchestrator_fallback
+      description: >
+        If no multi-agent orchestrator is detected, the session operates
+        in single-session mode following startup.md. This protocol has
+        no effect.
+      condition: orchestrator_absent
+      action: follow_startup_md
+
+    - name: single_session_override
+      description: >
+        Setting max_concurrent_sessions: 1 in this protocol explicitly
+        enables single-session mode. All parallel coordination rules
+        are disabled.
+      condition: max_concurrent_sessions == 1
+      action: disable_coordination
+
+# Escalation
+# When the protocol cannot resolve a situation.
+escalation:
+  rules:
+    - name: all_sessions_blocked
+      description: >
+        If all active sessions are in the blocked state simultaneously,
+        a deadlock may exist. Escalate to human.
+      condition: all_active_sessions_blocked
+      action: escalate_to_human
+      notify:
+        - role: tech_lead
+
+    - name: session_timeout
+      description: >
+        If a session has been active for longer than 60 minutes without
+        progress (no commits, no state changes), it may be stuck.
+      condition: session_active_minutes > 60 and no_progress
+      timeout_minutes: 60
+      action: escalate_to_human
+      notify:
+        - role: tech_lead
+
+    - name: aggregate_limit_exceeded
+      description: >
+        If total issues across all sessions exceed aggregate limits,
+        no new sessions are spawned until existing sessions complete.
+      condition: total_issues >= aggregate.max_total_issues_per_run
+      action: wait_for_capacity

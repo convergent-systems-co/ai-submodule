@@ -1,0 +1,96 @@
+{
+  "panel_name": "security-review",
+  "panel_version": "1.0.0",
+  "schema_version": "1.2.0",
+  "confidence_score": 0.91,
+  "risk_level": "low",
+  "compliance_score": 1.0,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-03-03T14:01:00Z",
+  "findings": [
+    {
+      "persona": "compliance/security-auditor",
+      "verdict": "approve",
+      "confidence": 0.92,
+      "rationale": "New block conditions (copilot_findings_unresolved, dependabot_alerts_open) strengthen the security posture by enforcing hard gates on unresolved security findings. No new attack surface introduced. Policy engine changes are deterministic YAML-driven evaluation with no dynamic code execution.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 1
+      },
+      "evidence": {
+        "file": "governance/engine/policy_engine.py",
+        "snippet": "block condition evaluators for copilot_findings_unresolved and dependabot_alerts_open"
+      },
+      "groundedness_score": 0.94,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "operations/infrastructure-engineer",
+      "verdict": "approve",
+      "confidence": 0.90,
+      "rationale": "CI workflow changes add a pre-check step that generates synthetic emissions for Copilot and Dependabot gates. No new secrets required. GitHub token permissions unchanged. Workflow uses existing action pinned versions.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 1
+      },
+      "evidence": {
+        "file": ".github/workflows/dark-factory-governance.yml",
+        "snippet": "pre-check step generating synthetic emissions"
+      },
+      "groundedness_score": 0.92,
+      "hallucination_indicators": []
+    },
+    {
+      "persona": "compliance/compliance-officer",
+      "verdict": "approve",
+      "confidence": 0.90,
+      "rationale": "Promoting copilot-review to a required panel across all policy profiles ensures automated security scanning coverage is mandatory. Dependabot alert gates enforce dependency vulnerability remediation before merge. Both changes align with SOC2 CC7.1 and NIST 800-53 SI-2 controls.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 1
+      },
+      "evidence": {
+        "file": "governance/policy/default.yaml",
+        "snippet": "copilot-review added to required_panels, new block_conditions entries"
+      },
+      "groundedness_score": 0.91,
+      "hallucination_indicators": []
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "branch": "itsfwcp/feat/737/copilot-dependabot-hard-gates",
+    "commit_sha": "89ae8164209aac9a4469cc5e94d2a8c8a31544d6",
+    "pr_number": 737,
+    "policy_profile": "default",
+    "model_id": "claude-opus-4-6",
+    "triggered_by": "manual"
+  },
+  "data_classification": {
+    "level": "internal",
+    "contains_sensitive_evidence": false,
+    "redaction_applied": false,
+    "sensitive_categories": []
+  },
+  "execution_trace": {
+    "files_read": [
+      "governance/engine/policy_engine.py",
+      "governance/policy/default.yaml",
+      "governance/policy/strict.yaml",
+      "governance/policy/soc2.yaml",
+      ".github/workflows/dark-factory-governance.yml"
+    ],
+    "diff_lines_analyzed": 699
+  }
+}

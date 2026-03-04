@@ -1,0 +1,366 @@
+# Default Policy Profile
+# Applied when no project-specific profile is configured.
+# All policy evaluation is deterministic and must not depend on prose.
+
+profile_name: default
+profile_version: "1.5.0"
+description: >
+  Baseline policy profile for standard repositories. Balances automation
+  with human oversight. Suitable for internal applications with moderate
+  risk tolerance.
+
+# Confidence Weighting Model
+# Defines how individual panel confidence scores are weighted to produce
+# the aggregate confidence used in merge decisions.
+weighting:
+  model: weighted_average
+  weights:
+    code-review: 0.18
+    security-review: 0.18
+    ai-expert-review: 0.12
+    architecture-review: 0.12
+    testing-review: 0.08
+    performance-review: 0.05
+    copilot-review: 0.08
+    documentation-review: 0.05
+    threat-modeling: 0.05
+    cost-analysis: 0.02
+    finops-review: 0.02
+    data-governance-review: 0.05
+  # If a panel is not executed, its weight is redistributed proportionally.
+  missing_panel_behavior: redistribute
+
+# Risk Aggregation Model
+# Determines the final risk level from individual panel assessments.
+risk_aggregation:
+  model: highest_severity
+  rules:
+    - description: "Any panel reporting critical risk escalates to critical."
+      condition: any_panel_risk == "critical"
+      result: critical
+    - description: "Two or more panels reporting high risk escalates to high."
+      condition: count(panel_risk == "high") >= 2
+      result: high
+    - description: "Single high-risk panel with others low results in medium."
+      condition: count(panel_risk == "high") == 1
+      result: medium
+    - description: "All panels low or negligible results in low."
+      condition: all_panels_risk in ["low", "negligible"]
+      result: low
+
+# Escalation Rules
+# Define when and how decisions escalate to human review.
+escalation:
+  rules:
+    - name: low_confidence
+      description: "Aggregate confidence below threshold requires human review."
+      condition: aggregate_confidence < 0.70
+      action: human_review_required
+      notify:
+        - role: tech_lead
+        - role: code_owner
+
+    - name: critical_risk
+      description: "Critical risk always requires human review."
+      condition: risk_level == "critical"
+      action: human_review_required
+      notify:
+        - role: security_lead
+        - role: tech_lead
+
+    - name: policy_violation
+      description: "Any critical or high severity policy flag blocks merge."
+      condition: any_policy_flag_severity in ["critical", "high"]
+      action: block
+      notify:
+        - role: compliance_officer
+        - role: tech_lead
+
+    - name: panel_disagreement
+      description: "Conflicting verdicts across panels requires human review."
+      condition: panel_disagreement_detected == true
+      action: human_review_required
+      notify:
+        - role: tech_lead
+
+# Auto-merge Rules
+# Conditions under which a PR can be merged without human intervention.
+auto_merge:
+  enabled: true
+  conditions:
+    - aggregate_confidence >= 0.85
+    - risk_level in ["low", "negligible"]
+    - no_policy_flags_severity in ["critical", "high"]
+    - all_panel_verdicts in ["approve"]
+    - requires_human_review == false
+    - ci_checks_passed == true
+  # All conditions must be satisfied (logical AND).
+  operator: all
+
+# Plausibility Checks
+# Heuristic validation of panel emissions before auto-merge decisions.
+# Detects anomalous emission patterns that may indicate crafted or invalid output.
+plausibility_checks:
+  # PRs touching >N files with zero findings are suspicious.
+  min_findings_for_nontrivial:
+    enabled: true
+    file_threshold: 3
+    min_findings: 1
+    action: "flag_for_human_review"
+  # Emissions without execution_trace get capped confidence for auto-merge.
+  confidence_cap_without_trace:
+    enabled: true
+    max_confidence: 0.70
+    action: "cap_confidence"
+  # Multiple panels with identical confidence scores = anomaly.
+  identical_score_detection:
+    enabled: true
+    min_panels: 3
+    action: "flag_for_human_review"
+
+# Panel Execution Resilience
+# Handles panel timeout, retry, and fallback behavior
+panel_execution:
+  timeout_config: "governance/policy/panel-timeout.yaml"
+  rules:
+    - description: "Fallback emissions cannot trigger auto-merge"
+      condition: any_emission_status == "fallback"
+      action: require_human_review
+    - description: "More than 2 fallback emissions require human review"
+      condition: count(emission_status == "fallback") > 2
+      action: block_auto_merge
+    - description: "Timeout emissions are treated as fallback if baseline exists"
+      condition: emission_status == "timeout" and baseline_exists
+      action: use_baseline_with_cap
+
+# Canary Calibration (Eval/Deployment Distinction Detection)
+# Validates that panels are performing genuine analysis by injecting known-vulnerable
+# code snippets and verifying detection. See governance/policy/canary-calibration.yaml.
+canary_calibration:
+  config: "governance/policy/canary-calibration.yaml"
+  rules:
+    - description: "Low canary pass rate flags for human review"
+      condition: canary_pass_rate < 0.70
+      action: flag_for_human_review
+    - description: "Zero canary detections on security panel is anomalous"
+      condition: panel == "security-review" and canary_detections == 0
+      action: flag_for_human_review
+    - description: "Consistent severity mismatches suggest evaluation gaming"
+      condition: canary_severity_mismatch_rate > 0.50
+      action: flag_for_human_review
+
+# Auto-remediate Rules
+# Conditions under which automated remediation is attempted before blocking.
+auto_remediate:
+  enabled: true
+  max_attempts: 3
+  cooldown_minutes: 5
+  conditions:
+    - risk_level in ["low", "medium"]
+    - all_policy_flags.auto_remediable == true
+    - aggregate_confidence >= 0.60
+  # Remediation types that can be automated.
+  allowed_actions:
+    - fix_linting
+    - add_missing_tests
+    - update_documentation
+    - fix_type_errors
+  # Actions that always require human intervention.
+  prohibited_actions:
+    - modify_security_controls
+    - change_api_contracts
+    - alter_data_schemas
+    - modify_infrastructure
+
+# Block Rules
+# Hard blocks that cannot be overridden by auto-merge or auto-remediate.
+block:
+  conditions:
+    - description: "Critical policy violation with no remediation."
+      condition: any_policy_flag_severity == "critical" and not auto_remediable
+    - description: "Confidence below minimum threshold."
+      condition: aggregate_confidence < 0.40
+    - description: "Required panel did not execute."
+      condition: required_panel_missing == true
+    - description: "CI checks failed."
+      condition: ci_checks_passed == false
+    - description: "Destruction recommended by FinOps review requires human approval."
+      condition: destruction_recommended == true
+
+# Override Rules
+# Enterprise override procedure for blocked merges.
+override:
+  enabled: true
+  requirements:
+    min_approvals: 2
+    required_roles:
+      - senior_engineer
+      - tech_lead
+    justification_required: true
+    justification_min_length: 50
+  audit:
+    log_to_manifest: true
+    create_github_issue: true
+    notify:
+      - role: compliance_officer
+      - role: engineering_manager
+  expiry:
+    cooldown_hours: 24
+    post_override_review_required: true
+
+# Required Panels
+# Panels that must execute for a merge decision to be valid.
+required_panels:
+  - code-review
+  - security-review
+  - threat-modeling
+  - cost-analysis
+  - finops-review
+  - documentation-review
+  - data-governance-review
+
+# Optional Panels
+# Panels executed based on change characteristics.
+# NOTE: optional_panels triggers are advisory hints for AI agents, not machine-evaluated conditions.
+# Unlike policy conditions (e.g., "aggregate_confidence >= 0.85"), these trigger strings are
+# interpreted by AI agents to determine when a panel is relevant. They are not evaluated by the
+# policy engine.
+optional_panels:
+  - panel: ai-expert-review
+    trigger: files_changed_in ["governance/personas/", "governance/prompts/", "governance/policy/", "governance/schemas/", "instructions/"]
+  - panel: architecture-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/", "governance/prompts/reviews/", "governance/prompts/workflows/", ".github/workflows/"]
+  - panel: performance-review
+    trigger: files_changed_in ["src/", "bench/"]
+  - panel: testing-review
+    trigger: test_files_changed == true
+  - panel: data-design-review
+    trigger: files_changed_in ["db/", "migrations/", "schema/"]
+  - panel: test-generation-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/", "app/"]
+  - panel: copilot-review
+    trigger: always
+  - panel: governance-compliance-review
+    trigger: always
+  - panel: api-design-review
+    trigger: files_changed_in ["api/", "openapi/", "swagger/", "graphql/"]
+  - panel: migration-review
+    trigger: files_changed_in ["db/", "migrations/", "alembic/", "flyway/"]
+  - panel: technical-debt-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/"]
+  - panel: jm-standards-compliance-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/", "app/", "governance/integrations/", "infrastructure/", "bicep/", "terraform/", "*.csproj", "*.sln", "requirements.txt", "package.json", "go.mod"]
+
+# Panel Overrides by Change Type
+# When a change is classified as a specific type, the required and optional
+# panels can be narrowed. This allows the governance pipeline to reduce
+# ceremony for well-understood change categories while keeping the default
+# required_panels list as the baseline for unclassified changes.
+# NOTE: security-review is ALWAYS required regardless of change type.
+# AI agents use change_type classification to look up overrides here;
+# the policy engine validates that security-review is never dropped.
+panel_overrides_by_change_type:
+  docs_only:
+    required_panels:
+      - documentation-review
+      - security-review
+    optional_panels:
+      - code-review
+  chore:
+    required_panels:
+      - code-review
+      - security-review
+    optional_panels:
+      - documentation-review
+  test_only:
+    required_panels:
+      - testing-review
+      - code-review
+      - security-review
+    optional_panels: []
+
+# Proof-of-Correctness Rules (Phase 5a)
+# Verification level requirements per risk classification.
+# Consuming repos declare compliance via governance/schemas/test-governance.schema.json.
+proof_of_correctness:
+  enabled: true
+  rules:
+    - name: basic_verification
+      description: "Low-risk changes require basic test coverage."
+      condition: risk_level in ["low", "negligible"]
+      required_verification_level: basic
+      enforcement: warn
+    - name: standard_verification
+      description: "Medium-risk changes require standard verification (unit + integration + type checks)."
+      condition: risk_level == "medium"
+      required_verification_level: standard
+      enforcement: warn
+    - name: strict_verification
+      description: "High or critical risk changes require strict verification (property tests, contract checks)."
+      condition: risk_level in ["high", "critical"]
+      required_verification_level: strict
+      enforcement: block
+
+# Cross-Repo Escalation Rules
+# Define when and how framework-level issues are escalated to the upstream governance repo.
+# Only active in consuming repos with escalation.enabled: true in project.yaml.
+cross_repo_escalation:
+  enabled: false  # Opt-in; consuming repos enable via project.yaml
+  rules:
+    - name: governance_path_issue
+      description: "Issue involves .ai/governance/ files — likely a framework bug."
+      criteria_type: path_based
+      condition: issue_affects_paths_matching ".ai/governance/**"
+      default_severity: medium
+      severity_override:
+        condition: affected_path_matches "governance/prompts/reviews/*" or affected_path_matches "governance/schemas/*"
+        severity: high
+
+    - name: governance_workflow_failure
+      description: "Governance CI workflow fails due to framework code, not project code."
+      criteria_type: workflow_failure
+      condition: workflow_name == "dark-factory-governance" and error_source == "framework"
+      default_severity: high
+      severity_override:
+        condition: governance_cannot_produce_merge_decision == true
+        severity: critical
+
+    - name: policy_gap_detected
+      description: "Policy engine encounters a scenario with no matching rule."
+      criteria_type: policy_gap
+      condition: policy_engine_result == "NO_MATCH"
+      default_severity: medium
+      severity_override:
+        condition: gap_in_security_or_compliance_rules == true
+        severity: high
+
+    - name: schema_validation_failure
+      description: "Valid-looking governance artifact fails schema validation."
+      criteria_type: schema_validation
+      condition: schema_validation_failed and schema_path_matches "governance/schemas/*"
+      default_severity: high
+      severity_override:
+        condition: schema_name in ["panel-output", "run-manifest"]
+        severity: critical
+
+    - name: init_bootstrap_failure
+      description: "init.sh fails due to missing governance framework files."
+      criteria_type: init_failure
+      condition: init_script_failed and error_cause == "missing_governance_file"
+      default_severity: low
+      severity_override:
+        condition: consuming_repo_cannot_bootstrap == true
+        severity: medium
+
+  # Rate limiting prevents spam from misconfigured consuming repos.
+  rate_limit:
+    max_per_session: 3
+    max_per_day: 10
+    cooldown_minutes: 5
+
+  # Dedup strategy: hash-based markers in upstream issue body.
+  dedup:
+    strategy: body_marker
+    marker_format: "<!-- dedup:{key} -->"
+    hash_algorithm: sha256
+    hash_length: 16

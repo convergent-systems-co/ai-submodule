@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/breaking-change.schema.json",
+  "title": "BreakingChange",
+  "description": "Records a breaking change to a governance artifact. Every breaking change, whether to a schema, policy, prompt, workflow, or convention, produces one record conforming to this schema. This is an audit artifact used by the backward compatibility workflow to track migrations and assess consumer impact.",
+  "type": "object",
+  "required": [
+    "change_id",
+    "timestamp",
+    "affected_artifact",
+    "change_type",
+    "severity",
+    "version_before",
+    "version_after",
+    "description",
+    "migration_path",
+    "affected_consumers"
+  ],
+  "properties": {
+    "change_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this breaking change record."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when the breaking change was introduced."
+    },
+    "affected_artifact": {
+      "type": "object",
+      "description": "The governance artifact that contains the breaking change.",
+      "required": ["path", "artifact_type", "artifact_classification"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "File path relative to the repository root (e.g., 'governance/schemas/panel-output.schema.json')."
+        },
+        "artifact_type": {
+          "type": "string",
+          "enum": ["schema", "policy", "prompt", "workflow", "template", "convention", "configuration"],
+          "description": "Kind of governance artifact (e.g., schema, policy, prompt). Distinct from artifact_classification which captures the high-level three-type model."
+        },
+        "artifact_classification": {
+          "type": "string",
+          "enum": ["cognitive", "enforcement", "audit"],
+          "description": "Which governance artifact category this belongs to."
+        }
+      },
+      "additionalProperties": false
+    },
+    "change_type": {
+      "type": "string",
+      "enum": ["breaking", "deprecation"],
+      "description": "Whether this is an immediate breaking change or a deprecation with a migration window. Additive changes do not produce breaking change records."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"],
+      "description": "Impact severity of the breaking change. Critical: breaks all consumers immediately. High: breaks most consumers. Medium: breaks some consumers. Low: breaks edge cases only."
+    },
+    "version_before": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the artifact before the breaking change."
+    },
+    "version_after": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the artifact after the breaking change. Must be a major version bump for breaking changes."
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what changed and why it breaks backward compatibility."
+    },
+    "breaking_details": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["field_or_section", "change_description"],
+        "properties": {
+          "field_or_section": {
+            "type": "string",
+            "description": "The specific field, section, or property that changed."
+          },
+          "change_description": {
+            "type": "string",
+            "description": "What changed (removed, renamed, type changed, semantics changed, etc.)."
+          },
+          "previous_value": {
+            "type": "string",
+            "description": "The previous value, type, or behavior."
+          },
+          "new_value": {
+            "type": "string",
+            "description": "The new value, type, or behavior."
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Itemized list of specific breaking changes within the artifact."
+    },
+    "migration_path": {
+      "type": "object",
+      "description": "Instructions for consumers to migrate to the new version.",
+      "required": ["steps"],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Ordered list of migration steps."
+        },
+        "automated": {
+          "type": "boolean",
+          "description": "Whether the migration can be performed automatically (e.g., via a migration script).",
+          "default": false
+        },
+        "migration_script": {
+          "type": "string",
+          "description": "Path to a migration script, if automated migration is available."
+        },
+        "estimated_effort": {
+          "type": "string",
+          "enum": ["trivial", "small", "medium", "large"],
+          "description": "Estimated effort for manual migration. Trivial: search-and-replace. Small: single-file changes. Medium: multi-file changes. Large: architectural changes."
+        },
+        "deprecation_deadline": {
+          "type": ["string", "null"],
+          "format": "date",
+          "description": "For deprecations (change_type='deprecation'): the date by which consumers must migrate. Must be non-null for deprecations. Null or omitted for immediate breaking changes (change_type='breaking')."
+        }
+      },
+      "additionalProperties": false
+    },
+    "affected_consumers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["consumer"],
+        "properties": {
+          "consumer": {
+            "type": "string",
+            "description": "Identifier for the affected consumer (e.g., 'governance CI workflow', 'consuming repos via init.sh', 'panel execution engine', 'Tech Lead persona')."
+          },
+          "impact": {
+            "type": "string",
+            "description": "How this consumer is affected by the breaking change."
+          },
+          "migration_status": {
+            "type": "string",
+            "enum": ["pending", "in_progress", "completed", "not_applicable"],
+            "description": "Migration status for this consumer.",
+            "default": "pending"
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "description": "List of consumers affected by this breaking change."
+    },
+    "rollback_strategy": {
+      "type": "object",
+      "description": "How to roll back if the breaking change causes issues.",
+      "properties": {
+        "rollback_possible": {
+          "type": "boolean",
+          "description": "Whether the breaking change can be rolled back."
+        },
+        "rollback_steps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Steps to roll back the change."
+        },
+        "rollback_risks": {
+          "type": "string",
+          "description": "Risks associated with rolling back."
+        }
+      },
+      "additionalProperties": false
+    },
+    "approval": {
+      "type": "object",
+      "description": "Approval chain for the breaking change.",
+      "required": ["approved_by", "approval_date"],
+      "properties": {
+        "approved_by": {
+          "type": "string",
+          "description": "Who approved the breaking change (GitHub username, 'tech-lead', or 'policy-engine')."
+        },
+        "approval_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the breaking change was approved."
+        },
+        "justification": {
+          "type": "string",
+          "description": "Why the breaking change is necessary."
+        }
+      },
+      "additionalProperties": false
+    },
+    "pr_number": {
+      "type": "integer",
+      "description": "PR number that introduces this breaking change."
+    },
+    "issue_number": {
+      "type": "integer",
+      "description": "Issue number tracking this breaking change."
+    }
+  },
+  "additionalProperties": false
+}

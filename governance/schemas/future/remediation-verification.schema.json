@@ -1,0 +1,259 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/remediation-verification.schema.json",
+  "title": "RemediationVerification",
+  "description": "Records the outcome of post-remediation verification. After a remediation action is executed, the system monitors metrics for the verification window (default 15 minutes per drift-remediation.yaml) to confirm the drift is resolved. This is an audit artifact and is immutable after creation.",
+  "type": "object",
+  "required": [
+    "verification_id",
+    "remediation_id",
+    "component",
+    "verification_window",
+    "checks",
+    "verdict",
+    "timestamps"
+  ],
+  "properties": {
+    "verification_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this verification record."
+    },
+    "remediation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the remediation action being verified. References remediation-action.schema.json."
+    },
+    "component": {
+      "type": "string",
+      "description": "Component being verified. Must match the component in the remediation action record."
+    },
+    "baseline_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Baseline used for comparison during verification. References baseline.schema.json."
+    },
+    "verification_window": {
+      "type": "object",
+      "description": "The observation window used for verification.",
+      "required": ["duration_minutes", "started_at", "ended_at"],
+      "properties": {
+        "duration_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Configured verification window duration. Default is 15 minutes per drift-remediation.yaml."
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the verification observation window began."
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the verification observation window ended."
+        },
+        "early_termination": {
+          "type": "boolean",
+          "description": "Whether verification was terminated before the full window elapsed (e.g., due to immediate re-drift or worsening metrics).",
+          "default": false
+        },
+        "early_termination_reason": {
+          "type": "string",
+          "description": "Reason for early termination, if applicable."
+        }
+      },
+      "additionalProperties": false
+    },
+    "checks": {
+      "type": "array",
+      "description": "Individual metric checks performed during the verification window.",
+      "items": {
+        "type": "object",
+        "required": ["metric_name", "baseline_value", "post_remediation_value", "threshold", "result"],
+        "properties": {
+          "metric_name": {
+            "type": "string",
+            "description": "Name of the metric being checked (e.g., 'error_rate', 'latency_p99', 'config_hash')."
+          },
+          "metric_type": {
+            "type": "string",
+            "enum": ["numeric", "boolean", "string_match"],
+            "description": "Type of comparison performed.",
+            "default": "numeric"
+          },
+          "baseline_value": {
+            "description": "Expected value from the baseline.",
+            "oneOf": [
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "string" }
+            ]
+          },
+          "pre_remediation_value": {
+            "description": "Value observed before remediation (at drift detection time).",
+            "oneOf": [
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "string" }
+            ]
+          },
+          "post_remediation_value": {
+            "description": "Value observed after remediation (during verification window).",
+            "oneOf": [
+              { "type": "number" },
+              { "type": "boolean" },
+              { "type": "string" }
+            ]
+          },
+          "threshold": {
+            "type": "object",
+            "description": "Acceptance threshold for this metric.",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["within_percent", "within_absolute", "exact_match", "less_than", "greater_than"],
+                "description": "Type of threshold comparison."
+              },
+              "value": {
+                "type": "number",
+                "description": "Threshold value (percent deviation for within_percent, absolute value for others)."
+              }
+            },
+            "required": ["type"],
+            "additionalProperties": false
+          },
+          "result": {
+            "type": "string",
+            "enum": ["pass", "fail", "inconclusive"],
+            "description": "Whether the post-remediation value meets the threshold. 'inconclusive' if insufficient data was collected during the window."
+          },
+          "sampled_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Timestamp of the metric sample used for this check."
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "verdict": {
+      "type": "object",
+      "description": "Overall verification verdict.",
+      "required": ["result", "rationale"],
+      "properties": {
+        "result": {
+          "type": "string",
+          "enum": ["pass", "fail", "partial", "inconclusive"],
+          "description": "Aggregate verification result. 'pass' = all checks pass, drift resolved. 'fail' = one or more critical checks failed. 'partial' = some checks pass, non-critical checks inconclusive. 'inconclusive' = insufficient data to determine."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Explanation of the verdict, referencing specific checks."
+        },
+        "checks_passed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that passed."
+        },
+        "checks_failed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that failed."
+        },
+        "checks_inconclusive": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of checks that were inconclusive."
+        }
+      },
+      "additionalProperties": false
+    },
+    "revert": {
+      "type": "object",
+      "description": "Revert action taken if verification failed. Only present when revert_on_verification_failure is true in drift-remediation.yaml and verification failed.",
+      "properties": {
+        "reverted": {
+          "type": "boolean",
+          "description": "Whether the remediation action was reverted."
+        },
+        "reverted_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the revert action."
+        },
+        "revert_action": {
+          "type": "string",
+          "description": "Description of what was done to revert."
+        },
+        "revert_result": {
+          "type": "string",
+          "enum": ["success", "failed"],
+          "description": "Whether the revert itself succeeded."
+        },
+        "escalated_after_revert": {
+          "type": "boolean",
+          "description": "Whether the issue was escalated to human review after revert.",
+          "default": true
+        }
+      },
+      "required": ["reverted"],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "reverted": { "const": true }
+            },
+            "required": ["reverted"]
+          },
+          "then": {
+            "required": ["reverted_at", "revert_action", "revert_result"]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "new_baseline": {
+      "type": "object",
+      "description": "New baseline captured after successful verification. Only present when verdict is 'pass'.",
+      "properties": {
+        "baseline_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "ID of the new baseline. References baseline.schema.json."
+        },
+        "captured_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the new baseline was captured."
+        },
+        "supersedes": {
+          "type": "string",
+          "format": "uuid",
+          "description": "ID of the previous baseline that this one supersedes."
+        }
+      },
+      "additionalProperties": false
+    },
+    "timestamps": {
+      "type": "object",
+      "description": "Lifecycle timestamps for this verification.",
+      "required": ["created_at"],
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this verification record was created."
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When verification was finalized (verdict rendered)."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

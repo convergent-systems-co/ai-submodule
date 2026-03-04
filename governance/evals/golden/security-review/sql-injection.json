@@ -1,0 +1,15 @@
+{
+  "test_id": "security-review-sql-injection-001",
+  "panel": "security-review",
+  "description": "SQL injection vulnerability in user input handling — unsanitized user input concatenated directly into SQL query string",
+  "input": {
+    "diff": "diff --git a/src/db.py b/src/db.py\nindex 1a2b3c4..5d6e7f8 100644\n--- a/src/db.py\n+++ b/src/db.py\n@@ -10,6 +10,15 @@ import sqlite3\n \n db = sqlite3.connect('app.db')\n \n+def get_user(username):\n+    \"\"\"Fetch user record by username.\"\"\"\n+    cursor = db.cursor()\n+    query = \"SELECT * FROM users WHERE username = '\" + username + \"'\"\n+    cursor.execute(query)\n+    return cursor.fetchone()\n+\n+def get_user_orders(user_id):\n+    cursor = db.cursor()\n+    query = f\"SELECT * FROM orders WHERE user_id = {user_id}\"\n+    cursor.execute(query)\n+    return cursor.fetchall()",
+    "files_changed": ["src/db.py"],
+    "change_type": "feat"
+  },
+  "expected": {
+    "min_findings_critical": 1,
+    "expected_categories": ["sql-injection"],
+    "expected_verdict": "request_changes"
+  }
+}

@@ -1,0 +1,226 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/remediation-action.schema.json",
+  "title": "RemediationAction",
+  "description": "Records a single auto-remediation action taken in response to detected drift. Every remediation action, whether successful or failed, produces one record conforming to this schema. This is an audit artifact and is immutable after creation.",
+  "type": "object",
+  "required": [
+    "remediation_id",
+    "drift_id",
+    "signal_id",
+    "component",
+    "drift_type",
+    "drift_severity",
+    "action",
+    "authorization",
+    "timestamps",
+    "outcome"
+  ],
+  "properties": {
+    "remediation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this remediation action."
+    },
+    "drift_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the detected drift event that triggered this remediation. Links to the drift detection audit entry."
+    },
+    "signal_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the runtime signal that initiated the drift detection. References runtime-signal.schema.json."
+    },
+    "component": {
+      "type": "string",
+      "description": "Affected component. Must match a component registered in governance/policy/component-registry.yaml."
+    },
+    "drift_type": {
+      "type": "string",
+      "enum": ["configuration", "behavior", "performance", "compliance"],
+      "description": "Category of drift detected. Must match baseline_type values in baseline.schema.json."
+    },
+    "drift_severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "informational"],
+      "description": "Computed severity of the drift at detection time. Auto-remediation is only permitted at or below the ceiling_severity defined in drift-remediation.yaml."
+    },
+    "baseline_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the baseline used for drift comparison. References baseline.schema.json."
+    },
+    "action": {
+      "type": "object",
+      "description": "The remediation action performed.",
+      "required": ["action_type", "description"],
+      "properties": {
+        "action_type": {
+          "type": "string",
+          "description": "Machine-readable action identifier. Must be listed in the allowed_drift_types section of drift-remediation.yaml for auto-remediation, or any action for human-directed remediation.",
+          "enum": [
+            "environment_variable_rollback",
+            "feature_flag_restore",
+            "replica_count_restore",
+            "config_file_restore_from_manifest",
+            "restart_unhealthy_instance",
+            "scale_horizontal_within_bounds",
+            "cache_flush",
+            "connection_pool_reset",
+            "human_directed_action"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the specific action taken."
+        },
+        "parameters": {
+          "type": "object",
+          "description": "Action-specific parameters. Structure varies by action_type.",
+          "additionalProperties": true
+        },
+        "rollback_target": {
+          "type": "string",
+          "description": "The target state being restored to (e.g., manifest ID, config version, baseline snapshot reference)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "authorization": {
+      "type": "object",
+      "description": "Policy authorization chain that permitted this remediation.",
+      "required": ["mode", "policy_profile"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["auto", "human_directed", "human_override"],
+          "description": "How this remediation was authorized. 'auto' = policy engine permitted auto-remediation. 'human_directed' = human explicitly requested remediation. 'human_override' = human overrode a policy block."
+        },
+        "policy_profile": {
+          "type": "string",
+          "description": "Policy profile active at the time of remediation (e.g., 'default', 'fin_pii_high', 'infrastructure_critical')."
+        },
+        "policy_rules_evaluated": {
+          "type": "array",
+          "description": "Policy rules evaluated to authorize this action.",
+          "items": {
+            "type": "object",
+            "required": ["rule_id", "result"],
+            "properties": {
+              "rule_id": {
+                "type": "string",
+                "description": "Identifier of the policy rule (e.g., 'drift_policy.active_incident_rule', 'drift_remediation.ceiling_severity')."
+              },
+              "result": {
+                "type": "string",
+                "enum": ["pass", "fail", "skip"],
+                "description": "Whether the rule permitted the action."
+              },
+              "detail": {
+                "type": "string",
+                "description": "Explanation of the rule evaluation."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "circuit_breaker_state": {
+          "type": "string",
+          "enum": ["closed", "half_open", "open"],
+          "description": "Circuit breaker state at the time of remediation. Remediation is blocked when open."
+        },
+        "human_reviewer": {
+          "type": "string",
+          "description": "GitHub username of the human who authorized, if mode is human_directed or human_override."
+        },
+        "override_justification": {
+          "type": "string",
+          "description": "Required when mode is human_override. Explains why the policy block was overridden."
+        }
+      },
+      "additionalProperties": false
+    },
+    "timestamps": {
+      "type": "object",
+      "description": "Lifecycle timestamps for this remediation action.",
+      "required": ["initiated_at"],
+      "properties": {
+        "drift_detected_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the drift was first detected."
+        },
+        "initiated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the remediation action was initiated."
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the remediation action completed (success or failure)."
+        },
+        "verification_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When post-remediation verification began."
+        },
+        "verification_completed_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When verification completed."
+        }
+      },
+      "additionalProperties": false
+    },
+    "outcome": {
+      "type": "object",
+      "description": "Result of the remediation action.",
+      "required": ["status"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "success",
+            "failed",
+            "reverted",
+            "verification_pending",
+            "escalated_to_human"
+          ],
+          "description": "Final status of the remediation. 'success' = action executed and verified. 'failed' = action execution failed. 'reverted' = action executed but verification failed, so it was reverted. 'verification_pending' = action executed, verification in progress. 'escalated_to_human' = policy or circuit breaker blocked auto-remediation."
+        },
+        "error_message": {
+          "type": "string",
+          "description": "Error details if status is 'failed'."
+        },
+        "verification_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Reference to the verification record. Links to remediation-verification.schema.json."
+        },
+        "new_baseline_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "If remediation succeeded and was verified, the ID of the new baseline captured post-remediation. References baseline.schema.json."
+        },
+        "escalation_reason": {
+          "type": "string",
+          "description": "Why remediation was escalated to human review, if applicable."
+        }
+      },
+      "additionalProperties": false
+    },
+    "correlation_ids": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Trace IDs, incident IDs, or other identifiers for cross-referencing with observability and incident management systems."
+    },
+    "manifest_id": {
+      "type": "string",
+      "description": "Reference to the run manifest that was active when the drift baseline was established.",
+      "pattern": "^\\d{8}-\\d{6}-[0-9a-f]{7}$"
+    }
+  },
+  "additionalProperties": false
+}

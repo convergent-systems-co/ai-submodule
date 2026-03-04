@@ -1,0 +1,297 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/runtime-di.schema.json",
+  "title": "RuntimeDesignIntent",
+  "description": "Schema for Design Intents generated from runtime signals. A runtime-generated DI is structurally identical to a human-submitted DI but includes provenance metadata indicating machine origin. The policy engine, panels, and manifest system process these identically to human-submitted DIs.",
+  "type": "object",
+  "required": [
+    "di_id",
+    "di_version",
+    "origin",
+    "signal_ids",
+    "affected_component",
+    "severity",
+    "category",
+    "priority",
+    "proposed_panel",
+    "remediation_class",
+    "requires_human_review",
+    "generated_at",
+    "generator_version"
+  ],
+  "properties": {
+    "di_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this Design Intent."
+    },
+    "di_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the DI schema used.",
+      "const": "1.0.0"
+    },
+    "origin": {
+      "type": "string",
+      "const": "runtime-signal",
+      "description": "Provenance marker. Always 'runtime-signal' for machine-generated DIs."
+    },
+    "signal_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "minItems": 1,
+      "description": "Runtime signal IDs that contributed to this DI. References runtime-signal.schema.json signal_id values."
+    },
+    "affected_component": {
+      "type": "string",
+      "description": "Primary affected service, module, or infrastructure component. Must match a component registered in governance/policy/component-registry.yaml."
+    },
+    "affected_components_secondary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional components affected by blast radius."
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "informational"],
+      "description": "Severity as determined by the highest-severity contributing signal, possibly reclassified per governance/policy/severity-reclassification.yaml."
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "error",
+        "latency",
+        "security",
+        "sla_violation",
+        "resource_exhaustion",
+        "configuration_drift",
+        "dependency_failure",
+        "data_integrity",
+        "compliance_violation",
+        "capacity"
+      ],
+      "description": "Primary classification inherited from the triggering signal. Must match runtime-signal.schema.json category values."
+    },
+    "priority": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "Computed priority score. Formula: (severity_weight * 0.35) + (blast_radius_weight * 0.25) + (sla_impact_weight * 0.20) + (recurrence_penalty * 0.10) + (time_decay_bonus * 0.10)."
+    },
+    "priority_label": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3", "P4"],
+      "description": "Human-readable priority label derived from priority score. P0: 80-100, P1: 60-79, P2: 40-59, P3: 20-39, P4: 0-19."
+    },
+    "priority_factors": {
+      "type": "object",
+      "description": "Breakdown of the priority calculation factors.",
+      "properties": {
+        "severity_weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "critical=100, high=75, medium=50, low=25, informational=10."
+        },
+        "blast_radius_weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "min(100, count(affected_components) * 20)."
+        },
+        "sla_impact_weight": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "tier_1=100, tier_2=70, tier_3=40, no_sla=10."
+        },
+        "recurrence_penalty": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "0 if first occurrence; +20 per recurrence in last 30 days, max 100."
+        },
+        "time_decay_bonus": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Signals older than 1 hour lose 5 points per hour, floor 0."
+        }
+      },
+      "additionalProperties": false
+    },
+    "proposed_panel": {
+      "type": "string",
+      "description": "Primary panel to execute for this DI. Determined by signal category via governance/policy/signal-panel-mapping.yaml."
+    },
+    "proposed_panels_secondary": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Additional panels recommended for execution."
+    },
+    "remediation_class": {
+      "type": "string",
+      "enum": ["auto_remediate", "panel_review", "human_escalation"],
+      "description": "Proposed remediation approach. auto_remediate: system can fix without human intervention. panel_review: panel must evaluate before action. human_escalation: requires human decision-maker."
+    },
+    "correlation_group_id": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "If this DI was correlated with other signals, the group identifier. Null if no correlation."
+    },
+    "recurrence_of": {
+      "type": ["string", "null"],
+      "format": "uuid",
+      "description": "If this DI represents a recurrence of a previously closed DI, the closed DI's ID. Null if first occurrence."
+    },
+    "requires_human_review": {
+      "type": "boolean",
+      "description": "Whether this DI requires human review before any action is taken. True for compliance_violation category, severity >= critical, or when correlation engine flags similarity."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of when this DI was generated."
+    },
+    "generator_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Version of the DI generator that produced this intent."
+    },
+    "signal_summary": {
+      "type": "object",
+      "description": "Summary of the contributing signals.",
+      "properties": {
+        "first_detected": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Earliest signal timestamp."
+        },
+        "last_detected": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Most recent signal timestamp."
+        },
+        "occurrence_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total number of contributing signals (including deduplicated)."
+        },
+        "duration_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Time span from first to last detection."
+        }
+      },
+      "additionalProperties": false
+    },
+    "impact_assessment": {
+      "type": "object",
+      "description": "Assessment of the impact of the anomaly.",
+      "properties": {
+        "blast_radius": {
+          "type": "string",
+          "description": "Description of affected scope."
+        },
+        "user_impact": {
+          "type": "string",
+          "description": "Description of impact on end users."
+        },
+        "sla_impact": {
+          "type": "string",
+          "description": "Which SLAs are affected and to what degree."
+        },
+        "revenue_impact_estimate": {
+          "type": "string",
+          "description": "Estimated revenue impact if applicable."
+        }
+      },
+      "additionalProperties": false
+    },
+    "root_cause_hypothesis": {
+      "type": "string",
+      "description": "Machine-generated provisional root cause analysis. Explicitly labeled as provisional. Based on signal metrics, historical patterns, and dependency graph traversal."
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source", "description"],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Where this evidence came from (e.g., 'runtime-signal', 'metrics-api', 'dependency-graph')."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable description of the evidence."
+          },
+          "data": {
+            "type": "object",
+            "description": "Structured evidence data.",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "description": "Evidence collected to support the root cause hypothesis and priority calculation."
+    },
+    "constraints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Constraints on remediation (e.g., change freeze windows, compliance requirements, dependency constraints)."
+    },
+    "correlation_metadata": {
+      "type": "object",
+      "description": "Metadata from the correlation engine.",
+      "properties": {
+        "correlation_method": {
+          "type": ["string", "null"],
+          "enum": [
+            "fingerprint_match",
+            "component_category_match",
+            "correlation_id_overlap",
+            "root_cause_similarity",
+            null
+          ],
+          "description": "Which correlation criterion matched, if any."
+        },
+        "correlated_di_id": {
+          "type": ["string", "null"],
+          "format": "uuid",
+          "description": "Existing DI that this signal was correlated with, if any."
+        },
+        "similarity_score": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Cosine similarity score if root_cause_similarity method was used."
+        }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending_review",
+        "panel_executing",
+        "remediation_in_progress",
+        "resolved",
+        "escalated",
+        "closed"
+      ],
+      "description": "Current lifecycle status of this DI.",
+      "default": "pending_review"
+    }
+  },
+  "additionalProperties": false
+}

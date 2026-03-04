@@ -1,0 +1,66 @@
+name: Bug Report
+description: Report something that isn't working correctly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Bug Report
+        Provide enough detail to reproduce the issue and understand what should happen instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is broken? Be specific about the observed behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: How can we trigger this bug?
+      placeholder: |
+        1. Step one
+        2. Step two
+        3. Step three
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: What actually happens? Include error messages if applicable.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: How bad is this?
+      options:
+        - Low — Cosmetic or minor inconvenience
+        - Medium — Functionality impaired but workaround exists
+        - High — Core functionality broken, no workaround
+        - Critical — Security vulnerability or data loss
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Environment details, screenshots, logs, or any other relevant information.
+    validations:
+      required: false

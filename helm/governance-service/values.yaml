@@ -1,0 +1,100 @@
+# Default values for governance-service Helm chart.
+# Override these in your deployment-specific values file.
+
+replicaCount: 2
+
+image:
+  # IMPORTANT: Use Azure Container Registry (ACR), NOT GHCR or Google.
+  # Replace <acr-name> with your ACR instance name.
+  repository: "<acr-name>.azurecr.io/governance-service"
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "governance-service-sa"
+
+podAnnotations: {}
+podLabels: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: false
+  className: "azure-application-gateway"
+  annotations: {}
+  hosts:
+    - host: governance.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi
+
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+# Policy configuration
+governance:
+  # Policy profile to use (must exist in the container image)
+  policyProfile: "default"
+  # Additional policy profiles to mount via ConfigMap
+  customProfiles: {}
+
+# Health probes
+livenessProbe:
+  httpGet:
+    path: /api/v1/health
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+readinessProbe:
+  httpGet:
+    path: /api/v1/health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Key Vault integration (SecretProviderClass)
+keyvault:
+  name: ""
+  tenantId: ""
+
+# Network Policy
+networkPolicy:
+  enabled: true
+  ingressNamespace: "ingress-system"

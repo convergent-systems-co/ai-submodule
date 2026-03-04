@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dark Forge — Risks &amp; Mitigation</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3352;
+      --accent: #5b8dee;
+      --accent2: #7c3aed;
+      --green: #22c55e;
+      --yellow: #facc15;
+      --red: #ef4444;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --code-bg: #0d1117;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 1.7; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .page { max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    /* Hero */
+    .hero { text-align: center; padding: 48px 0 40px; border-bottom: 1px solid var(--border); margin-bottom: 40px; }
+    .hero h1 { font-size: 2.2rem; font-weight: 700; letter-spacing: -0.5px; }
+    .hero h1 span { background: linear-gradient(90deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { color: var(--muted); margin-top: 10px; font-size: 1rem; max-width: 540px; margin-left: auto; margin-right: auto; }
+    .nav-links { margin-top: 18px; display: flex; justify-content: center; gap: 20px; font-size: 0.85rem; }
+
+    /* Summary verdict */
+    .verdict { display: flex; align-items: center; gap: 20px; background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.3); border-radius: 12px; padding: 20px 24px; margin-bottom: 48px; }
+    .verdict-icon { font-size: 2.4rem; flex-shrink: 0; }
+    .verdict h3 { font-size: 1.05rem; font-weight: 700; color: var(--green); margin-bottom: 4px; }
+    .verdict p { font-size: 0.9rem; color: var(--muted); }
+
+    /* Risk cards */
+    .risk { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 32px; overflow: hidden; }
+    .risk-header { display: flex; align-items: center; gap: 14px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
+    .risk-number { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; flex-shrink: 0; }
+    .risk-number.med { background: rgba(250,204,21,0.15); color: var(--yellow); border: 1px solid rgba(250,204,21,0.3); }
+    .risk-number.check { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .risk-title { flex: 1; }
+    .risk-title h2 { font-size: 1.1rem; font-weight: 700; }
+    .risk-title p { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+    .risk-badge { font-size: 0.72rem; font-weight: 700; border-radius: 20px; padding: 4px 12px; white-space: nowrap; }
+    .badge-med { background: rgba(250,204,21,0.12); color: var(--yellow); border: 1px solid rgba(250,204,21,0.3); }
+    .badge-check { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+    .badge-done { background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+    .risk-body { padding: 20px 24px; }
+
+    /* What happens / why it matters */
+    .risk-detail { background: var(--surface2); border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; font-size: 0.9rem; color: var(--muted); }
+    .risk-detail strong { color: var(--text); }
+
+    /* Options table */
+    .option-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 12px; }
+
+    .option { display: flex; gap: 16px; border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; margin-bottom: 8px; transition: border-color 0.15s; }
+    .option:hover { border-color: var(--accent); }
+    .option.recommended { border-color: var(--green); background: rgba(34,197,94,0.04); }
+    .option-left { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .effort-pill { font-size: 0.68rem; font-weight: 700; border-radius: 10px; padding: 2px 8px; white-space: nowrap; text-align: center; }
+    .effort-low  { background: rgba(34,197,94,0.12);  color: var(--green); }
+    .effort-med  { background: rgba(250,204,21,0.12); color: var(--yellow); }
+    .rec-pill { font-size: 0.65rem; font-weight: 700; background: rgba(34,197,94,0.15); color: var(--green); border-radius: 10px; padding: 2px 8px; }
+    .option-body h4 { font-size: 0.92rem; font-weight: 700; margin-bottom: 4px; }
+    .option-body p { font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; }
+
+    /* Code blocks */
+    .code-wrap { position: relative; }
+    pre { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font-size: 0.82rem; line-height: 1.6; margin: 0; }
+    code { font-family: 'Cascadia Code', 'Consolas', monospace; }
+    p code, li code, td code { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 0.83em; }
+    .cmd  { color: #93c5fd; }
+    .str  { color: #86efac; }
+    .flag { color: #fcd34d; }
+    .cmt  { color: #4b5563; }
+    .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--surface2); border: 1px solid var(--border); border-radius: 5px; color: var(--muted); font-size: 0.7rem; font-family: 'Segoe UI', system-ui, sans-serif; padding: 3px 10px; cursor: pointer; transition: all 0.15s; }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+    /* Checklist */
+    .checklist { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+    .checklist li { display: flex; align-items: flex-start; gap: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 0.9rem; }
+    .checklist li .ck-num { flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; color: var(--muted); margin-top: 1px; }
+    .checklist li strong { color: var(--text); }
+    .checklist li p { color: var(--muted); font-size: 0.85rem; margin-top: 2px; }
+
+    /* Divider */
+    .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 48px 0 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+    /* Footer */
+    footer { text-align: center; color: var(--muted); font-size: 0.82rem; padding-top: 40px; border-top: 1px solid var(--border); margin-top: 40px; }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>🛡️ <span>Risks &amp; Mitigation</span></h1>
+    <p>Adding Dark Forge to an existing repo is low-risk by default — and zero-risk if you follow this guide before running <code>init.ps1</code>.</p>
+    <div class="nav-links">
+      <a href="team-starter.html">← Team Starter</a>
+      <a href="architecture.html">Architecture Diagram</a>
+      <a href="https://github.com/SET-Apps/ai-submodule/blob/main/README.md" target="_blank">Official README ↗</a>
+    </div>
+  </div>
+
+  <!-- VERDICT -->
+  <div class="verdict">
+    <div class="verdict-icon">✅</div>
+    <div>
+      <h3>Total effort to reach zero risk: under 15 minutes</h3>
+      <p>There are exactly two risks worth knowing about. Both have trivial mitigations. Everything else the framework adds is either a symlink, a new folder, or a git submodule pointer — none of which can break your existing repo.</p>
+    </div>
+  </div>
+
+  <!-- RISK 1 -->
+  <div class="risk">
+    <div class="risk-header">
+      <div class="risk-number check">1</div>
+      <div class="risk-title">
+        <h2>CODEOWNERS overwrite</h2>
+        <p><code>init.ps1</code> generates a fresh <code>CODEOWNERS</code> file — which replaces yours if it already exists</p>
+      </div>
+      <span class="risk-badge badge-check">Check first</span>
+    </div>
+    <div class="risk-body">
+      <div class="risk-detail">
+        <strong>What happens:</strong> The bootstrap script writes a new <code>CODEOWNERS</code> at the repo root defining ownership for <code>.ai/</code> and governance paths. If you already have a <code>CODEOWNERS</code> file with your team's path assignments, it gets silently replaced. PR review requirements tied to those rules stop working until you notice and fix it.
+      </div>
+
+      <div class="option-label">Pick a mitigation — any one of these eliminates the risk:</div>
+
+      <div class="option recommended">
+        <div class="option-left">
+          <span class="effort-pill effort-low">2 min</span>
+          <span class="rec-pill">★ Recommended</span>
+        </div>
+        <div class="option-body">
+          <h4>Back up → run init → merge</h4>
+          <p>Save your existing file before init, then copy your rules back in. One-time, permanent fix.</p>
+          <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code><span class="cmt"># Step 1 — before running init</span>
+<span class="cmd">Copy-Item</span> <span class="str">CODEOWNERS</span> <span class="str">CODEOWNERS.bak</span>
+
+<span class="cmt"># Step 2 — run init as normal</span>
+<span class="cmd">powershell</span> <span class="flag">-ExecutionPolicy Bypass -File</span> <span class="str">.ai\bin\init.ps1</span> <span class="flag">-InstallDeps</span>
+
+<span class="cmt"># Step 3 — merge your rules back (open both files, paste your entries in)</span>
+<span class="cmd">code</span> <span class="str">CODEOWNERS CODEOWNERS.bak</span></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="option">
+        <div class="option-left">
+          <span class="effort-pill effort-low">1 min</span>
+        </div>
+        <div class="option-body">
+          <h4>Skip CODEOWNERS entirely</h4>
+          <p>After init runs, restore your original file before committing. Dark Forge still works — it just won't auto-assign ownership for its own paths.</p>
+          <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code><span class="cmt"># After init runs, before git add</span>
+<span class="cmd">Copy-Item</span> <span class="str">CODEOWNERS.bak</span> <span class="str">CODEOWNERS</span> <span class="flag">-Force</span></code></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- RISK 2 -->
+  <div class="risk">
+    <div class="risk-header">
+      <div class="risk-number med">2</div>
+      <div class="risk-title">
+        <h2>5 new CI workflows run on every PR</h2>
+        <p>Governance workflows are copied to <code>.github/workflows/</code> and trigger automatically once committed</p>
+      </div>
+      <span class="risk-badge badge-med">Medium</span>
+    </div>
+    <div class="risk-body">
+      <div class="risk-detail">
+        <strong>What happens:</strong> The five workflows — <code>dark-factory-governance.yml</code>, <code>plan-archival.yml</code>, <code>propagate-submodule.yml</code>, <code>issue-monitor.yml</code>, <code>jm-compliance.yml</code> — fire on PR and push events. They won't break your existing pipeline, but they <strong>add CI runtime and GitHub Actions minutes</strong> to every PR. On a high-frequency repo this adds up fast.
+      </div>
+
+      <div class="option-label">Pick a mitigation — pick one or combine:</div>
+
+      <div class="option recommended">
+        <div class="option-left">
+          <span class="effort-pill effort-low">30 sec</span>
+          <span class="rec-pill">★ Easiest</span>
+        </div>
+        <div class="option-body">
+          <h4>Disable workflows in GitHub UI</h4>
+          <p>Commit them but keep them switched off. Enable one at a time as your team is ready. Fully reversible with one click.</p>
+          <ol style="color:var(--muted);font-size:0.85rem;padding-left:18px;margin-top:4px;display:flex;flex-direction:column;gap:4px">
+            <li>Go to your repo → <strong>Actions</strong> tab</li>
+            <li>Click the workflow name in the left sidebar</li>
+            <li>Click <strong>⋯ → Disable workflow</strong></li>
+            <li>Repeat for each of the 5 workflows (30 sec total)</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="option">
+        <div class="option-left">
+          <span class="effort-pill effort-low">5 min</span>
+        </div>
+        <div class="option-body">
+          <h4>Stage everything except workflows</h4>
+          <p>Use local mode until you're ready. Don't commit the workflow files yet — they only trigger once they're in the remote repo.</p>
+          <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code><span class="cmt"># After init, exclude workflow files from your first commit</span>
+<span class="cmd">git add</span> <span class="flag">-A</span>
+<span class="cmd">git reset</span> <span class="str">.github/workflows/dark-factory-governance.yml</span>
+<span class="cmd">git reset</span> <span class="str">.github/workflows/plan-archival.yml</span>
+<span class="cmd">git reset</span> <span class="str">.github/workflows/propagate-submodule.yml</span>
+<span class="cmd">git reset</span> <span class="str">.github/workflows/issue-monitor.yml</span>
+<span class="cmd">git reset</span> <span class="str">.github/workflows/jm-compliance.yml</span>
+<span class="cmd">git commit</span> <span class="flag">-m</span> <span class="str">"chore: add .ai governance submodule (workflows pending)"</span></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="option">
+        <div class="option-left">
+          <span class="effort-pill effort-med">10 min</span>
+        </div>
+        <div class="option-body">
+          <h4>Scope workflows to a specific branch prefix</h4>
+          <p>Edit each workflow's trigger so it only fires on <code>dark-factory/*</code> branches. Your main dev branches are untouched.</p>
+          <div class="code-wrap">
+            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+            <pre><code><span class="cmt"># Add this to the `on:` block in each workflow YAML</span>
+on:
+  pull_request:
+    branches:
+      <span class="flag">- dark-factory/**</span>   <span class="cmt"># only runs on DF feature branches</span>
+  push:
+    branches:
+      <span class="flag">- dark-factory/**</span></code></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ZERO-RISK CHECKLIST -->
+  <div class="section-title">✅ Zero-Risk Pre-Flight Checklist</div>
+  <p style="color:var(--muted);font-size:0.9rem;margin-bottom:16px">Run through this <em>before</em> you touch <code>init.ps1</code>. Takes 5 minutes. Saves headaches.</p>
+
+  <ul class="checklist">
+    <li>
+      <div class="ck-num">1</div>
+      <div>
+        <strong>Do you have a CODEOWNERS file?</strong>
+        <p>Run <code>Get-Item CODEOWNERS</code>. If it exists → back it up now: <code>Copy-Item CODEOWNERS CODEOWNERS.bak</code></p>
+      </div>
+    </li>
+    <li>
+      <div class="ck-num">2</div>
+      <div>
+        <strong>Is this a high-frequency repo with active CI?</strong>
+        <p>If yes → plan to disable the 5 new workflows in GitHub Actions UI right after your first push. Takes 30 seconds.</p>
+      </div>
+    </li>
+    <li>
+      <div class="ck-num">3</div>
+      <div>
+        <strong>Do you already have branch protection rules tied to specific workflow names?</strong>
+        <p>New workflows won't break them — but check your branch protection settings after committing so nothing is unexpectedly blocking merges.</p>
+      </div>
+    </li>
+    <li>
+      <div class="ck-num">4</div>
+      <div>
+        <strong>Are you on a shared repo with teammates actively working?</strong>
+        <p>Give them a heads-up: "I'm adding the Dark Forge submodule. You'll need to run <code>git submodule update --init --recursive</code> after pulling."</p>
+      </div>
+    </li>
+    <li>
+      <div class="ck-num">5</div>
+      <div>
+        <strong>Windows without Developer Mode enabled?</strong>
+        <p>Symlinks won't work — init falls back to file copies. Everything still works, but re-run <code>init.ps1</code> after each submodule update to keep copies in sync. Or enable Developer Mode: <strong>Settings → System → For developers → Developer Mode → On</strong>.</p>
+      </div>
+    </li>
+  </ul>
+
+  <div style="margin-top:32px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:20px 24px;display:flex;gap:14px;align-items:flex-start">
+    <span style="font-size:1.6rem;flex-shrink:0">🟢</span>
+    <div>
+      <p style="font-weight:700;color:var(--green);margin-bottom:4px">After the checklist — you're good to go</p>
+      <p style="font-size:0.88rem;color:var(--muted)">Run <code>init.ps1 -InstallDeps</code>, commit, disable workflows in the UI if needed, merge your CODEOWNERS back. The rest of the framework adds <strong>zero breaking changes</strong> to anything you already have.</p>
+    </div>
+  </div>
+
+  <footer>
+    Dark Forge · SET-Apps ·
+    <a href="team-starter.html">Team Starter Guide</a> ·
+    <a href="architecture.html">Architecture Diagram</a> ·
+    <a href="https://github.com/SET-Apps/ai-submodule/blob/main/README.md" target="_blank">Official README ↗</a>
+  </footer>
+
+</div>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.nextElementSibling;
+    navigator.clipboard.writeText(pre.innerText).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+</script>
+</body>
+</html>

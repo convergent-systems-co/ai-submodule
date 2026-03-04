@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/convergent-systems-co/dark-forge/governance/schemas/version-manifest.schema.json",
+  "title": "Version Manifest",
+  "description": "Tracks version metadata for governance framework updates in consuming repos.",
+  "type": "object",
+  "required": ["version", "commit_sha", "updated_at"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Semantic version tag (e.g., v1.5.0) or commit SHA if untagged."
+    },
+    "commit_sha": {
+      "type": "string",
+      "description": "Full commit SHA of the submodule at this version.",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of when the update was applied."
+    },
+    "previous_version": {
+      "type": "string",
+      "description": "Previous version or commit SHA before this update."
+    },
+    "previous_commit_sha": {
+      "type": "string",
+      "description": "Previous commit SHA before this update.",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "changelog_summary": {
+      "type": "string",
+      "description": "Summary of changes included in this update."
+    },
+    "breaking_changes": {
+      "type": "boolean",
+      "description": "Whether breaking changes were detected in this update.",
+      "default": false
+    },
+    "drift_detected": {
+      "type": "boolean",
+      "description": "Whether local drift from upstream was detected.",
+      "default": false
+    },
+    "update_method": {
+      "type": "string",
+      "enum": ["update.sh", "manual", "ci-workflow", "init-refresh"],
+      "description": "How this update was applied."
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,174 @@
+# Fast-Track Policy Profile
+# Lightweight profile for trivial changes (docs, typos, chores, test-only).
+# Reduces ceremony while maintaining security-review as a non-negotiable gate.
+
+profile_name: fast-track
+profile_version: "1.0.0"
+description: >
+  Lightweight policy profile for trivial changes such as documentation updates,
+  typo fixes, chore tasks, and test-only changes. Reduces required panels and
+  lowers confidence thresholds to minimize ceremony overhead. Security-review
+  remains mandatory — it is never skipped regardless of change type.
+
+# Trigger Conditions
+# Defines which change types qualify for fast-track evaluation.
+# AI agents use these to determine whether to select this profile.
+trigger_conditions:
+  change_types:
+    - docs_only
+    - chore
+    - typo_fix
+    - test_only
+  description: >
+    Apply this profile when the change is limited to documentation, typos,
+    chore maintenance, or test files only. Any change touching application
+    source code, infrastructure, or security-sensitive paths must use the
+    default or stricter profile.
+
+# Plan Requirements
+# Fast-track changes with fewer than 3 files do not require a formal plan.
+plan_required:
+  default: true
+  skip_when:
+    files_changed_lt: 3
+
+# Confidence Weighting Model
+# Simplified weights — only two required panels carry weight.
+# Other panels, if executed, receive a default weight via redistribution.
+weighting:
+  model: weighted_average
+  weights:
+    code-review: 0.45
+    security-review: 0.55
+  missing_panel_behavior: redistribute
+
+# Risk Aggregation Model
+# Same as default — risk classification is never relaxed.
+risk_aggregation:
+  model: highest_severity
+  rules:
+    - description: "Any panel reporting critical risk escalates to critical."
+      condition: any_panel_risk == "critical"
+      result: critical
+    - description: "Two or more panels reporting high risk escalates to high."
+      condition: count(panel_risk == "high") >= 2
+      result: high
+    - description: "Single high-risk panel with others low results in medium."
+      condition: count(panel_risk == "high") == 1
+      result: medium
+    - description: "All panels low or negligible results in low."
+      condition: all_panels_risk in ["low", "negligible"]
+      result: low
+
+# Escalation Rules
+# Minimal escalation — only critical risk and policy violations.
+escalation:
+  rules:
+    - name: critical_risk
+      description: "Critical aggregate risk always requires human review."
+      condition: risk_level == "critical"
+      action: human_review_required
+      notify:
+        - role: tech_lead
+
+    - name: policy_violation
+      description: "Any critical severity policy flag blocks merge."
+      condition: any_policy_flag_severity == "critical"
+      action: block
+      notify:
+        - role: tech_lead
+
+# Auto-merge Rules
+# Lower confidence threshold than default (0.75 vs 0.85).
+# Accepts medium risk for fast-track changes.
+auto_merge:
+  enabled: true
+  conditions:
+    - aggregate_confidence >= 0.75
+    - risk_level in ["low", "medium", "negligible"]
+    - no_policy_flags_severity in ["critical", "high"]
+    - all_panel_verdicts in ["approve"]
+    - requires_human_review == false
+    - ci_checks_passed == true
+  operator: all
+
+# Auto-remediate Rules
+# Same as default — automated fixes are still available.
+auto_remediate:
+  enabled: true
+  max_attempts: 3
+  cooldown_minutes: 5
+  conditions:
+    - risk_level in ["low", "medium"]
+    - all_policy_flags.auto_remediable == true
+    - aggregate_confidence >= 0.60
+  allowed_actions:
+    - fix_linting
+    - add_missing_tests
+    - update_documentation
+    - fix_type_errors
+  prohibited_actions:
+    - modify_security_controls
+    - change_api_contracts
+    - alter_data_schemas
+    - modify_infrastructure
+
+# Block Rules
+# Same hard blocks as default — safety is never relaxed.
+block:
+  conditions:
+    - description: "Critical policy violation with no remediation."
+      condition: any_policy_flag_severity == "critical" and not auto_remediable
+    - description: "Confidence below minimum threshold."
+      condition: aggregate_confidence < 0.40
+    - description: "Required panel did not execute."
+      condition: required_panel_missing == true
+    - description: "CI checks failed."
+      condition: ci_checks_passed == false
+    - description: "Destruction recommended by FinOps review requires human approval."
+      condition: destruction_recommended == true
+    - description: "Unresolved Copilot findings (medium+) block auto-merge."
+      condition: copilot_findings_unresolved == true
+    - description: "Open Dependabot alerts (critical/high) block auto-merge."
+      condition: dependabot_alerts_open == true
+
+# Override Rules
+# Streamlined — single approval sufficient for fast-track changes.
+override:
+  enabled: true
+  requirements:
+    min_approvals: 1
+    required_roles:
+      - tech_lead
+    justification_required: true
+    justification_min_length: 25
+  audit:
+    log_to_manifest: true
+    create_github_issue: false
+    notify:
+      - role: tech_lead
+  expiry:
+    cooldown_hours: 24
+    post_override_review_required: false
+
+# Required Panels
+# Only code-review and security-review are required.
+# Security-review is ALWAYS required — non-negotiable.
+required_panels:
+  - code-review
+  - security-review
+
+# Optional Panels
+# All other panels remain available but are not required for fast-track changes.
+# NOTE: optional_panels triggers are advisory hints for AI agents, not machine-evaluated conditions.
+optional_panels:
+  - panel: documentation-review
+    trigger: files_changed_in ["docs/", "*.md"]
+  - panel: testing-review
+    trigger: test_files_changed == true
+  - panel: copilot-review
+    trigger: always
+
+# Human Approval
+# Not required for fast-track changes — auto-merge handles the decision.
+human_approval_required: false

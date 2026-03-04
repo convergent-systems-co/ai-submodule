@@ -1,0 +1,163 @@
+{
+  "panel_name": "security-review",
+  "panel_version": "1.0.0",
+  "confidence_score": 0.86,
+  "risk_level": "low",
+  "compliance_score": 0.95,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-03-02T12:00:00Z",
+  "findings": [
+    {
+      "persona": "compliance/security-auditor",
+      "verdict": "approve",
+      "confidence": 0.90,
+      "rationale": "No injection vectors exploitable in practice. JSON input parsed via json.loads() with only expected keys consumed by _absorb_result(). No secrets or credentials exposed. Error messages contain only debug-level JSON parse error details.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 1,
+        "info": 2
+      }
+    },
+    {
+      "persona": "operations/infrastructure-engineer",
+      "verdict": "approve",
+      "confidence": 0.88,
+      "rationale": "File permissions use platform defaults appropriate for non-sensitive orchestrator metadata. Session directory auto-creation is correctly scoped. Non-atomic file writes are a robustness concern but not a security vulnerability in the local CLI context.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 1,
+        "info": 1
+      }
+    },
+    {
+      "persona": "compliance/compliance-officer",
+      "verdict": "approve",
+      "confidence": 0.95,
+      "rationale": "No PII, PHI, or regulated data introduced. Audit trail preserved and extended with new event types (session_init, session_restored, session_done). No cross-border data transfer implications. Compliant with SOC2 change management requirements.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 2
+      }
+    },
+    {
+      "persona": "quality/adversarial-reviewer",
+      "verdict": "approve",
+      "confidence": 0.87,
+      "rationale": "Session ID sanitization replaces / and space, preventing directory traversal via ../. Idempotent double-complete is correct. Broad exception swallowing in circuit breaker restoration is a debuggability concern. No exploitable state corruption paths identified.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 2,
+        "info": 1
+      }
+    },
+    {
+      "persona": "domain/backend-engineer",
+      "verdict": "approve",
+      "confidence": 0.92,
+      "rationale": "Subprocess call uses list-based arguments (no shell=True) with timeout. Shell script variables are properly quoted. JSON deserialization filters to known dataclass fields only. No command injection, deserialization, or path traversal vectors.",
+      "findings_count": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 3
+      }
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "data_classification": {
+    "level": "internal",
+    "contains_sensitive_evidence": false,
+    "redaction_applied": false
+  },
+  "execution_trace": {
+    "files_read": [
+      "governance/engine/orchestrator/__main__.py",
+      "governance/engine/orchestrator/session.py",
+      "governance/engine/orchestrator/step_runner.py",
+      "governance/engine/orchestrator/step_result.py",
+      "governance/engine/orchestrator/claude_code_dispatcher.py",
+      "governance/engine/orchestrator/config.py",
+      "governance/engine/orchestrator/state_machine.py",
+      "governance/engine/orchestrator/__init__.py",
+      "bin/auto-clear.sh",
+      "governance/engine/tests/test_cli.py",
+      "governance/engine/tests/test_session.py",
+      "governance/engine/tests/test_step_runner.py",
+      "governance/engine/tests/test_step_result.py",
+      "governance/engine/tests/test_claude_code_dispatcher.py",
+      "governance/engine/tests/test_state_machine.py",
+      "governance/prompts/startup.md",
+      "governance/prompts/startup-legacy.md",
+      "project.yaml",
+      "CLAUDE.md",
+      "README.md",
+      "docs/architecture/orchestrator.md",
+      "docs/architecture/context-management.md",
+      "docs/configuration/slash-commands.md",
+      "docs/onboarding/developer-guide.md"
+    ],
+    "diff_lines_analyzed": 5417,
+    "grounding_references": [
+      {
+        "file": "governance/engine/orchestrator/__main__.py",
+        "line": 96,
+        "finding_id": "SA-1"
+      },
+      {
+        "file": "governance/engine/orchestrator/session.py",
+        "line": 97,
+        "finding_id": "AR-1"
+      },
+      {
+        "file": "governance/engine/orchestrator/session.py",
+        "line": 93,
+        "finding_id": "IE-1"
+      },
+      {
+        "file": "governance/engine/orchestrator/session.py",
+        "line": 1004,
+        "finding_id": "IE-2"
+      },
+      {
+        "file": "governance/engine/orchestrator/step_runner.py",
+        "line": 1496,
+        "finding_id": "AR-3"
+      },
+      {
+        "file": "governance/engine/orchestrator/step_runner.py",
+        "line": 1855,
+        "finding_id": "BE-1"
+      },
+      {
+        "file": "bin/auto-clear.sh",
+        "line": 89,
+        "finding_id": "BE-2"
+      },
+      {
+        "file": "governance/engine/orchestrator/session.py",
+        "line": 1013,
+        "finding_id": "BE-3"
+      }
+    ]
+  },
+  "schema_version": "1.2.0",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "branch": "feat/retire-prompt-chaining",
+    "pr_number": 587,
+    "model_id": "claude-opus-4-6",
+    "provider": "anthropic",
+    "triggered_by": "manual"
+  }
+}

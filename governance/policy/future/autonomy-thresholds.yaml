@@ -1,0 +1,83 @@
+# Autonomy Health Thresholds
+#
+# Defines healthy, degraded, and critical ranges for each autonomy metric.
+# Used by the weekly report to flag metrics that need attention.
+#
+# Schema: governance/schemas/autonomy-metrics.schema.json
+# Report template: governance/templates/prompts/weekly-report-template.md
+
+thresholds_version: "1.0.0"
+
+throughput:
+  merge_success_rate:
+    healthy: { gte: 0.80 }
+    degraded: { gte: 0.60, lt: 0.80 }
+    critical: { lt: 0.60 }
+    description: "Ratio of PRs merged vs. created"
+
+  issues_completed_per_week:
+    healthy: { gte: 5 }
+    degraded: { gte: 2, lt: 5 }
+    critical: { lt: 2 }
+    description: "Minimum issues completed per reporting period"
+
+quality:
+  governance_approval_rate:
+    healthy: { gte: 0.70 }
+    degraded: { gte: 0.50, lt: 0.70 }
+    critical: { lt: 0.50 }
+    description: "Ratio of governance reviews resulting in auto_merge"
+
+  human_intervention_rate:
+    healthy: { lte: 0.20 }
+    degraded: { gt: 0.20, lte: 0.40 }
+    critical: { gt: 0.40 }
+    description: "Ratio of PRs requiring human intervention (lower is better)"
+
+  avg_review_cycles_per_pr:
+    healthy: { lte: 1.5 }
+    degraded: { gt: 1.5, lte: 2.5 }
+    critical: { gt: 2.5 }
+    description: "Average review cycles before merge (lower is better)"
+
+  filter_mismatch_events:
+    healthy: { eq: 0 }
+    degraded: { gte: 1, lte: 2 }
+    critical: { gt: 2 }
+    description: "Copilot filter-mismatch warnings from Step 7b diagnostic pre-fetch"
+
+efficiency:
+  avg_context_usage_percent:
+    healthy: { lte: 60 }
+    degraded: { gt: 60, lte: 75 }
+    critical: { gt: 75 }
+    description: "Average context window usage at session end (lower is better)"
+
+  avg_issues_per_session:
+    healthy: { gte: 2.0 }
+    degraded: { gte: 1.0, lt: 2.0 }
+    critical: { lt: 1.0 }
+    description: "Average issues completed per agentic session"
+
+safety:
+  dirty_context_compactions:
+    healthy: { eq: 0 }
+    critical: { gt: 0 }
+    description: "Context compactions with dirty state — must always be 0"
+
+  merge_without_thread_verification:
+    healthy: { eq: 0 }
+    critical: { gt: 0 }
+    description: "Merges bypassing Step 7f-bis — must always be 0"
+
+  max_review_cycles_hit:
+    healthy: { eq: 0 }
+    degraded: { gte: 1, lte: 2 }
+    critical: { gt: 2 }
+    description: "PRs exhausting the 3-cycle review limit"
+
+  escalations_to_human:
+    healthy: { lte: 2 }
+    degraded: { gt: 2, lte: 5 }
+    critical: { gt: 5 }
+    description: "Total escalations to human review per period"

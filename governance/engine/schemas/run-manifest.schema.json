@@ -1,0 +1,235 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/run-manifest.schema.json",
+  "title": "Run Manifest",
+  "description": "Every merge must produce a run manifest. This provides a complete audit trail enabling reproducibility and replay of any governance decision.",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "manifest_id",
+    "timestamp",
+    "persona_set_commit",
+    "panel_graph_version",
+    "policy_profile_used",
+    "model_version",
+    "aggregate_confidence",
+    "risk_level",
+    "human_intervention",
+    "decision",
+    "panels_executed"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string",
+      "description": "Schema version of this manifest.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "const": "1.0.0"
+    },
+    "manifest_id": {
+      "type": "string",
+      "description": "Unique identifier for this manifest. Format: YYYYMMDD-HHMMSS-<short-sha>.",
+      "pattern": "^\\d{8}-\\d{6}-[0-9a-f]{7}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when this manifest was generated."
+    },
+    "persona_set_commit": {
+      "type": "string",
+      "description": "Git commit SHA of the .ai submodule (persona definitions) used during this run.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "panel_graph_version": {
+      "type": "string",
+      "description": "Version of the panel graph configuration (from project.yaml or governance config).",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "policy_profile_used": {
+      "type": "string",
+      "description": "Name of the policy profile applied (e.g., 'default', 'fin_pii_high', 'infrastructure_critical')."
+    },
+    "model_version": {
+      "type": "string",
+      "description": "LLM model identifier used for panel execution (e.g., 'claude-opus-4-6', 'gpt-4o')."
+    },
+    "aggregate_confidence": {
+      "type": "number",
+      "description": "Weighted aggregate confidence score across all panels.",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low", "negligible"],
+      "description": "Final assessed risk level after policy evaluation."
+    },
+    "human_intervention": {
+      "type": "object",
+      "description": "Record of human involvement in this decision.",
+      "required": ["required", "occurred"],
+      "properties": {
+        "required": {
+          "type": "boolean",
+          "description": "Whether policy required human review."
+        },
+        "occurred": {
+          "type": "boolean",
+          "description": "Whether a human actually reviewed."
+        },
+        "reviewer": {
+          "type": "string",
+          "description": "GitHub username of the human reviewer, if any."
+        },
+        "override": {
+          "type": "boolean",
+          "description": "Whether this was an enterprise override of a block decision.",
+          "default": false
+        },
+        "override_justification": {
+          "type": "string",
+          "description": "Required justification if override is true."
+        }
+      },
+      "additionalProperties": false
+    },
+    "decision": {
+      "type": "object",
+      "description": "The final governance decision for this merge.",
+      "required": ["action", "rationale"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["auto_merge", "auto_remediate", "human_review_required", "block"],
+          "description": "The policy engine's deterministic decision."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Machine-generated rationale for the decision. Must reference specific policy rules."
+        },
+        "policy_rules_evaluated": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["rule_id", "result"],
+            "properties": {
+              "rule_id": { "type": "string" },
+              "result": { "type": "string", "enum": ["pass", "fail", "skip"] },
+              "detail": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "panels_executed": {
+      "type": "array",
+      "description": "References to panel output artifacts produced during this run.",
+      "items": {
+        "type": "object",
+        "required": ["panel_name", "verdict", "confidence_score", "artifact_path"],
+        "properties": {
+          "panel_name": { "type": "string" },
+          "verdict": { "type": "string", "enum": ["approve", "request_changes", "block"] },
+          "confidence_score": { "type": "number", "minimum": 0.0, "maximum": 1.0 },
+          "artifact_path": {
+            "type": "string",
+            "description": "Relative path to the panel output JSON artifact."
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "repository": {
+      "type": "object",
+      "description": "Repository context for this run.",
+      "properties": {
+        "name": { "type": "string" },
+        "owner": { "type": "string" },
+        "branch": { "type": "string" },
+        "base_branch": { "type": "string" },
+        "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "pr_number": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "ci_metadata": {
+      "type": "object",
+      "description": "CI/CD execution context.",
+      "properties": {
+        "workflow_run_id": { "type": "string" },
+        "workflow_name": { "type": "string" },
+        "runner": { "type": "string" },
+        "duration_ms": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "previous_manifest_id": {
+      "type": "string",
+      "description": "ID of the previous manifest for this PR, if this is a re-evaluation.",
+      "pattern": "^\\d{8}-\\d{6}-[0-9a-f]{7}$"
+    },
+    "escalation_chain": {
+      "type": "array",
+      "description": "Ordered audit trail of escalation events during governance evaluation. Each entry records when an agent escalated a decision to a human role, and optionally captures the human's response.",
+      "items": {
+        "type": "object",
+        "required": ["timestamp", "source_agent", "target_role", "reason", "escalation_type"],
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when the escalation was initiated."
+          },
+          "source_agent": {
+            "type": "string",
+            "description": "The agent or system component that initiated the escalation (e.g., 'policy-engine', 'team-lead', 'security-review')."
+          },
+          "target_role": {
+            "type": "string",
+            "description": "The human role escalated to (e.g., 'security-lead', 'architect', 'compliance-officer')."
+          },
+          "reason": {
+            "type": "string",
+            "description": "Human-readable explanation of why the escalation was triggered."
+          },
+          "escalation_type": {
+            "type": "string",
+            "enum": ["policy_override", "human_review_required", "circuit_breaker", "block_decision"],
+            "description": "Category of escalation event."
+          },
+          "human_decision": {
+            "type": "object",
+            "description": "The human reviewer's response to the escalation, if one has been recorded.",
+            "required": ["action", "decision_timestamp", "reviewer"],
+            "properties": {
+              "action": {
+                "type": "string",
+                "enum": ["approve", "reject", "defer", "override"],
+                "description": "The action taken by the human reviewer."
+              },
+              "justification": {
+                "type": "string",
+                "description": "Required when action is 'override'. Explains why the human overrode the governance decision."
+              },
+              "decision_timestamp": {
+                "type": "string",
+                "format": "date-time",
+                "description": "ISO 8601 timestamp when the human decision was recorded."
+              },
+              "reviewer": {
+                "type": "string",
+                "description": "GitHub username of the human reviewer."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

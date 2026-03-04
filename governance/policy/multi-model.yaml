@@ -1,0 +1,205 @@
+# Multi-Model Validation Policy Profile
+# Extends the default profile with multi-model validation enabled.
+# Use this profile when you want consensus-based panel evaluation
+# across multiple LLM models.
+#
+# To enable in project.yaml:
+#   governance:
+#     policy_profile: "multi-model"
+#
+# Or configure multi-model validation in the default profile by setting
+# multi_model.enabled: true in your project-level policy overrides.
+
+profile_name: multi-model
+profile_version: "1.0.0"
+description: >
+  Extended default profile with multi-model validation enabled. Review panels
+  are executed across multiple models and their verdicts are aggregated using
+  a configurable consensus strategy. Suitable for high-assurance environments
+  where cross-model agreement is required before merge decisions.
+
+# Inherits all settings from the default profile.
+# Only the differences are specified here.
+extends: default
+
+# Confidence Weighting Model
+# Same as default — weights are applied to the aggregated (consensus)
+# confidence score from multi-model validation.
+weighting:
+  model: weighted_average
+  weights:
+    code-review: 0.18
+    security-review: 0.18
+    ai-expert-review: 0.12
+    architecture-review: 0.12
+    testing-review: 0.08
+    performance-review: 0.05
+    copilot-review: 0.08
+    documentation-review: 0.05
+    threat-modeling: 0.05
+    cost-analysis: 0.02
+    finops-review: 0.02
+    data-governance-review: 0.05
+  missing_panel_behavior: redistribute
+
+# Risk Aggregation — same as default
+risk_aggregation:
+  model: highest_severity
+  rules:
+    - description: "Any panel reporting critical risk escalates to critical."
+      condition: any_panel_risk == "critical"
+      result: critical
+    - description: "Two or more panels reporting high risk escalates to high."
+      condition: count(panel_risk == "high") >= 2
+      result: high
+    - description: "Single high-risk panel with others low results in medium."
+      condition: count(panel_risk == "high") == 1
+      result: medium
+    - description: "All panels low or negligible results in low."
+      condition: all_panels_risk in ["low", "negligible"]
+      result: low
+
+# Escalation — adds multi-model disagreement rule
+escalation:
+  rules:
+    - name: low_confidence
+      description: "Aggregate confidence below threshold requires human review."
+      condition: aggregate_confidence < 0.70
+      action: human_review_required
+      notify:
+        - role: tech_lead
+        - role: code_owner
+
+    - name: critical_risk
+      description: "Critical risk always requires human review."
+      condition: risk_level == "critical"
+      action: human_review_required
+      notify:
+        - role: security_lead
+        - role: tech_lead
+
+    - name: policy_violation
+      description: "Any critical or high severity policy flag blocks merge."
+      condition: any_policy_flag_severity in ["critical", "high"]
+      action: block
+      notify:
+        - role: compliance_officer
+        - role: tech_lead
+
+    - name: panel_disagreement
+      description: "Conflicting verdicts across panels requires human review."
+      condition: panel_disagreement_detected == true
+      action: human_review_required
+      notify:
+        - role: tech_lead
+
+    - name: multi_model_no_consensus
+      description: "Multi-model panels that fail to reach consensus require human review."
+      condition: multi_model_consensus_failed == true
+      action: human_review_required
+      notify:
+        - role: tech_lead
+        - role: security_lead
+
+# Auto-merge — same conditions as default
+auto_merge:
+  enabled: true
+  conditions:
+    - aggregate_confidence >= 0.85
+    - risk_level in ["low", "negligible"]
+    - no_policy_flags_severity in ["critical", "high"]
+    - all_panel_verdicts in ["approve"]
+    - requires_human_review == false
+    - ci_checks_passed == true
+    - multi_model_consensus_reached == true
+  operator: all
+
+# Plausibility Checks — same as default
+plausibility_checks:
+  min_findings_for_nontrivial:
+    enabled: true
+    file_threshold: 3
+    min_findings: 1
+    action: "flag_for_human_review"
+  confidence_cap_without_trace:
+    enabled: true
+    max_confidence: 0.70
+    action: "cap_confidence"
+  identical_score_detection:
+    enabled: true
+    min_panels: 3
+    action: "flag_for_human_review"
+
+# Panel Execution — same as default
+panel_execution:
+  timeout_config: "governance/policy/panel-timeout.yaml"
+  rules:
+    - description: "Fallback emissions cannot trigger auto-merge"
+      condition: any_emission_status == "fallback"
+      action: require_human_review
+    - description: "More than 2 fallback emissions require human review"
+      condition: count(emission_status == "fallback") > 2
+      action: block_auto_merge
+    - description: "Timeout emissions are treated as fallback if baseline exists"
+      condition: emission_status == "timeout" and baseline_exists
+      action: use_baseline_with_cap
+
+# Auto-remediate — same as default
+auto_remediate:
+  enabled: true
+  max_attempts: 3
+  cooldown_minutes: 5
+  conditions:
+    - risk_level in ["low", "medium"]
+    - all_policy_flags.auto_remediable == true
+    - aggregate_confidence >= 0.60
+  allowed_actions:
+    - fix_linting
+    - add_missing_tests
+    - update_documentation
+    - fix_type_errors
+  prohibited_actions:
+    - modify_security_controls
+    - change_api_contracts
+    - alter_data_schemas
+    - modify_infrastructure
+
+# Block Rules — same as default
+block:
+  conditions:
+    - description: "Critical policy violation with no remediation."
+      condition: any_policy_flag_severity == "critical" and not auto_remediable
+    - description: "Confidence below minimum threshold."
+      condition: aggregate_confidence < 0.40
+    - description: "Required panel did not execute."
+      condition: required_panel_missing == true
+    - description: "CI checks failed."
+      condition: ci_checks_passed == false
+    - description: "Destruction recommended by FinOps review requires human approval."
+      condition: destruction_recommended == true
+    - description: "Unresolved Copilot findings (medium+) block auto-merge."
+      condition: copilot_findings_unresolved == true
+    - description: "Open Dependabot alerts (critical/high) block auto-merge."
+      condition: dependabot_alerts_open == true
+
+# Required Panels — same as default
+required_panels:
+  - code-review
+  - security-review
+  - threat-modeling
+  - cost-analysis
+  - finops-review
+  - documentation-review
+  - data-governance-review
+  - copilot-review
+
+# Multi-Model Validation — ENABLED
+# This is the key differentiator from the default profile.
+multi_model:
+  enabled: true
+  models:
+    - "claude-opus-4-6"
+    - "claude-sonnet-4-6"
+  consensus: majority
+  min_models: 2
+  panels: []                        # Empty = all required panels get multi-model validation

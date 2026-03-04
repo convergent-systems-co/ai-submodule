@@ -1,0 +1,29 @@
+# Dev environment overrides
+replicaCount: 2
+
+autoscaling:
+  enabled: false
+
+ingress:
+  enabled: true
+  className: "azure-application-gateway"
+  annotations:
+    appgw.ingress.kubernetes.io/ssl-redirect: "true"
+    appgw.ingress.kubernetes.io/backend-protocol: "http"
+  hosts:
+    - host: governance-dev.jmfamily.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - governance-dev.jmfamily.com
+      secretName: governance-service-tls
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 256Mi

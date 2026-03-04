@@ -1,0 +1,461 @@
+{
+  "version": "1.1.0",
+  "panels": {
+    "ai-expert-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 1,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.80
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis"],
+        "rationale": "AI expert review requires reading governance artifacts, searching for schema/policy patterns, and analyzing AI safety configurations."
+      }
+    },
+    "api-design-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 2,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.70
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis"],
+        "rationale": "API design review requires reading API definitions, searching for endpoint patterns, and analyzing request/response schemas."
+      }
+    },
+    "architecture-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 1,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.75
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "git_history"],
+        "rationale": "Architecture review requires reading code structure, searching for dependency patterns, and reviewing architectural evolution."
+      }
+    },
+    "code-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 2,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.70
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "git_history"],
+        "rationale": "Code review requires reading changed files, searching for patterns, analyzing code quality, and reviewing commit history."
+      }
+    },
+    "copilot-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.65,
+        "max_critical_findings": 0,
+        "max_high_findings": 2,
+        "required_verdict": "request_changes",
+        "min_compliance_score": 0.65
+      },
+      "scoring": {
+        "confidence_base": 0.80,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": [],
+        "rationale": "Copilot review consumes GitHub API data (PR comments and review threads). No direct file access needed."
+      }
+    },
+    "data-design-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 1,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.75
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis"],
+        "rationale": "Data design review requires reading schema definitions, searching for data model patterns, and analyzing migrations."
+      }
+    },
+    "documentation-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.65,
+        "max_critical_findings": 0,
+        "max_high_findings": 3,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.65
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search"],
+        "rationale": "Documentation review requires reading docs and code to verify accuracy and completeness."
+      }
+    },
+    "migration-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.75,
+        "max_critical_findings": 0,
+        "max_high_findings": 1,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.75
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "git_history"],
+        "rationale": "Migration review requires reading migration scripts, searching for breaking changes, and analyzing migration history."
+      }
+    },
+    "performance-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.65,
+        "max_critical_findings": 0,
+        "max_high_findings": 2,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.65
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis"],
+        "rationale": "Performance review requires reading code for algorithmic complexity, searching for performance anti-patterns, and analyzing resource usage."
+      }
+    },
+    "production-readiness-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.75,
+        "max_critical_findings": 0,
+        "max_high_findings": 1,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.80
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "security_scan", "test_execution"],
+        "rationale": "Production readiness review requires comprehensive code reading, security verification, and test execution to verify deployment safety."
+      }
+    },
+    "security-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.75,
+        "max_critical_findings": 0,
+        "max_high_findings": 0,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.85
+      },
+      "scoring": {
+        "confidence_base": 0.90,
+        "deductions": {
+          "critical": 0.30,
+          "high": 0.20,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "security_scan", "dependency_audit"],
+        "rationale": "Security review requires reading source code, searching for vulnerability patterns, running security analysis, and auditing dependencies."
+      }
+    },
+    "technical-debt-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.65,
+        "max_critical_findings": 0,
+        "max_high_findings": 3,
+        "required_verdict": "request_changes",
+        "min_compliance_score": 0.60
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "git_history"],
+        "rationale": "Technical debt review requires reading code for complexity, searching for anti-patterns, and analyzing change frequency via git history."
+      }
+    },
+    "testing-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 2,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.70
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "test_execution"],
+        "rationale": "Testing review requires reading test files, searching for coverage gaps, analyzing test quality, and running tests to verify pass/fail."
+      }
+    },
+    "threat-modeling": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.75,
+        "max_critical_findings": 0,
+        "max_high_findings": 0,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.85
+      },
+      "scoring": {
+        "confidence_base": 0.90,
+        "deductions": {
+          "critical": 0.30,
+          "high": 0.20,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "security_scan", "web_fetch"],
+        "rationale": "Threat modeling requires reading code for attack surface analysis, searching for security-sensitive patterns, and referencing external threat databases."
+      }
+    },
+    "threat-model-system": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.75,
+        "max_critical_findings": 0,
+        "max_high_findings": 0,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.85
+      },
+      "scoring": {
+        "confidence_base": 0.90,
+        "deductions": {
+          "critical": 0.30,
+          "high": 0.20,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "security_scan", "web_fetch"],
+        "rationale": "System-level threat modeling requires comprehensive code reading, attack surface analysis, security-sensitive pattern searching, and external threat database referencing."
+      }
+    },
+    "data-governance-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 1,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.80
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis"],
+        "rationale": "Data governance review requires reading data models, searching for schema compliance, and analyzing canonical model adherence."
+      }
+    },
+    "governance-compliance-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 1,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.80
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search"],
+        "rationale": "Governance compliance review requires reading governance artifacts and checking for completeness of required steps."
+      }
+    },
+    "test-generation-review": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.70,
+        "max_critical_findings": 0,
+        "max_high_findings": 2,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.70
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "code_analysis", "test_execution"],
+        "rationale": "Test generation review requires reading code under test, searching for coverage gaps, and verifying generated tests execute correctly."
+      }
+    },
+    "cost-analysis": {
+      "enabled": true,
+      "pass_criteria": {
+        "min_confidence": 0.65,
+        "max_critical_findings": 0,
+        "max_high_findings": 2,
+        "required_verdict": "approve",
+        "min_compliance_score": 0.65
+      },
+      "scoring": {
+        "confidence_base": 0.85,
+        "deductions": {
+          "critical": 0.25,
+          "high": 0.15,
+          "medium": 0.05,
+          "low": 0.01
+        },
+        "floor": 0.0
+      },
+      "allowed_tools": {
+        "capabilities": ["file_read", "file_search", "dependency_audit"],
+        "rationale": "Cost analysis requires reading infrastructure configs, searching for resource definitions, and auditing dependency costs."
+      }
+    }
+  }
+}

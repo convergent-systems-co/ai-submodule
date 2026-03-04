@@ -1,0 +1,380 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/panel-output.schema.json",
+  "title": "Panel Structured Output",
+  "description": "Required structured emission appended to every panel review. Panels continue emitting Markdown reasoning but must append this JSON block. Execution fails if the structured block is missing.",
+  "type": "object",
+  "required": [
+    "panel_name",
+    "panel_version",
+    "confidence_score",
+    "risk_level",
+    "compliance_score",
+    "policy_flags",
+    "requires_human_review",
+    "timestamp",
+    "findings",
+    "aggregate_verdict"
+  ],
+  "properties": {
+    "panel_name": {
+      "type": "string",
+      "description": "Identifier matching the panel filename without extension (e.g., 'code-review', 'security-review').",
+      "pattern": "^[a-z][a-z0-9-]+$"
+    },
+    "panel_version": {
+      "type": "string",
+      "description": "Semantic version of the panel definition used for this execution.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "confidence_score": {
+      "type": "number",
+      "description": "Aggregate confidence in the panel's assessment. 0.0 = no confidence, 1.0 = full confidence.",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "risk_level": {
+      "type": "string",
+      "description": "Assessed risk level for the reviewed change.",
+      "enum": ["critical", "high", "medium", "low", "negligible"]
+    },
+    "compliance_score": {
+      "type": "number",
+      "description": "Degree of compliance with applicable policies. 0.0 = non-compliant, 1.0 = fully compliant.",
+      "minimum": 0.0,
+      "maximum": 1.0
+    },
+    "policy_flags": {
+      "type": "array",
+      "description": "Policy violation or concern flags raised during review.",
+      "items": {
+        "type": "object",
+        "required": ["flag", "severity", "description"],
+        "properties": {
+          "flag": {
+            "type": "string",
+            "description": "Machine-readable flag identifier (e.g., 'pii_exposure', 'missing_tests', 'breaking_change').",
+            "pattern": "^[a-z][a-z0-9_]+$"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable explanation of the flag."
+          },
+          "remediation": {
+            "type": "string",
+            "description": "Suggested remediation action."
+          },
+          "auto_remediable": {
+            "type": "boolean",
+            "description": "Whether this flag can be resolved without human intervention.",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "requires_human_review": {
+      "type": "boolean",
+      "description": "Whether the panel recommends human review before merge."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of panel execution."
+    },
+    "findings": {
+      "type": "array",
+      "description": "Individual findings from each persona in the panel.",
+      "items": {
+        "type": "object",
+        "required": ["persona", "verdict", "confidence", "rationale"],
+        "properties": {
+          "persona": {
+            "type": "string",
+            "description": "Persona identifier (e.g., 'quality/style-reviewer')."
+          },
+          "verdict": {
+            "type": "string",
+            "enum": ["approve", "request_changes", "block", "abstain"],
+            "description": "This persona's individual verdict."
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0,
+            "description": "This persona's confidence in their verdict."
+          },
+          "rationale": {
+            "type": "string",
+            "description": "Brief rationale for the verdict. Must not be empty."
+          },
+          "findings_count": {
+            "type": "object",
+            "properties": {
+              "critical": { "type": "integer", "minimum": 0 },
+              "high": { "type": "integer", "minimum": 0 },
+              "medium": { "type": "integer", "minimum": 0 },
+              "low": { "type": "integer", "minimum": 0 },
+              "info": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          },
+          "evidence": {
+            "type": "object",
+            "description": "Grounding evidence linking this finding to a specific code location. Findings with severity 'medium' or above that lack evidence may be treated as hallucinated and discarded.",
+            "properties": {
+              "file": { "type": "string", "description": "File path where the finding was identified" },
+              "line_start": { "type": "integer", "minimum": 1, "description": "Start line of relevant code" },
+              "line_end": { "type": "integer", "minimum": 1, "description": "End line of relevant code" },
+              "snippet": { "type": "string", "maxLength": 200, "description": "Code snippet (first 200 chars)" }
+            },
+            "required": ["file"]
+          },
+          "groundedness_score": {
+            "type": "number",
+            "description": "Score indicating how well this finding is grounded in actual code evidence. 0.0 = no grounding, 1.0 = fully grounded with concrete evidence.",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "hallucination_indicators": {
+            "type": "array",
+            "description": "Indicators suggesting potential hallucination in this finding. Empty array means no hallucination signals detected.",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "ai_act_risk_tier": {
+      "type": "string",
+      "description": "EU AI Act risk classification tier for the assessed change.",
+      "enum": ["unacceptable", "high", "limited", "minimal"]
+    },
+    "destruction_recommended": {
+      "type": "boolean",
+      "description": "Whether the panel recommends resource destruction or shutdown. When true, requires_human_approval must also be true. Used by FinOps review to flag decommission candidates.",
+      "default": false
+    },
+    "requires_human_approval": {
+      "type": "boolean",
+      "description": "Whether the change requires explicit human approval before proceeding. Set to true when destruction_recommended is true or when the panel identifies actions that must not be automated.",
+      "default": false
+    },
+    "execution_status": {
+      "type": "string",
+      "description": "Status of the panel execution. Defaults to 'success' if omitted (backward compatible).",
+      "enum": ["success", "timeout", "error", "fallback"],
+      "default": "success"
+    },
+    "aggregate_verdict": {
+      "type": "string",
+      "enum": ["approve", "request_changes", "block"],
+      "description": "Computed aggregate verdict based on individual persona verdicts and policy weighting."
+    },
+    "execution_context": {
+      "type": "object",
+      "description": "Contextual metadata about the panel execution environment.",
+      "properties": {
+        "repository": { "type": "string" },
+        "branch": { "type": "string" },
+        "commit_sha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "pr_number": { "type": "integer" },
+        "policy_profile": { "type": "string" },
+        "model_id": {
+          "type": "string",
+          "description": "Canonical model identifier from the model registry (e.g., 'claude-opus-4-6', 'gpt-4-turbo'). Preferred over model_version for provenance tracking."
+        },
+        "model_version": {
+          "type": "string",
+          "description": "Model version string for fine-grained version details (e.g., training date suffixes, deployment variants). Retained for backward compatibility."
+        },
+        "model_hash": {
+          "type": "string",
+          "description": "SHA-256 hash of the model weights or version identifier."
+        },
+        "provider": {
+          "type": "string",
+          "description": "AI model provider (e.g., anthropic, openai)."
+        },
+        "version_date": {
+          "type": "string",
+          "format": "date",
+          "description": "Model version or training cutoff date."
+        },
+        "system_prompt_hash": {
+          "type": "string",
+          "description": "SHA-256 hash of the system prompt used for this panel execution. Enables detection of prompt drift.",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "inference_config": {
+          "type": "object",
+          "description": "Inference parameters used for this panel execution.",
+          "properties": {
+            "temperature": {
+              "type": "number",
+              "description": "Sampling temperature.",
+              "minimum": 0.0,
+              "maximum": 2.0
+            },
+            "max_tokens": {
+              "type": "integer",
+              "description": "Maximum output tokens requested.",
+              "minimum": 1
+            },
+            "top_p": {
+              "type": "number",
+              "description": "Nucleus sampling parameter.",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "triggered_by": {
+          "type": "string",
+          "enum": ["ci", "manual", "drift_detection", "incident_response", "scheduled"]
+        },
+        "token_count": {
+          "type": "object",
+          "description": "Token usage for this panel execution. Enables cost tracking and budget enforcement.",
+          "properties": {
+            "input": {
+              "type": "integer",
+              "description": "Number of input tokens consumed.",
+              "minimum": 0
+            },
+            "output": {
+              "type": "integer",
+              "description": "Number of output tokens generated.",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "estimated_cost_usd": {
+          "type": "number",
+          "description": "Estimated cost in USD for this panel execution, derived from token_count and backend pricing.",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "data_classification": {
+      "type": "object",
+      "description": "Optional classification of the emission's data sensitivity. Helps identify emissions that may contain sensitive content requiring redaction or access controls.",
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "Data sensitivity level of this emission's content.",
+          "enum": ["public", "internal", "confidential", "restricted"]
+        },
+        "contains_sensitive_evidence": {
+          "type": "boolean",
+          "description": "Whether findings contain sensitive evidence (credentials, PII, vulnerability details).",
+          "default": false
+        },
+        "redaction_applied": {
+          "type": "boolean",
+          "description": "Whether sensitive content has been redacted from this emission.",
+          "default": false
+        }
+      },
+      "required": ["level"],
+      "additionalProperties": false
+    },
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version this emission conforms to. Defaults to 1.0.0 if omitted.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "default": "1.2.0"
+    },
+    "duration_ms": {
+      "type": "integer",
+      "description": "Panel execution duration in milliseconds.",
+      "minimum": 0
+    },
+    "canary_results": {
+      "type": "array",
+      "description": "Results from canary calibration tests injected during panel execution. Optional — omit if no canaries were injected.",
+      "items": {
+        "type": "object",
+        "required": ["canary_id", "detected", "severity_match"],
+        "properties": {
+          "canary_id": {
+            "type": "string",
+            "description": "Identifier of the canary test (matches canary-calibration.yaml)."
+          },
+          "detected": {
+            "type": "boolean",
+            "description": "Whether the panel detected the known issue in the canary snippet."
+          },
+          "expected_severity": {
+            "type": "string",
+            "enum": ["critical", "high", "medium", "low", "info"],
+            "description": "Expected severity from canary configuration."
+          },
+          "actual_severity": {
+            "type": ["string", "null"],
+            "enum": ["critical", "high", "medium", "low", "info", null],
+            "description": "Severity reported by the panel, or null if not detected."
+          },
+          "severity_match": {
+            "type": "boolean",
+            "description": "Whether the reported severity matches the expected severity."
+          },
+          "detection_latency_ms": {
+            "type": ["integer", "null"],
+            "description": "Time taken to detect the canary finding, if measurable.",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "execution_trace": {
+      "type": "object",
+      "description": "Evidence of actual code evaluation during panel review. Records which files the LLM read and which specific code sections it analyzed, linking findings to concrete code locations.",
+      "properties": {
+        "files_read": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "File paths the panel agent read during review."
+        },
+        "diff_lines_analyzed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of diff lines analyzed."
+        },
+        "analysis_duration_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Approximate time spent on analysis in milliseconds."
+        },
+        "grounding_references": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer" },
+              "finding_id": { "type": "string" }
+            },
+            "required": ["file", "finding_id"],
+            "additionalProperties": false
+          },
+          "description": "Links findings to specific code locations."
+        }
+      },
+      "required": ["files_read"],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

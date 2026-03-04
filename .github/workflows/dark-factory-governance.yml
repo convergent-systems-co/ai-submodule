@@ -1,0 +1,734 @@
+name: Dark Forge
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+  checks: read
+
+concurrency:
+  group: governance-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------------------------------------------------------
+  # Job 1: Detect governance root and panel emissions
+  # -----------------------------------------------------------
+  detect:
+    name: detect
+    runs-on: ubuntu-latest
+    outputs:
+      has_emissions: ${{ steps.check.outputs.has_emissions }}
+      gov_root: ${{ steps.check.outputs.gov_root }}
+      pr_modified_emissions: ${{ steps.check.outputs.pr_modified_emissions }}
+      is_consuming_repo: ${{ steps.check.outputs.is_consuming_repo }}
+      engine_tier: ${{ steps.bootstrap.outputs.tier }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize submodule (optional)
+        id: submodule
+        continue-on-error: true
+        run: |
+          git submodule update --init --recursive 2>/dev/null || true
+          if [ -d ".ai/governance" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: CI bootstrap — detect governance tier
+        id: bootstrap
+        continue-on-error: true
+        run: |
+          # Run ci-bootstrap if available (submodule present or governance repo)
+          if [ -f ".ai/governance/bin/ci-bootstrap.sh" ]; then
+            bash .ai/governance/bin/ci-bootstrap.sh --check || true
+          elif [ -f "governance/bin/ci-bootstrap.sh" ]; then
+            bash governance/bin/ci-bootstrap.sh --check || true
+          else
+            # No bootstrap script — check vendored engine directly
+            if [ -f ".artifacts/engine/policy-engine.py" ] && [ -s ".artifacts/engine/VERSION" ]; then
+              echo "tier=1.5" >> "$GITHUB_OUTPUT"
+              echo "Vendored engine detected (no bootstrap script available)"
+            else
+              echo "tier=2" >> "$GITHUB_OUTPUT"
+              echo "No governance engine detected — will use lightweight validation"
+            fi
+          fi
+
+      - name: Check for panel emissions
+        id: check
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          IS_CONSUMING_REPO="false"
+
+          # Auto-detect governance root: root-level (dark-forge repo) or .ai/ (consuming repo)
+          if [ -d "governance/emissions" ]; then
+            GOV_ROOT="."
+          elif [ -d ".ai/governance/emissions" ]; then
+            GOV_ROOT=".ai"
+          else
+            # Consuming repo detection: .ai exists as submodule but content unavailable in CI
+            # (private submodule without credentials results in a gitlink, not a directory)
+            if grep -q '\[submodule ".ai"\]' .gitmodules 2>/dev/null || grep -q 'path = .ai' .gitmodules 2>/dev/null; then
+              GOV_ROOT=".ai"
+              IS_CONSUMING_REPO="true"
+              echo "Detected consuming repo via .gitmodules (submodule content unavailable)"
+
+              # Check for local emissions (consuming repos store in .artifacts/emissions/)
+              EMISSIONS=$(find ".artifacts/emissions" -name '*.json' 2>/dev/null | sort)
+              if [ -z "$EMISSIONS" ]; then
+                echo "has_emissions=false" >> "$GITHUB_OUTPUT"
+                echo "No panel emissions found in .artifacts/emissions/"
+              else
+                echo "has_emissions=true" >> "$GITHUB_OUTPUT"
+                echo "Found local emissions in .artifacts/emissions/:"
+                echo "$EMISSIONS"
+              fi
+
+              echo "gov_root=${GOV_ROOT}" >> "$GITHUB_OUTPUT"
+              echo "is_consuming_repo=true" >> "$GITHUB_OUTPUT"
+
+              # Check if PR modifies local emissions
+              MODIFIED_LOCAL=$(git diff --name-only "${PR_BASE_SHA}...${PR_HEAD_SHA}" -- ".artifacts/emissions/" 2>/dev/null || true)
+              if [ -n "$MODIFIED_LOCAL" ]; then
+                echo "pr_modified_emissions=true" >> "$GITHUB_OUTPUT"
+                echo "::warning::Trust boundary alert: PR modifies local panel emissions: ${MODIFIED_LOCAL}"
+              else
+                echo "pr_modified_emissions=false" >> "$GITHUB_OUTPUT"
+              fi
+              exit 0
+            fi
+
+            echo "has_emissions=false" >> "$GITHUB_OUTPUT"
+            echo "gov_root=." >> "$GITHUB_OUTPUT"
+            echo "is_consuming_repo=false" >> "$GITHUB_OUTPUT"
+            echo "pr_modified_emissions=false" >> "$GITHUB_OUTPUT"
+            echo "No governance directory found at governance/ or .ai/governance/"
+            exit 0
+          fi
+          echo "gov_root=${GOV_ROOT}" >> "$GITHUB_OUTPUT"
+          echo "is_consuming_repo=${IS_CONSUMING_REPO}" >> "$GITHUB_OUTPUT"
+          echo "Governance root: ${GOV_ROOT}"
+
+          EMISSIONS=$(find "${GOV_ROOT}/governance/emissions" -name '*.json' 2>/dev/null | sort)
+          if [ -z "$EMISSIONS" ]; then
+            echo "has_emissions=false" >> "$GITHUB_OUTPUT"
+            echo "No panel emissions found in ${GOV_ROOT}/governance/emissions/"
+          else
+            echo "has_emissions=true" >> "$GITHUB_OUTPUT"
+            echo "Found emissions:"
+            echo "$EMISSIONS"
+          fi
+
+          # Trust boundary: detect if the PR modifies emission files
+          MODIFIED_EMISSIONS=$(git diff --name-only "${PR_BASE_SHA}...${PR_HEAD_SHA}" -- "${GOV_ROOT}/governance/emissions/" 2>/dev/null || true)
+          if [ -n "$MODIFIED_EMISSIONS" ]; then
+            echo "pr_modified_emissions=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::Trust boundary alert: PR modifies emission files: ${MODIFIED_EMISSIONS}"
+          else
+            echo "pr_modified_emissions=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # -----------------------------------------------------------
+  # Job 2: Run policy engine tests
+  # -----------------------------------------------------------
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: [detect]
+    if: needs.detect.outputs.is_consuming_repo != 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize submodule (optional)
+        continue-on-error: true
+        run: git submodule update --init --recursive 2>/dev/null || true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e governance/engine[dev]
+
+      - name: Run tests with coverage
+        run: pytest governance/engine/tests/ -v --cov=governance/engine --cov-fail-under=80
+
+  # -----------------------------------------------------------
+  # Job 3: Run policy engine and post review
+  # -----------------------------------------------------------
+  review:
+    name: review
+    runs-on: ubuntu-latest
+    needs: [detect, test]
+    if: needs.detect.outputs.has_emissions == 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize submodule (optional)
+        continue-on-error: true
+        run: git submodule update --init --recursive 2>/dev/null || true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install jsonschema pyyaml
+
+      - name: Trust boundary — flag PR-modified emissions
+        if: needs.detect.outputs.pr_modified_emissions == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          echo "::warning::Trust boundary: This PR modifies governance emission files. Emissions from the PR branch may be untrusted."
+          gh pr comment "$PR_NUMBER" --body "⚠️ **Trust boundary alert:** This PR modifies files in \`governance/emissions/\`. PR-supplied emissions may be untrusted — review the emission content manually before merging."
+
+      - name: Generate Copilot & Dependabot emissions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOV_ROOT: ${{ needs.detect.outputs.gov_root }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          EMISSIONS_DIR="${GOV_ROOT}/governance/emissions"
+          mkdir -p "$EMISSIONS_DIR"
+
+          # --- Copilot review threads ---
+          COPILOT_CRITICAL=0
+          COPILOT_HIGH=0
+          COPILOT_MEDIUM=0
+          COPILOT_LOW=0
+
+          # Fetch review comments from Copilot / GitHub Advanced Security
+          COPILOT_COMMENTS=$(gh api "repos/${REPO}/pulls/${PR_NUMBER}/comments" \
+            --jq '[.[] | select(.user.login | test("copilot|github-advanced-security"))]' 2>/dev/null || echo "[]")
+
+          if [ "$COPILOT_COMMENTS" != "[]" ] && [ -n "$COPILOT_COMMENTS" ]; then
+            # Count by severity keywords in comment body
+            COPILOT_CRITICAL=$(echo "$COPILOT_COMMENTS" | python3 -c "
+          import json, sys
+          comments = json.load(sys.stdin)
+          print(sum(1 for c in comments if 'critical' in c.get('body','').lower()))
+          " 2>/dev/null || echo "0")
+            COPILOT_HIGH=$(echo "$COPILOT_COMMENTS" | python3 -c "
+          import json, sys
+          comments = json.load(sys.stdin)
+          print(sum(1 for c in comments if 'high' in c.get('body','').lower() and 'critical' not in c.get('body','').lower()))
+          " 2>/dev/null || echo "0")
+            COPILOT_MEDIUM=$(echo "$COPILOT_COMMENTS" | python3 -c "
+          import json, sys
+          comments = json.load(sys.stdin)
+          print(sum(1 for c in comments if 'medium' in c.get('body','').lower() and 'high' not in c.get('body','').lower() and 'critical' not in c.get('body','').lower()))
+          " 2>/dev/null || echo "0")
+            COPILOT_LOW=$(echo "$COPILOT_COMMENTS" | python3 -c "
+          import json, sys
+          comments = json.load(sys.stdin)
+          total = len(comments)
+          crit = sum(1 for c in comments if 'critical' in c.get('body','').lower())
+          high = sum(1 for c in comments if 'high' in c.get('body','').lower() and 'critical' not in c.get('body','').lower())
+          med = sum(1 for c in comments if 'medium' in c.get('body','').lower() and 'high' not in c.get('body','').lower() and 'critical' not in c.get('body','').lower())
+          print(total - crit - high - med)
+          " 2>/dev/null || echo "0")
+          fi
+
+          COPILOT_TOTAL=$((COPILOT_CRITICAL + COPILOT_HIGH + COPILOT_MEDIUM + COPILOT_LOW))
+          COPILOT_VERDICT="approve"
+          if [ "$COPILOT_CRITICAL" -gt 0 ] || [ "$COPILOT_HIGH" -gt 0 ] || [ "$COPILOT_MEDIUM" -gt 0 ]; then
+            COPILOT_VERDICT="request_changes"
+          fi
+
+          python3 -c "
+          import json
+          from datetime import datetime, timezone
+          emission = {
+              'panel_name': 'copilot-review',
+              'panel_version': '1.0.0',
+              'confidence_score': 0.85,
+              'risk_level': 'low' if ${COPILOT_TOTAL} == 0 else 'medium',
+              'compliance_score': 1.0,
+              'policy_flags': [],
+              'requires_human_review': False,
+              'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+              'findings': [{
+                  'persona': 'copilot-review/ci-precheck',
+                  'verdict': '${COPILOT_VERDICT}',
+                  'confidence': 0.85,
+                  'rationale': 'CI pre-check: ${COPILOT_TOTAL} Copilot comments found (${COPILOT_CRITICAL} critical, ${COPILOT_HIGH} high, ${COPILOT_MEDIUM} medium, ${COPILOT_LOW} low).',
+                  'findings_count': {
+                      'critical': ${COPILOT_CRITICAL},
+                      'high': ${COPILOT_HIGH},
+                      'medium': ${COPILOT_MEDIUM},
+                      'low': ${COPILOT_LOW},
+                  },
+              }],
+              'aggregate_verdict': '${COPILOT_VERDICT}',
+              'data_classification': {'level': 'internal'},
+          }
+          with open('${EMISSIONS_DIR}/copilot-review.json', 'w') as f:
+              json.dump(emission, f, indent=2)
+          print(f'Copilot emission: {COPILOT_TOTAL} findings ({COPILOT_CRITICAL}C/{COPILOT_HIGH}H/{COPILOT_MEDIUM}M/{COPILOT_LOW}L), verdict=${COPILOT_VERDICT}')
+          " || echo "::warning::Failed to generate copilot-review emission"
+
+          # --- Dependabot alerts ---
+          DEPENDABOT_CRITICAL=0
+          DEPENDABOT_HIGH=0
+
+          DEPENDABOT_ALERTS=$(gh api "repos/${REPO}/dependabot/alerts?state=open&severity=critical,high" \
+            --jq 'length' 2>/dev/null || echo "0")
+
+          if [ "$DEPENDABOT_ALERTS" != "0" ] && [ -n "$DEPENDABOT_ALERTS" ]; then
+            DEPENDABOT_CRITICAL=$(gh api "repos/${REPO}/dependabot/alerts?state=open&severity=critical" \
+              --jq 'length' 2>/dev/null || echo "0")
+            DEPENDABOT_HIGH=$(gh api "repos/${REPO}/dependabot/alerts?state=open&severity=high" \
+              --jq 'length' 2>/dev/null || echo "0")
+          fi
+
+          DEPENDABOT_TOTAL=$((DEPENDABOT_CRITICAL + DEPENDABOT_HIGH))
+          DEPENDABOT_VERDICT="approve"
+          if [ "$DEPENDABOT_TOTAL" -gt 0 ]; then
+            DEPENDABOT_VERDICT="request_changes"
+          fi
+
+          python3 -c "
+          import json
+          from datetime import datetime, timezone
+          emission = {
+              'panel_name': 'dependabot-review',
+              'panel_version': '1.0.0',
+              'confidence_score': 0.90,
+              'risk_level': 'low' if ${DEPENDABOT_TOTAL} == 0 else 'high',
+              'compliance_score': 1.0,
+              'policy_flags': [],
+              'requires_human_review': False,
+              'timestamp': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+              'findings': [{
+                  'persona': 'dependabot-review/ci-precheck',
+                  'verdict': '${DEPENDABOT_VERDICT}',
+                  'confidence': 0.90,
+                  'rationale': 'CI pre-check: ${DEPENDABOT_TOTAL} open Dependabot alerts (${DEPENDABOT_CRITICAL} critical, ${DEPENDABOT_HIGH} high).',
+                  'findings_count': {
+                      'critical': ${DEPENDABOT_CRITICAL},
+                      'high': ${DEPENDABOT_HIGH},
+                  },
+              }],
+              'aggregate_verdict': '${DEPENDABOT_VERDICT}',
+              'data_classification': {'level': 'internal'},
+          }
+          with open('${EMISSIONS_DIR}/dependabot-review.json', 'w') as f:
+              json.dump(emission, f, indent=2)
+          print(f'Dependabot emission: {DEPENDABOT_TOTAL} alerts ({DEPENDABOT_CRITICAL}C/{DEPENDABOT_HIGH}H), verdict=${DEPENDABOT_VERDICT}')
+          " || echo "::warning::Failed to generate dependabot-review emission"
+
+      - name: Resolve policy profile
+        id: profile
+        env:
+          GOV_ROOT: ${{ needs.detect.outputs.gov_root }}
+        run: |
+          # Read governance.policy_profile from project.yaml (base branch)
+          PROFILE="default"
+          PROJECT_YAML=""
+          if [ -f "project.yaml" ]; then
+            PROJECT_YAML="project.yaml"
+          elif [ -f "${GOV_ROOT}/project.yaml" ]; then
+            PROJECT_YAML="${GOV_ROOT}/project.yaml"
+          fi
+          if [ -n "$PROJECT_YAML" ] && command -v python3 &>/dev/null; then
+            RESOLVED=$(python3 -c "
+          import yaml
+          try:
+              with open('${PROJECT_YAML}') as f:
+                  config = yaml.safe_load(f) or {}
+              print(config.get('governance', {}).get('policy_profile', 'default'))
+          except Exception:
+              print('default')
+          " 2>/dev/null || echo "default")
+            PROFILE="$RESOLVED"
+          fi
+
+          # Validate the profile file exists
+          PROFILE_PATH="${GOV_ROOT}/governance/policy/${PROFILE}.yaml"
+          if [ ! -f "$PROFILE_PATH" ]; then
+            echo "::warning::Profile '${PROFILE}' not found at ${PROFILE_PATH}, falling back to default.yaml"
+            PROFILE_PATH="${GOV_ROOT}/governance/policy/default.yaml"
+          fi
+          echo "profile_path=${PROFILE_PATH}" >> "$GITHUB_OUTPUT"
+          echo "Resolved policy profile: ${PROFILE_PATH}"
+
+      - name: Run policy engine
+        id: evaluate
+        shell: bash
+        env:
+          GOV_ROOT: ${{ needs.detect.outputs.gov_root }}
+          IS_CONSUMING_REPO: ${{ needs.detect.outputs.is_consuming_repo }}
+          ENGINE_TIER: ${{ needs.detect.outputs.engine_tier }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+          PROFILE_PATH: ${{ steps.profile.outputs.profile_path }}
+        run: |
+          # Prefer submodule engine, fall back to vendored copy, then lightweight
+          POLICY_ENGINE="${GOV_ROOT}/governance/bin/policy-engine.py"
+          VENDORED_ENGINE=".artifacts/engine/policy-engine.py"
+
+          if [ ! -f "$POLICY_ENGINE" ] && [ -f "$VENDORED_ENGINE" ]; then
+            # Verify vendored engine integrity before using
+            VENDORED_OK=true
+            if [ ! -s ".artifacts/engine/VERSION" ]; then
+              echo "::warning::Vendored engine VERSION file is empty or missing — integrity check failed"
+              VENDORED_OK=false
+            fi
+            if [ ! -f ".artifacts/engine/policy/default.yaml" ]; then
+              echo "::warning::Vendored engine missing policy/default.yaml — integrity check failed"
+              VENDORED_OK=false
+            fi
+
+            if [ "$VENDORED_OK" = "true" ]; then
+              VENDOR_VERSION=$(cat .artifacts/engine/VERSION | head -c 12)
+              echo "Using vendored policy engine at $VENDORED_ENGINE (version: ${VENDOR_VERSION}...)"
+              POLICY_ENGINE="$VENDORED_ENGINE"
+              # Use vendored policy profile and schema paths
+              if [ -d ".artifacts/engine/policy" ]; then
+                PROFILE_PATH=".artifacts/engine/policy/$(basename "$PROFILE_PATH")"
+                if [ ! -f "$PROFILE_PATH" ]; then
+                  PROFILE_PATH=".artifacts/engine/policy/default.yaml"
+                fi
+              fi
+            else
+              echo "Vendored engine failed integrity check — falling back to lightweight validation"
+              POLICY_ENGINE=""
+            fi
+          fi
+
+          if [ ! -f "$POLICY_ENGINE" ]; then
+            echo "Policy engine not available (consuming repo without submodule content or vendored copy)"
+            echo "Falling back to lightweight emission-only validation"
+
+            # Lightweight fallback: validate emissions directly
+            python3 << 'PYEOF'
+          import json, glob, os, sys
+
+          # Consuming repos may store emissions in .artifacts/emissions/ or governance/emissions/
+          emission_dirs = [".artifacts/emissions", os.environ.get("GOV_ROOT", ".ai") + "/governance/emissions"]
+          emissions = []
+          for d in emission_dirs:
+              emissions.extend(glob.glob(os.path.join(d, "*.json")))
+
+          if not emissions:
+              print("No emission files found for lightweight validation")
+              # Write a minimal manifest for downstream steps
+              manifest = {
+                  "decision": {"action": "human_review_required", "rationale": "No emissions available for validation (consuming repo)"},
+                  "aggregate_confidence": 0.0,
+                  "risk_level": "unknown",
+                  "panels_executed": [],
+                  "policy_profile_used": "lightweight-fallback"
+              }
+              with open("manifest.json", "w") as f:
+                  json.dump(manifest, f, indent=2)
+              sys.exit(0)
+
+          panel_results = []
+          total_confidence = 0.0
+          all_pass = True
+          required_fields = ["panel_name", "verdict", "confidence_score"]
+
+          for path in sorted(emissions):
+              try:
+                  with open(path) as f:
+                      data = json.load(f)
+                  # Validate required fields
+                  missing = [field for field in required_fields if field not in data]
+                  if missing:
+                      print(f"WARNING: {path} missing required fields: {missing}")
+                      all_pass = False
+                      panel_results.append({
+                          "panel_name": os.path.basename(path),
+                          "verdict": "invalid",
+                          "confidence_score": 0.0
+                      })
+                      continue
+
+                  panel_results.append({
+                      "panel_name": data["panel_name"],
+                      "verdict": data["verdict"],
+                      "confidence_score": float(data["confidence_score"])
+                  })
+                  total_confidence += float(data["confidence_score"])
+                  if data["verdict"] not in ("pass", "approve", "approved"):
+                      all_pass = False
+              except (json.JSONDecodeError, KeyError, ValueError) as e:
+                  print(f"WARNING: Failed to parse {path}: {e}")
+                  all_pass = False
+                  panel_results.append({
+                      "panel_name": os.path.basename(path),
+                      "verdict": "error",
+                      "confidence_score": 0.0
+                  })
+
+          avg_confidence = total_confidence / len(panel_results) if panel_results else 0.0
+          decision = "auto_merge" if all_pass and avg_confidence >= 0.7 else "human_review_required"
+          risk = "low" if all_pass else "medium"
+
+          manifest = {
+              "decision": {
+                  "action": decision,
+                  "rationale": f"Lightweight validation: {len(panel_results)} panels evaluated, avg confidence {avg_confidence:.2f}"
+              },
+              "aggregate_confidence": round(avg_confidence, 4),
+              "risk_level": risk,
+              "panels_executed": panel_results,
+              "policy_profile_used": "lightweight-fallback"
+          }
+          with open("manifest.json", "w") as f:
+              json.dump(manifest, f, indent=2)
+          print(f"Lightweight validation complete: decision={decision}, confidence={avg_confidence:.2f}")
+          PYEOF
+          else
+            # Full policy engine available — run it
+            # Exit codes: 0=approve, 1=block, 2=human_review, 3=auto_remediate
+            # Using || true because the decision is read from the manifest JSON output,
+            # not from the exit code. The engine's exit code is informational only in CI.
+            # Resolve emissions directory: submodule path or local .artifacts/emissions/
+            EMISSIONS_DIR="${GOV_ROOT}/governance/emissions/"
+            if [ ! -d "$EMISSIONS_DIR" ] && [ -d ".artifacts/emissions" ]; then
+              EMISSIONS_DIR=".artifacts/emissions/"
+              echo "Using local emissions directory: $EMISSIONS_DIR"
+            fi
+
+            python "$POLICY_ENGINE" \
+              --emissions-dir "$EMISSIONS_DIR" \
+              --profile "$PROFILE_PATH" \
+              --output manifest.json \
+              --commit-sha "$COMMIT_SHA" \
+              --pr-number "$PR_NUMBER" \
+              --repo "$REPO_NAME" \
+              --log-file evaluation.log \
+              --ci-checks-passed true || true
+          fi
+
+          # Extract decision from manifest (engine always writes manifest)
+          DECISION=$(python3 -c "import json; print(json.load(open('manifest.json'))['decision']['action'])")
+          CONFIDENCE=$(python3 -c "import json; print(f'{json.load(open(\"manifest.json\"))[\"aggregate_confidence\"]:.2f}')")
+          RISK=$(python3 -c "import json; print(json.load(open('manifest.json'))['risk_level'])")
+          RATIONALE=$(python3 -c "import json; print(json.load(open('manifest.json'))['decision']['rationale'])")
+
+          echo "decision=${DECISION}" >> "$GITHUB_OUTPUT"
+          echo "confidence=${CONFIDENCE}" >> "$GITHUB_OUTPUT"
+          echo "risk=${RISK}" >> "$GITHUB_OUTPUT"
+          echo "Policy engine: decision=${DECISION}, confidence=${CONFIDENCE}, risk=${RISK}"
+
+      - name: Build review body
+        shell: python
+        run: |
+          import json
+
+          with open("manifest.json") as f:
+              manifest = json.load(f)
+
+          decision = manifest["decision"]["action"]
+          confidence = manifest["aggregate_confidence"]
+          risk = manifest["risk_level"]
+          rationale = manifest["decision"]["rationale"]
+          panels = manifest.get("panels_executed", [])
+          profile = manifest.get("policy_profile_used", "default")
+
+          lines = [
+              "## Dark Forge Review\n",
+              f"**Decision:** `{decision}`",
+              f"**Aggregate confidence:** {confidence:.2f}",
+              f"**Risk level:** {risk}",
+              f"**Reason:** {rationale}\n",
+              "### Panel Results\n",
+              "| Panel | Verdict | Confidence | Risk |",
+              "|-------|---------|------------|------|",
+          ]
+          for p in panels:
+              lines.append(f"| {p['panel_name']} | {p['verdict']} | {p['confidence_score']:.2f} | - |")
+
+          lines.append(f"\n**Policy profile:** {profile}")
+
+          with open("review-body.md", "w") as f:
+              f.write("\n".join(lines))
+
+      - name: Approve PR
+        if: steps.evaluate.outputs.decision == 'auto_merge'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr review "$PR_NUMBER" --approve --body-file review-body.md
+
+      - name: Comment — human review required
+        if: steps.evaluate.outputs.decision == 'human_review_required'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr review "$PR_NUMBER" --comment --body-file review-body.md
+
+      - name: Comment — auto-remediate
+        if: steps.evaluate.outputs.decision == 'auto_remediate'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr review "$PR_NUMBER" --comment --body-file review-body.md
+
+      - name: Block PR
+        if: steps.evaluate.outputs.decision == 'block'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          gh pr review "$PR_NUMBER" --request-changes --body-file review-body.md
+          exit 1
+
+      - name: Upload governance artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: governance-artifacts
+          path: |
+            manifest.json
+            evaluation.log
+            review-body.md
+          retention-days: 90
+
+  # -----------------------------------------------------------
+  # Job 4: Block PR when no emissions — required panels missing
+  # -----------------------------------------------------------
+  # This job intentionally shares name "review" with the main review job above.
+  # GitHub branch protection rules match on job name, not job ID. Using the same name
+  # ensures the required status check "review" passes regardless of which path executes.
+  skip-review:
+    name: review
+    runs-on: ubuntu-latest
+    needs: [detect, test]
+    if: needs.detect.outputs.has_emissions != 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Note: submodules omitted — consuming repos with private submodules
+          # cannot clone .ai/ in CI. The GOV_ROOT detection below handles this.
+
+      - name: Check for panel validation opt-out
+        id: optout
+        run: |
+          # Auto-detect governance root
+          if [ -d ".ai/governance" ]; then
+            GOV_ROOT=".ai"
+          elif [ -d "governance" ]; then
+            GOV_ROOT="."
+          elif grep -q '\[submodule ".ai"\]' .gitmodules 2>/dev/null || grep -q 'path = .ai' .gitmodules 2>/dev/null; then
+            GOV_ROOT=".ai"
+          else
+            GOV_ROOT="."
+          fi
+
+          # Check if project.yaml opts out of panel validation
+          # Prefer project root project.yaml, fall back to ${GOV_ROOT}/project.yaml
+          SKIP_VALIDATION="false"
+          PROJECT_YAML=""
+          if [ -f "project.yaml" ]; then
+            PROJECT_YAML="project.yaml"
+          elif [ -f "${GOV_ROOT}/project.yaml" ]; then
+            PROJECT_YAML="${GOV_ROOT}/project.yaml"
+          fi
+          if [ -n "$PROJECT_YAML" ]; then
+            if command -v python3 &>/dev/null; then
+              SKIP_VALIDATION=$(python3 -c "
+          import yaml, os
+          try:
+              with open('${PROJECT_YAML}') as f:
+                  config = yaml.safe_load(f) or {}
+              print(str(config.get('governance', {}).get('skip_panel_validation', False)).lower())
+          except Exception:
+              print('false')
+          " 2>/dev/null || echo "false")
+            fi
+          fi
+          echo "skip_validation=${SKIP_VALIDATION}" >> "$GITHUB_OUTPUT"
+
+      - name: Detect PR modifying governance settings
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          MODIFIED_GOV=$(git diff --name-only "${PR_BASE_SHA}...${PR_HEAD_SHA}" -- project.yaml .ai/project.yaml 2>/dev/null || true)
+          if [ -n "$MODIFIED_GOV" ]; then
+            echo "::warning::PR modifies project.yaml — governance settings may be changing"
+            gh pr comment "$PR_NUMBER" --body "⚠️ **Governance settings change detected:** This PR modifies \`project.yaml\`. Review governance-related settings carefully before merging."
+          fi
+
+      - name: Block PR — missing required panel emissions
+        if: steps.optout.outputs.skip_validation != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          echo "No panel emissions found. Blocking PR."
+          gh pr review "$PR_NUMBER" \
+            --repo "$REPO_NAME" \
+            --request-changes \
+            --body "## Dark Forge Review
+
+          **Decision:** \`blocked\`
+          **Reason:** No panel emissions found. Required panels have not executed.
+
+          ### Required Panels (must exist in \`governance/emissions/\`)
+
+          - \`code-review.json\`
+          - \`security-review.json\`
+          - \`threat-modeling.json\`
+          - \`cost-analysis.json\`
+          - \`documentation-review.json\`
+          - \`data-governance-review.json\`
+
+          ### What this means
+
+          **No merges are permitted without governance panel approval.** The required default panels defined in \`governance/policy/default.yaml\` must produce emissions before this PR can be merged.
+
+          ### Remediation Steps
+
+          1. **Run \`bash .ai/bin/init.sh\`** to ensure the governance workflow and panel infrastructure are set up
+          2. **Verify panel emissions exist** in \`governance/emissions/\` — each required panel must have a corresponding JSON file
+          3. **If panels are not yet configured**, see \`.ai/docs/configuration/repository-setup.md\` for setup instructions
+          4. **If this repository intentionally opts out**, set \`governance.skip_panel_validation: true\` in \`project.yaml\` (project root)
+
+          > **This check blocks the PR.** A human reviewer cannot override this without either providing panel emissions or opting out via \`project.yaml\`."
+          exit 1
+
+      - name: Warn — panel validation opted out
+        if: steps.optout.outputs.skip_validation == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO_NAME: ${{ github.repository }}
+        run: |
+          echo "Panel validation opted out via project.yaml. Posting warning."
+          gh pr review "$PR_NUMBER" \
+            --repo "$REPO_NAME" \
+            --approve \
+            --body "## Dark Forge Review
+
+          **Decision:** \`skipped (opted out)\`
+          **Reason:** No panel emissions found, but \`governance.skip_panel_validation: true\` is set in project.yaml.
+
+          > **Note:** This PR has no governance panel coverage. Auto-approved to satisfy branch protection; additional human review is recommended."

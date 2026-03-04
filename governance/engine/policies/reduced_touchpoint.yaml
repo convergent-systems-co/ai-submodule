@@ -1,0 +1,217 @@
+# Reduced Human Touchpoint Policy Profile
+# For mature repositories with established governance pipelines that want
+# minimal human intervention during routine development.
+# Part of Phase 5e — Spec-Driven Interface.
+
+profile_name: reduced_touchpoint
+profile_version: "1.1.0"
+description: >
+  Near-full-autonomy policy profile that requires human approval only for
+  policy-override scenarios, dismissed security-critical findings, or
+  confidence drops below minimum threshold. Designed for repositories with
+  mature governance pipelines where routine changes should flow through
+  automated gates without human bottlenecks. All governance panels still
+  execute — only the escalation and merge decision points are relaxed.
+
+# Confidence Weighting Model
+# Same weights as default — governance coverage is unchanged.
+weighting:
+  model: weighted_average
+  weights:
+    code-review: 0.18
+    security-review: 0.18
+    ai-expert-review: 0.12
+    architecture-review: 0.12
+    testing-review: 0.08
+    performance-review: 0.05
+    copilot-review: 0.08
+    documentation-review: 0.05
+    threat-modeling: 0.05
+    cost-analysis: 0.04
+    data-governance-review: 0.05
+  missing_panel_behavior: redistribute
+
+# Risk Aggregation Model
+# Same as default — risk classification is unchanged.
+risk_aggregation:
+  model: highest_severity
+  rules:
+    - description: "Any panel reporting critical risk escalates to critical."
+      condition: any_panel_risk == "critical"
+      result: critical
+    - description: "Two or more panels reporting high risk escalates to high."
+      condition: count(panel_risk == "high") >= 2
+      result: high
+    - description: "Single high-risk panel with others low results in medium."
+      condition: count(panel_risk == "high") == 1
+      result: medium
+    - description: "All panels low or negligible results in low."
+      condition: all_panels_risk in ["low", "negligible"]
+      result: low
+
+# Escalation Rules
+# Minimal escalation — human review only for override scenarios and
+# dismissed security-critical findings.
+escalation:
+  rules:
+    - name: policy_override_requested
+      description: "Any request to override a policy decision requires human approval."
+      condition: policy_override_requested == true
+      action: human_review_required
+      notify:
+        - role: tech_lead
+
+    - name: security_critical_dismissed
+      description: "Dismissing a critical or high severity security finding requires human review."
+      condition: dismissed_finding_severity in ["critical", "high"] and dismissed_finding_panel == "security-review"
+      action: human_review_required
+      notify:
+        - role: security_lead
+        - role: tech_lead
+
+    - name: critical_risk
+      description: "Critical aggregate risk still requires human review."
+      condition: risk_level == "critical"
+      action: human_review_required
+      notify:
+        - role: tech_lead
+
+    - name: critical_policy_violation
+      description: "Critical policy violations block merge and require human intervention."
+      condition: any_policy_flag_severity == "critical"
+      action: block
+      notify:
+        - role: tech_lead
+        - role: security_lead
+
+# Auto-merge Rules
+# Broader conditions than default — accepts medium risk when all panels approve.
+auto_merge:
+  enabled: true
+  conditions:
+    - aggregate_confidence >= 0.75
+    - risk_level in ["low", "medium", "negligible"]
+    - no_policy_flags_severity in ["critical"]
+    - all_panel_verdicts in ["approve"]
+    - requires_human_review == false
+    - ci_checks_passed == true
+  # All conditions must be satisfied (logical AND).
+  operator: all
+
+# Auto-remediate Rules
+# More permissive than default — wider range of automated fixes.
+auto_remediate:
+  enabled: true
+  max_attempts: 3
+  cooldown_minutes: 5
+  conditions:
+    - risk_level in ["low", "medium"]
+    - all_policy_flags.auto_remediable == true
+    - aggregate_confidence >= 0.50
+  allowed_actions:
+    - fix_linting
+    - add_missing_tests
+    - update_documentation
+    - fix_type_errors
+    - add_missing_docstrings
+    - fix_formatting
+  prohibited_actions:
+    - modify_security_controls
+    - change_api_contracts
+    - alter_data_schemas
+    - modify_infrastructure
+
+# Block Rules
+# Only hard blocks — fewer than default.
+block:
+  conditions:
+    - description: "Critical policy violation with no remediation path."
+      condition: any_policy_flag_severity == "critical" and not auto_remediable
+    - description: "Confidence below minimum floor."
+      condition: aggregate_confidence < 0.40
+    - description: "Required panel did not execute."
+      condition: required_panel_missing == true
+    - description: "CI checks failed."
+      condition: ci_checks_passed == false
+
+# Override Rules
+# Streamlined override — single approval with justification.
+override:
+  enabled: true
+  requirements:
+    min_approvals: 1
+    required_roles:
+      - tech_lead
+    justification_required: true
+    justification_min_length: 50
+  audit:
+    log_to_manifest: true
+    create_github_issue: true
+    notify:
+      - role: tech_lead
+      - role: engineering_manager
+  expiry:
+    cooldown_hours: 24
+    post_override_review_required: true
+
+# Required Panels
+# Same as default — governance coverage is not reduced.
+required_panels:
+  - code-review
+  - security-review
+  - threat-modeling
+  - cost-analysis
+  - finops-review
+  - documentation-review
+  - data-governance-review
+
+# Optional Panels
+# Same as default.
+# NOTE: optional_panels triggers are advisory hints for AI agents, not machine-evaluated conditions.
+# Unlike policy conditions (e.g., "aggregate_confidence >= 0.85"), these trigger strings are
+# interpreted by AI agents to determine when a panel is relevant. They are not evaluated by the
+# policy engine.
+optional_panels:
+  - panel: ai-expert-review
+    trigger: files_changed_in ["governance/personas/", "governance/prompts/", "governance/policy/", "governance/schemas/", "instructions/"]
+  - panel: architecture-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/", "governance/prompts/reviews/", "governance/prompts/workflows/", ".github/workflows/"]
+  - panel: performance-review
+    trigger: files_changed_in ["src/", "bench/"]
+  - panel: testing-review
+    trigger: test_files_changed == true
+  - panel: data-design-review
+    trigger: files_changed_in ["db/", "migrations/", "schema/"]
+  - panel: test-generation-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/", "app/"]
+  - panel: copilot-review
+    trigger: always
+  - panel: governance-compliance-review
+    trigger: always
+  - panel: api-design-review
+    trigger: files_changed_in ["api/", "openapi/", "swagger/", "graphql/"]
+  - panel: migration-review
+    trigger: files_changed_in ["db/", "migrations/", "alembic/", "flyway/"]
+  - panel: technical-debt-review
+    trigger: files_changed_in ["src/", "lib/", "pkg/"]
+
+# Proof-of-Correctness Rules (Phase 5a)
+# Same as default — verification standards are not reduced.
+proof_of_correctness:
+  enabled: true
+  rules:
+    - name: basic_verification
+      description: "Low-risk changes require basic test coverage."
+      condition: risk_level in ["low", "negligible"]
+      required_verification_level: basic
+      enforcement: warn
+    - name: standard_verification
+      description: "Medium-risk changes require standard verification."
+      condition: risk_level == "medium"
+      required_verification_level: standard
+      enforcement: warn
+    - name: strict_verification
+      description: "High or critical risk changes require strict verification."
+      condition: risk_level in ["high", "critical"]
+      required_verification_level: strict
+      enforcement: block

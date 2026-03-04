@@ -1,0 +1,26 @@
+# Example: APM/Tracing API Polling Adapter
+#
+# Polls an Application Performance Monitoring (APM) tool for performance
+# anomalies and error rate spikes. Designed for systems that expose alerting
+# endpoints for latency degradation, error rate increases, or throughput
+# drops (e.g., Datadog, New Relic, Dynatrace, or any APM with a REST API).
+#
+# See docs/architecture/runtime-feedback.md, Section 1 for the full spec.
+
+adapter_name: "apm-tool-poller"
+adapter_version: "1.0.0"
+source_type: "polling"
+endpoint: "${APM_API_BASE_URL}/api/v1/anomalies/active"
+auth_method: "basic_auth"
+auth_secret_ref: "apm-tool-credentials"
+polling_interval_seconds: 90
+timeout_seconds: 10
+retry_count: 3
+retry_backoff_base_seconds: 3
+
+signal_mapping:
+  severity: "$.anomaly.severity_level"
+  category: "$.anomaly.category"
+  component: "$.anomaly.service_name"
+  message: "$.anomaly.summary"
+  timestamp: "$.anomaly.detected_at"

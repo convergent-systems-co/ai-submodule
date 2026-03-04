@@ -1,0 +1,41 @@
+{
+  "panel_name": "ai-expert-review",
+  "panel_version": "1.0.0",
+  "schema_version": "1.0.0",
+  "confidence_score": 0.87,
+  "risk_level": "low",
+  "compliance_score": 0.95,
+  "policy_flags": [],
+  "requires_human_review": false,
+  "timestamp": "2026-02-21T22:00:00Z",
+  "findings": [
+    {
+      "persona": "ai-safety-specialist",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "Context capacity shutdown protocol preserved. Guardrails (3-issue cap, 80% hard stop, mandatory checkpoints) intact. Persona authority boundaries clearly defined with no scope creep."
+    },
+    {
+      "persona": "prompt-engineer",
+      "verdict": "approve",
+      "confidence": 0.9,
+      "rationale": "Prompt templates use ANCHOR markers for context survival. Structured emission markers (STRUCTURED_EMISSION_START/END) consistently applied. No injection vectors via user-controlled inputs."
+    },
+    {
+      "persona": "governance-architect",
+      "verdict": "approve",
+      "confidence": 0.85,
+      "rationale": "Governance gates intact \u2014 no shortcuts or bypasses. Policy weights sum to 1.0. Schema backward compatibility maintained. Run manifests capture all decisions for audit replay."
+    }
+  ],
+  "aggregate_verdict": "approve",
+  "execution_context": {
+    "repository": "convergent-systems-co/dark-forge",
+    "policy_profile": "default",
+    "model_version": "claude-opus-4-6",
+    "triggered_by": "manual"
+  },
+  "data_classification": {
+    "level": "internal"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "test_id": "code-review-missing-error-handling-001",
+  "panel": "code-review",
+  "description": "Function performing file I/O and network requests without any error handling or exception management",
+  "input": {
+    "diff": "diff --git a/src/service.py b/src/service.py\nindex 0000000..b2c3d4e 100644\n--- /dev/null\n+++ b/src/service.py\n@@ -0,0 +1,20 @@\n+import json\n+import urllib.request\n+\n+def fetch_and_save(url, output_path):\n+    \"\"\"Download JSON data and save to local file.\"\"\"\n+    response = urllib.request.urlopen(url)\n+    data = json.loads(response.read())\n+    with open(output_path, 'w') as f:\n+        json.dump(data, f)\n+    return data\n+\n+def process_config(path):\n+    \"\"\"Load config and extract settings.\"\"\"\n+    with open(path) as f:\n+        config = json.load(f)\n+    db_host = config['database']['host']\n+    db_port = config['database']['port']\n+    return db_host, db_port",
+    "files_changed": ["src/service.py"],
+    "change_type": "feat"
+  },
+  "expected": {
+    "min_findings_medium": 1,
+    "expected_categories": ["error-handling"],
+    "expected_verdict": "request_changes"
+  }
+}

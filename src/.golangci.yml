@@ -1,0 +1,36 @@
+# golangci-lint configuration for dark-governance CLI
+version: "2"
+
+run:
+  go: "1.22"
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosimple
+    - gocritic
+    - gofmt
+    - goimports
+    - misspell
+    - revive
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+  govet:
+    shadow: {}
+  revive:
+    rules:
+      - name: blank-imports
+      - name: exported
+      - name: unreachable-code
+      - name: unused-parameter
+
+issues:
+  exclude-dirs:
+    - internal/embed/_content

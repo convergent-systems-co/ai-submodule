@@ -1,0 +1,14 @@
+apiVersion: v2
+name: governance-service
+description: Dark Forge-as-a-Service — policy engine REST API
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - governance
+  - policy-engine
+  - ai-governance
+  - dark-factory
+maintainers:
+  - name: SET-Apps
+    url: https://github.com/convergent-systems-co/dark-forge

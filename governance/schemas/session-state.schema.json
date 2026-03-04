@@ -1,0 +1,490 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://set-apps.github.io/dark-forge/schemas/session-state.schema.json",
+  "title": "Cross-Session Governance State",
+  "description": "Persistent governance state accumulated across multiple agentic sessions. Unlike checkpoints (ephemeral, per-session save/restore), this state represents long-lived governance memory: metrics trends, threshold tuning history, persona weight adjustments, and work queue context. Stored in .artifacts/state/ and tracked by git.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "state_id",
+    "last_updated",
+    "governance_version",
+    "metrics_history",
+    "threshold_tuning",
+    "persona_weights",
+    "work_queue"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for this session state format."
+    },
+    "state_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this state file. Stable across updates — generated once on creation."
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp of the most recent state update."
+    },
+    "governance_version": {
+      "type": "string",
+      "description": "Git commit SHA of the .ai submodule at the time of the last state update.",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "session_counter": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Total number of agentic sessions that have contributed to this state."
+    },
+    "metrics_history": {
+      "type": "object",
+      "description": "Rolling window of autonomy metrics snapshots. Each entry references an autonomy-metrics report. Used to detect trends and inform threshold tuning.",
+      "required": ["retention_policy", "snapshots"],
+      "properties": {
+        "retention_policy": {
+          "type": "object",
+          "description": "How many snapshots to retain and when to prune.",
+          "required": ["max_snapshots", "max_age_days"],
+          "properties": {
+            "max_snapshots": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 52,
+              "description": "Maximum number of snapshots to retain. Default: 52 (one year of weekly reports)."
+            },
+            "max_age_days": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 365,
+              "description": "Maximum age of a snapshot before pruning. Default: 365 days."
+            }
+          },
+          "additionalProperties": false
+        },
+        "snapshots": {
+          "type": "array",
+          "description": "Ordered list of metrics snapshots (most recent last).",
+          "items": {
+            "$ref": "#/$defs/metrics_snapshot"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "threshold_tuning": {
+      "type": "object",
+      "description": "History of governance threshold adjustments derived from retrospective analysis. Each entry records what changed, why, and whether it was auto-applied or human-approved.",
+      "required": ["current_overrides", "history"],
+      "properties": {
+        "current_overrides": {
+          "type": "object",
+          "description": "Active threshold overrides applied on top of policy defaults. Keys are dotted policy paths (e.g., 'default.confidence_threshold').",
+          "patternProperties": {
+            "^[a-z_]+\\.[a-z_]+$": {
+              "$ref": "#/$defs/threshold_override"
+            }
+          },
+          "additionalProperties": false
+        },
+        "history": {
+          "type": "array",
+          "description": "Ordered log of threshold changes (most recent last).",
+          "items": {
+            "$ref": "#/$defs/threshold_change"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "persona_weights": {
+      "type": "object",
+      "description": "Current and historical persona weight adjustments derived from effectiveness scoring. References persona-effectiveness reports.",
+      "required": ["current_weights", "history"],
+      "properties": {
+        "current_weights": {
+          "type": "object",
+          "description": "Active persona weight overrides. Keys are persona names, values are weight multipliers.",
+          "patternProperties": {
+            "^[a-z][a-z0-9-]+$": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 2.0,
+              "description": "Weight multiplier for this persona. 1.0 = default weight."
+            }
+          },
+          "additionalProperties": false
+        },
+        "history": {
+          "type": "array",
+          "description": "Ordered log of weight changes (most recent last).",
+          "items": {
+            "$ref": "#/$defs/weight_change"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "work_queue": {
+      "type": "object",
+      "description": "Cross-session work queue state. Tracks issue lifecycle context that persists between sessions — priority overrides, dependency relationships, and learned context about recurring issue patterns.",
+      "required": ["known_issues", "priority_overrides"],
+      "properties": {
+        "known_issues": {
+          "type": "array",
+          "description": "Issues the governance system has previously interacted with. Used to provide context to new sessions without re-reading full issue history.",
+          "items": {
+            "$ref": "#/$defs/known_issue"
+          }
+        },
+        "priority_overrides": {
+          "type": "object",
+          "description": "Manual priority overrides set by humans or governance decisions. Keys are issue numbers as strings.",
+          "patternProperties": {
+            "^[0-9]+$": {
+              "type": "object",
+              "required": ["priority", "reason"],
+              "properties": {
+                "priority": {
+                  "type": "string",
+                  "enum": ["P0", "P1", "P2", "P3", "P4"],
+                  "description": "Override priority level."
+                },
+                "reason": {
+                  "type": "string",
+                  "description": "Why the priority was overridden."
+                },
+                "set_by": {
+                  "type": "string",
+                  "description": "Who set the override (human username or 'agent')."
+                },
+                "set_at": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "When the override was set."
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "dependency_graph": {
+          "type": "array",
+          "description": "Known dependencies between issues that affect scheduling order.",
+          "items": {
+            "type": "object",
+            "required": ["issue", "depends_on"],
+            "properties": {
+              "issue": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Issue number that has a dependency."
+              },
+              "depends_on": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Issue number that must be completed first."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why this dependency exists."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "governance_decisions": {
+      "type": "object",
+      "description": "Record of significant governance decisions that should inform future sessions. Not a full audit trail (that's in run manifests), but key decisions that affect ongoing behavior.",
+      "properties": {
+        "policy_exceptions": {
+          "type": "array",
+          "description": "Active policy exceptions granted by human reviewers.",
+          "items": {
+            "type": "object",
+            "required": ["policy_profile", "rule", "exception", "granted_by", "granted_at"],
+            "properties": {
+              "policy_profile": {
+                "type": "string",
+                "description": "Which policy profile this exception applies to."
+              },
+              "rule": {
+                "type": "string",
+                "description": "The specific policy rule being excepted."
+              },
+              "exception": {
+                "type": "string",
+                "description": "Description of the exception."
+              },
+              "granted_by": {
+                "type": "string",
+                "description": "Username of the human who granted the exception."
+              },
+              "granted_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the exception was granted."
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the exception expires. Null for permanent exceptions."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "suppressed_findings": {
+          "type": "array",
+          "description": "Panel findings that have been permanently suppressed (false positives confirmed by humans).",
+          "items": {
+            "type": "object",
+            "required": ["panel", "finding_pattern", "reason", "suppressed_by"],
+            "properties": {
+              "panel": {
+                "type": "string",
+                "description": "Panel that produces this finding."
+              },
+              "finding_pattern": {
+                "type": "string",
+                "description": "Pattern or hash identifying the suppressed finding."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Why this finding is a confirmed false positive."
+              },
+              "suppressed_by": {
+                "type": "string",
+                "description": "Username of the human who confirmed suppression."
+              },
+              "suppressed_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the suppression was recorded."
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-text notes about the current state. Updated by agents or humans as needed."
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "metrics_snapshot": {
+      "type": "object",
+      "description": "A reference to an autonomy-metrics report with key summary values inlined for trend analysis without loading the full report.",
+      "required": ["report_id", "period_end", "issues_completed", "merge_success_rate", "human_intervention_rate"],
+      "properties": {
+        "report_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Reference to the full autonomy-metrics report."
+        },
+        "period_end": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End of the reporting period for this snapshot."
+        },
+        "issues_completed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Issues completed in this period."
+        },
+        "merge_success_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "PR merge success rate for this period."
+        },
+        "human_intervention_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Human intervention rate for this period."
+        },
+        "avg_review_cycles": {
+          "type": "number",
+          "minimum": 0.0,
+          "description": "Average review cycles per PR for this period."
+        },
+        "governance_approval_rate": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Governance auto-approval rate for this period."
+        }
+      },
+      "additionalProperties": false
+    },
+    "threshold_override": {
+      "type": "object",
+      "description": "An active threshold override.",
+      "required": ["value", "source"],
+      "properties": {
+        "value": {
+          "type": "number",
+          "description": "The overridden threshold value."
+        },
+        "original_value": {
+          "type": "number",
+          "description": "The default value from the policy profile."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["auto_tuning", "human_override", "retrospective_recommendation"],
+          "description": "How this override was established."
+        },
+        "applied_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this override was applied."
+        }
+      },
+      "additionalProperties": false
+    },
+    "threshold_change": {
+      "type": "object",
+      "description": "A historical threshold adjustment entry.",
+      "required": ["timestamp", "policy_path", "old_value", "new_value", "source", "rationale"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the change was applied."
+        },
+        "policy_path": {
+          "type": "string",
+          "description": "Dotted path to the threshold in the policy profile (e.g., 'default.confidence_threshold')."
+        },
+        "old_value": {
+          "type": "number",
+          "description": "Previous threshold value."
+        },
+        "new_value": {
+          "type": "number",
+          "description": "New threshold value."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["auto_tuning", "human_override", "retrospective_recommendation"],
+          "description": "How this change was initiated."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Why the threshold was changed."
+        },
+        "retrospective_report_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Reference to the retrospective report that triggered this change, if applicable."
+        },
+        "approved_by": {
+          "type": ["string", "null"],
+          "description": "Human who approved the change. Null for auto-applied changes."
+        }
+      },
+      "additionalProperties": false
+    },
+    "weight_change": {
+      "type": "object",
+      "description": "A historical persona weight adjustment entry.",
+      "required": ["timestamp", "persona_name", "old_weight", "new_weight", "source", "rationale"],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the weight change was applied."
+        },
+        "persona_name": {
+          "type": "string",
+          "description": "Name of the persona whose weight was adjusted."
+        },
+        "old_weight": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "Previous weight value."
+        },
+        "new_weight": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 2.0,
+          "description": "New weight value."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["effectiveness_scoring", "human_override", "auto_adjustment"],
+          "description": "How this weight change was initiated."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "Why the weight was changed."
+        },
+        "effectiveness_report_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Reference to the persona effectiveness report that triggered this change, if applicable."
+        },
+        "approved_by": {
+          "type": ["string", "null"],
+          "description": "Human who approved the change. Null for auto-applied changes."
+        }
+      },
+      "additionalProperties": false
+    },
+    "known_issue": {
+      "type": "object",
+      "description": "Summarized context about a previously-encountered issue for cross-session continuity.",
+      "required": ["issue_number", "title", "last_interaction"],
+      "properties": {
+        "issue_number": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "GitHub issue number."
+        },
+        "title": {
+          "type": "string",
+          "description": "Issue title at the time of last interaction."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "closed", "in_progress", "refine", "blocked"],
+          "description": "Last known issue status."
+        },
+        "last_interaction": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the governance system last interacted with this issue."
+        },
+        "interaction_type": {
+          "type": "string",
+          "enum": ["implemented", "labeled_refine", "escalated", "commented", "created_pr", "skipped"],
+          "description": "Type of the last interaction."
+        },
+        "pr_number": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "description": "Associated PR number, if one was created."
+        },
+        "context_notes": {
+          "type": "string",
+          "description": "Brief notes from the agent about this issue — edge cases encountered, decisions made, things the next session should know."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

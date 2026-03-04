@@ -1,0 +1,13 @@
+{{- if .Values.governance.customProfiles }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "governance-service.fullname" . }}-policies
+  labels:
+    {{- include "governance-service.labels" . | nindent 4 }}
+data:
+  {{- range $name, $content := .Values.governance.customProfiles }}
+  {{ $name }}.yaml: |
+    {{- $content | nindent 4 }}
+  {{- end }}
+{{- end }}
